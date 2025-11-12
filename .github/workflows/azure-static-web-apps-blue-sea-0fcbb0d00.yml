@@ -47,7 +47,7 @@ jobs:
           ###### Repository/Build Configurations ######
           app_location: "/"            # Root of the app
           api_location: ""             # No API folder (optional)
-          output_location: "dist"      # ✅ Vite build output folder
+          output_location: "build"      # ✅ Vite build output folder
           ###### End Configurations ######
 
   close_pull_request_job:

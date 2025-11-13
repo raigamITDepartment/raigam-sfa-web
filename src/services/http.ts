@@ -45,8 +45,24 @@ async function refreshAccessToken(instance: AxiosInstance) {
 
 export const http = axios.create({ baseURL })
 
-http.interceptors.request.use((config) => {
-  const token = getAccessToken()
+http.interceptors.request.use(async (config) => {
+  let token = getAccessToken()
+  const isAuthEndpoint = config?.url?.includes('/api/v1/auth/')
+
+  // If no access token yet and this is not an auth endpoint, best-effort refresh
+  if (!token && !isAuthEndpoint && !isRefreshing && getRefreshToken()) {
+    try {
+      isRefreshing = true
+      const newToken = await refreshAccessToken(http)
+      onRefreshed(newToken)
+    } catch {
+      // noop; response interceptor will handle auth errors later
+    } finally {
+      isRefreshing = false
+    }
+    token = getAccessToken()
+  }
+
   if (token) {
     const headers =
       config.headers instanceof AxiosHeaders

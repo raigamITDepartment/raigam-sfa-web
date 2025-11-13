@@ -1,4 +1,3 @@
-import React from 'react'
 import { Skeleton } from '@/components/ui/skeleton'
 
 type TableSkeletonProps = {
@@ -16,7 +15,7 @@ export default function TableSkeleton({
   const cols = Array.from({ length: headerCols })
 
   return (
-    <div className='relative border-l border-r border-gray-200'>
+    <div className='relative border-r border-l border-gray-200'>
       <div className={`w-full ${minTableWidthClass} overflow-hidden`}>
         {/* Header group */}
         <div className='sticky top-0 z-10 bg-gray-200'>
@@ -29,7 +28,10 @@ export default function TableSkeleton({
           {/* Column headers */}
           <div className='flex'>
             {cols.map((_, i) => (
-              <Skeleton key={i} className='h-9 w-40 border border-gray-300 rounded-none' />
+              <Skeleton
+                key={i}
+                className='h-9 w-40 rounded-none border border-gray-300'
+              />
             ))}
           </div>
         </div>
@@ -41,7 +43,7 @@ export default function TableSkeleton({
               {cols.map((_, cIdx) => (
                 <Skeleton
                   key={cIdx}
-                  className='h-8 w-40 border border-gray-200 rounded-none'
+                  className='h-8 w-40 rounded-none border border-gray-200'
                 />
               ))}
             </div>
@@ -51,4 +53,3 @@ export default function TableSkeleton({
     </div>
   )
 }
-

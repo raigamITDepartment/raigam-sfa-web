@@ -1,4 +1,5 @@
-import axios, {
+﻿import axios, {
+  AxiosHeaders,
   type AxiosError,
   type AxiosInstance,
   type AxiosRequestConfig,
@@ -60,7 +61,7 @@ export const http = axios.create({
 })
 
 /**
- * Request interceptor – attaches Bearer token
+ * Request interceptor — attaches Bearer token
  */
 http.interceptors.request.use(async (config) => {
   let token = getAccessToken()
@@ -77,18 +78,12 @@ http.interceptors.request.use(async (config) => {
   }
 
   if (token) {
-    config.headers = {
-      ...(config.headers || {}),
-      Authorization: `Bearer ${token}`,
-    }
+    const headers = AxiosHeaders.from(config.headers)
+    headers.set('Authorization', `Bearer ${token}`)
+    config.headers = headers
 
     if (import.meta.env.DEV) {
-      console.debug(
-        '[http] Attached bearer',
-        token.slice(0, 12) + '…',
-        '→',
-        config.url
-      )
+      console.debug('[http] Attached bearer', token.slice(0, 12) + '…', config.url)
     }
   }
 
@@ -96,7 +91,7 @@ http.interceptors.request.use(async (config) => {
 })
 
 /**
- * Response interceptor – handles 401 and retries requests after refresh
+ * Response interceptor — handles 401 and retries requests after refresh
  */
 http.interceptors.response.use(
   (response) => response,
@@ -113,18 +108,14 @@ http.interceptors.response.use(
         const newToken = await refreshAccessToken(http)
 
         // Re-attach new token and retry original request
-        original.headers = {
-          ...(original.headers || {}),
-          Authorization: `Bearer ${newToken}`,
-        }
+        const headers = AxiosHeaders.from(
+          original.headers as unknown as AxiosHeaders | undefined
+        )
+        headers.set('Authorization', `Bearer ${newToken}`)
+        original.headers = headers
 
         if (import.meta.env.DEV) {
-          console.debug(
-            '[http] Refreshed bearer',
-            newToken.slice(0, 12) + '…',
-            '→',
-            original.url
-          )
+          console.debug('[http] Refreshed bearer', newToken.slice(0, 12) + '…', original.url)
         }
 
         return http(original)

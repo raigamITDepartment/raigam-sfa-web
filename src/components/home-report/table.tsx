@@ -156,12 +156,12 @@ function renderTable(
         <thead>
           {/* Month Row */}
           <tr
-            className={`sticky top-0 z-30 ${isFullScreen ? 'top-0 bg-blue-100' : 'bg-blue-100'}`}
+            className={`sticky top-0 z-30 dark:bg-gray-900 ${isFullScreen ? 'top-0 bg-blue-100' : 'bg-blue-100'}`}
           >
             {currentMonthHeaders.length > 0 && (
               <th
                 colSpan={currentMonthHeaders.length}
-                className='border border-r-2 border-gray-300 py-3 text-center font-bold text-blue-900'
+                className='border border-r-2 border-gray-300 py-3 text-center font-bold text-blue-900 dark:text-white'
               >
                 {monthKey}
               </th>
@@ -169,7 +169,7 @@ function renderTable(
             {pastMonthsHeaders.length > 0 && (
               <th
                 colSpan={pastMonthsHeaders.length}
-                className='border border-gray-300 py-3 text-center font-bold text-blue-900'
+                className='border border-gray-300 py-3 text-center font-bold text-blue-900 dark:text-white'
               >
                 Past 6 Months Figures
               </th>
@@ -189,7 +189,7 @@ function renderTable(
             {headers.map((h, i) => (
               <th
                 key={i}
-                className={`border border-gray-300 px-5 py-3 text-center text-sm font-semibold ${h === 'Territory' ? 'sticky left-0 border-l-2 border-blue-500 bg-gray-200 shadow-md' : ''}`}
+                className={`border border-gray-300 px-5 py-3 text-center text-sm font-semibold dark:bg-gray-800 ${h === 'Territory' ? 'sticky left-0 border-l-2 border-blue-500 bg-gray-200 shadow-md' : ''}`}
               >
                 {h}
               </th>
@@ -518,7 +518,7 @@ export default function HomeReportTable({ items, periodLabel }: Props) {
 
       {/* Fullscreen Overlay */}
       {isFullScreen && (
-        <div className='bg-opacity-95 fixed inset-0 z-[2000] flex flex-col bg-white p-6'>
+        <div className='bg-opacity-95 fixed inset-0 z-[2000] flex flex-col bg-white p-6 dark:bg-gray-900'>
           <div className='mb-3 flex items-center justify-between'>
             <div className='text-xl font-semibold text-gray-900'>
               Home Report
@@ -562,9 +562,9 @@ export default function HomeReportTable({ items, periodLabel }: Props) {
       )}
 
       {!isFullScreen && (
-        <div className='border-t border-gray-300 bg-white'>
+        <div className=''>
           <div className='flex items-center justify-between p-3'>
-            <div className='text-sm text-gray-700'>
+            <div className='text-sm'>
               Showing {paginated.length} of {filtered.length} results
             </div>
             <div className='flex items-center space-x-2'>
@@ -576,7 +576,7 @@ export default function HomeReportTable({ items, periodLabel }: Props) {
                 <ChevronLeft className='h-4 w-4' />
                 Previous
               </Button>
-              <div className='px-2 text-sm text-gray-700'>
+              <div className='px-2 text-sm'>
                 Page {page} of{' '}
                 {Math.max(1, Math.ceil(filtered.length / rowsPerPage))}
               </div>

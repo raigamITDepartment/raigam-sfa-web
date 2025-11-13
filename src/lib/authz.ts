@@ -278,7 +278,6 @@ export function isPathAllowedForRole(
 ): boolean {
   if (!pathname) return false
   const allowed = longestMatchingRule(pathname)
-  console.log('roleId', roleId)
   if (!allowed) return true // no rule means allowed
   if (!roleId) return false
   return allowed.includes(roleId)

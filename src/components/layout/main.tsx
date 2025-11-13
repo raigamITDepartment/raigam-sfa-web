@@ -11,7 +11,7 @@ export function Main({ fixed, className, fluid, ...props }: MainProps) {
     <main
       data-layout={fixed ? 'fixed' : 'auto'}
       className={cn(
-        'px-8 py-8',
+        'bg-gray-50 p-4 dark:bg-gray-950',
 
         // If layout is fixed, make the main container flex and grow
         fixed && 'flex grow flex-col overflow-hidden',

@@ -74,7 +74,8 @@ export const loginThunk = createAsyncThunk(
   async (payload: LoginRequest & { remember?: boolean }) => {
     const res = await authApi.login(payload)
     const p = res.payload
-    setAccessToken(p.token)
+    // Store access token and its expiry duration (ms)
+    setAccessToken(p.token, p.accessTokenExpiry)
     // Persist remember preference for future refreshes
     setRememberPreference(!!payload.remember)
     // If remember is true, persist refresh cookie with API expiry; otherwise use session cookie
@@ -99,7 +100,10 @@ export const hydrateFromRefreshThunk = createAsyncThunk(
     if (!rt) throw new Error('No refresh token')
     const res = await authApi.refresh(rt)
     const p = res.payload
-    setAccessToken(p.token)
+    // API may return `accessToken` (preferred) or `token`
+    const newAccess = p.accessToken ?? p.token
+    if (!newAccess) throw new Error('Invalid refresh payload')
+    setAccessToken(newAccess, p.accessTokenExpiry)
     if (p.refreshToken && p.refreshTokenExpiry) {
       // Respect stored remember preference when refreshing
       const session = !getRememberPreference()

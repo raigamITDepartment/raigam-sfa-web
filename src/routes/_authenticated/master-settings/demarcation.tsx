@@ -1,8 +1,17 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Card } from '@/components/ui/card'
 import { CommonTabs } from '@/components/common-tabs'
 import { Main } from '@/components/layout/main'
 import { PageHeader } from '@/components/layout/page-header'
+import {
+  Channel,
+  SubChannel,
+  Region,
+  Area,
+  AreaRegionMapping,
+  Territory,
+  RouteComponent,
+  Agency,
+} from '@/components/demarcation'
 
 export const Route = createFileRoute(
   '/_authenticated/master-settings/demarcation'
@@ -17,53 +26,53 @@ export const Route = createFileRoute(
           { label: 'Demarcation' },
         ]}
       />
-      <Card className='mt-4 p-4'>
+      <div className='mt-4'>
         <CommonTabs
-          defaultValue='channel-creation'
+          defaultValue='channel'
           items={[
             {
-              value: 'channel-creation',
-              label: 'Channel Creation',
-              content: <div>Route Creation</div>,
+              value: 'channel',
+              label: 'Channel',
+              content: <Channel />,
             },
             {
-              value: 'sub-channel-creation',
-              label: 'Sub-Channel Creation',
-              content: <div>Sub-Channel Creation</div>,
+              value: 'sub-channel',
+              label: 'Sub Channel',
+              content: <SubChannel />,
             },
             {
-              value: 'region-creation',
-              label: 'Region Creation',
-              content: <div>Region Creation</div>,
+              value: 'region',
+              label: 'Region',
+              content: <Region />,
             },
             {
-              value: 'area-creation',
-              label: 'Area Creation',
-              content: <div>Area Creation</div>,
+              value: 'area',
+              label: 'Area',
+              content: <Area />,
             },
             {
               value: 'area-region-mapping',
               label: 'Area Region Mapping',
-              content: <div>Area Region Mapping</div>,
+              content: <AreaRegionMapping />,
             },
             {
-              value: 'territory-creation',
-              label: 'Territory Creation',
-              content: <div>Territory Creation</div>,
+              value: 'territory',
+              label: 'Territory',
+              content: <Territory />,
             },
             {
-              value: 'route-creation',
-              label: 'Route Creation',
-              content: <div>Route Creation</div>,
+              value: 'route',
+              label: 'Route',
+              content: <RouteComponent />,
             },
             {
-              value: 'agency-creation',
-              label: 'Agency Creation',
-              content: <div>Agency Creation</div>,
+              value: 'agency',
+              label: 'Agency',
+              content: <Agency />,
             },
           ]}
         />
-      </Card>
+      </div>
     </Main>
   ),
 })

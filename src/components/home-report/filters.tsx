@@ -96,7 +96,7 @@ function Filters({ onApply }: FiltersProps) {
   }
 
   return (
-    <div className='gird columns-8'>
+    <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-6'>
       <Select value={subChannelId} onValueChange={setSubChannelId}>
         <SelectTrigger className='w-full'>
           <SelectValue placeholder='Select Sub Channel' />

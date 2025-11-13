@@ -5,7 +5,14 @@ import { PageHeader } from '@/components/layout/page-header'
 export const Route = createFileRoute('/_authenticated/master-settings/distributor-mapping')({
   component: () => (
     <Main>
-      <PageHeader title='Distributor Mapping' description='Add page description' />
+      <PageHeader
+        title='Distributor Mapping'
+        breadcrumbs={[
+          { label: 'Home', to: '/dashboard/overview' },
+          { label: 'Master Settings' },
+          { label: 'Distributor Mapping' },
+        ]}
+      />
       <div>Distributor Mapping</div>
     </Main>
   ),

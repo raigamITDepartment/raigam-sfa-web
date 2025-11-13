@@ -7,7 +7,15 @@ export const Route = createFileRoute('/_authenticated/agency-module/invoice/post
   beforeLoad: () => ensureRoleAccess([RoleId.SystemAdmin, RoleId.OperationSales]),
   component: () => (
     <Main>
-      <PageHeader title='Post Invoice' description='Add page description' />
+      <PageHeader
+        title='Post Invoice'
+        breadcrumbs={[
+          { label: 'Home', to: '/dashboard/overview' },
+          { label: 'Agency Module' },
+          { label: 'Invoice' },
+          { label: 'Post Invoice' },
+        ]}
+      />
       <div>Agency Module - Invoice - Post Invoice</div>
     </Main>
   ),

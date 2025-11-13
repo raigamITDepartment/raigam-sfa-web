@@ -5,8 +5,8 @@ import {
   getHomeReportData,
   type HomeReportParams,
 } from '@/services/reports/homeReportApi'
-import { CommonAlert } from '@/components/common-alert'
 import { Card } from '@/components/ui/card'
+import { CommonAlert } from '@/components/common-alert'
 import Filters from '@/components/home-report/filters'
 import HomeReportTable from '@/components/home-report/table'
 import TableSkeleton from '@/components/home-report/table-skeleton'
@@ -41,7 +41,11 @@ function HomeReportPage() {
     <Main>
       <PageHeader
         title='Home Report'
-        description='Channel/territory day-wise summary'
+        breadcrumbs={[
+          { label: 'Home', to: '/dashboard/overview' },
+          { label: 'dashboard' },
+          { label: 'Home Report' },
+        ]}
       />
 
       <Card className='mb-4 p-4 shadow-sm dark:bg-gray-950'>
@@ -59,14 +63,19 @@ function HomeReportPage() {
         <Card className='round-md overflow-auto p-2'>
           {isFetching && (
             <div className='p-2'>
-              <TableSkeleton headerCols={16} rows={data?.payload?.length ?? 10} />
+              <TableSkeleton
+                headerCols={16}
+                rows={data?.payload?.length ?? 10}
+              />
             </div>
           )}
           {isError && <div>Failed to load data</div>}
           {data && (
             <HomeReportTable
               items={data.payload}
-              periodLabel={params ? `${params.month}/${params.year}` : undefined}
+              periodLabel={
+                params ? `${params.month}/${params.year}` : undefined
+              }
             />
           )}
         </Card>

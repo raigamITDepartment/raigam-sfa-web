@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import type { HomeReportItem } from '@/services/reports/homeReportApi'
 import {
   ChevronLeft,
   ChevronRight,
   Maximize as Fullscreen,
   Minimize,
+  Download,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -321,6 +322,97 @@ export default function HomeReportTable({ items, periodLabel }: Props) {
   const [search, setSearch] = useState('')
   const [isFullScreen, setIsFullScreen] = useState(false)
   const rowsPerPage = isFullScreen ? 50 : 10
+  const tableRef = useRef<HTMLDivElement | null>(null)
+  const exportRef = useRef<HTMLDivElement | null>(null)
+
+  const buildExportCss = () => `
+    body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, Noto Sans, 'Apple Color Emoji', 'Segoe UI Emoji'; color: #111827; }
+    table { border-collapse: collapse; width: 100%; font-size: 12px; }
+    thead tr th { text-align: center; }
+    th, td { border: 1px solid #D1D5DB; padding: 6px 10px; white-space: nowrap; }
+    /* Borders and spacing utilities */
+    .border { border: 1px solid #D1D5DB; }
+    .border-gray-300 { border-color: #D1D5DB !important; }
+    .border-blue-500 { border-color: #3B82F6 !important; }
+    .border-l-2 { border-left-width: 2px; }
+    .border-r-2 { border-right-width: 2px; }
+    .px-5 { padding-left: 1.25rem; padding-right: 1.25rem; }
+    .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+    .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+    .text-sm { font-size: 0.875rem; }
+    .whitespace-nowrap { white-space: nowrap; }
+    /* Basic backgrounds */
+    .bg-white { background-color: #ffffff; }
+    .bg-gray-100 { background-color: #F3F4F6; }
+    .bg-gray-200 { background-color: #E5E7EB; }
+    .bg-gray-300 { background-color: #D1D5DB; }
+    .bg-blue-100 { background-color: #DBEAFE; }
+    /* Tailwind 50 shades used for daily columns */
+    .bg-blue-50 { background-color: #EFF6FF; }
+    .bg-green-50 { background-color: #F0FDF4; }
+    .bg-yellow-50 { background-color: #FFFBEB; }
+    .bg-red-50 { background-color: #FEF2F2; }
+    .bg-purple-50 { background-color: #FAF5FF; }
+    .bg-pink-50 { background-color: #FDF2F8; }
+    .bg-indigo-50 { background-color: #EEF2FF; }
+    .bg-teal-50 { background-color: #F0FDFA; }
+    .bg-cyan-50 { background-color: #ECFEFF; }
+    .bg-amber-50 { background-color: #FFFBEB; }
+    .bg-lime-50 { background-color: #F7FEE7; }
+    .bg-emerald-50 { background-color: #ECFDF5; }
+    .bg-sky-50 { background-color: #F0F9FF; }
+    .bg-violet-50 { background-color: #F5F3FF; }
+    .bg-fuchsia-50 { background-color: #FDF4FF; }
+    .bg-rose-50 { background-color: #FFF1F2; }
+    .bg-orange-50 { background-color: #FFF7ED; }
+    .bg-gray-50 { background-color: #F9FAFB; }
+    /* Tailwind 100 shades used for daily columns */
+    .bg-blue-100 { background-color: #DBEAFE; }
+    .bg-green-100 { background-color: #DCFCE7; }
+    .bg-yellow-100 { background-color: #FEF3C7; }
+    .bg-red-100 { background-color: #FEE2E2; }
+    .bg-purple-100 { background-color: #F3E8FF; }
+    .bg-pink-100 { background-color: #FCE7F3; }
+    .bg-indigo-100 { background-color: #E0E7FF; }
+    .bg-teal-100 { background-color: #CCFBF1; }
+    .bg-cyan-100 { background-color: #CFFAFE; }
+    .bg-amber-100 { background-color: #FEF3C7; }
+    .bg-lime-100 { background-color: #ECFCCB; }
+    .bg-emerald-100 { background-color: #D1FAE5; }
+    .bg-sky-100 { background-color: #E0F2FE; }
+    .bg-violet-100 { background-color: #EDE9FE; }
+    .bg-fuchsia-100 { background-color: #FAE8FF; }
+    .bg-rose-100 { background-color: #FFE4E6; }
+    .bg-orange-100 { background-color: #FFEDD5; }
+    /* Text colors used */
+    .text-blue-900 { color: #1E3A8A; }
+    .text-green-600 { color: #16A34A; }
+    .text-yellow-600 { color: #CA8A04; }
+    .text-red-600 { color: #DC2626; }
+    .text-gray-900 { color: #111827; }
+    /* Simple utility equivalents */
+    .text-center { text-align: center; }
+    .font-bold { font-weight: 700; }
+    .font-semibold { font-weight: 600; }
+    .sticky { position: sticky; }
+    .left-0 { left: 0; }
+  `
+
+  const handleExportExcel = () => {
+    const html =
+      exportRef.current?.innerHTML || tableRef.current?.innerHTML || ''
+    const styles = buildExportCss()
+    const content = `<!doctype html><html><head><meta charset="utf-8"/><style>${styles}</style></head><body>${html}</body></html>`
+    const blob = new Blob([content], { type: 'application/vnd.ms-excel' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `Home_Report_${monthKey || 'report'}.xls`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
 
   const monthKey = useMemo(() => {
     if (periodLabel) return periodLabel
@@ -513,6 +605,15 @@ export default function HomeReportTable({ items, periodLabel }: Props) {
           >
             <Fullscreen className='h-4 w-4' />
           </Button>
+          <Button
+            size='sm'
+            variant='outline'
+            onClick={handleExportExcel}
+            aria-label='Download Excel'
+            title='Download Excel (.xls)'
+          >
+            <Download className='h-4 w-4' />
+          </Button>
         </div>
       )}
 
@@ -549,7 +650,7 @@ export default function HomeReportTable({ items, periodLabel }: Props) {
 
       {/* Normal Table */}
       {!isFullScreen && (
-        <div className='overflow-auto'>
+        <div className='overflow-auto' ref={tableRef}>
           {renderTable(
             headers,
             currentMonthHeaders,
@@ -560,6 +661,18 @@ export default function HomeReportTable({ items, periodLabel }: Props) {
           )}
         </div>
       )}
+
+      {/* Hidden full table for print/export (no pagination) */}
+      <div className='hidden' ref={exportRef} aria-hidden>
+        {renderTable(
+          headers,
+          currentMonthHeaders,
+          pastMonthsHeaders,
+          monthKey,
+          filtered,
+          false
+        )}
+      </div>
 
       {!isFullScreen && (
         <div className=''>

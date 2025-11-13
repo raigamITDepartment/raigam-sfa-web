@@ -12,7 +12,14 @@ export const Route = createFileRoute('/_authenticated/outlet-module')({
     ]),
   component: () => (
     <Main>
-      <PageHeader title='Route' description='Add page description' />
+      <PageHeader
+        title='Route'
+        breadcrumbs={[
+          { label: 'Home', to: '/dashboard/overview' },
+          { label: 'Outlet Module' },
+          { label: 'Route' },
+        ]}
+      />
       <div>Outlet Module - Route</div>
     </Main>
   ),

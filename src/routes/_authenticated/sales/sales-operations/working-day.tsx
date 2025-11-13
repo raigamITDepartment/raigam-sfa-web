@@ -7,7 +7,15 @@ export const Route = createFileRoute('/_authenticated/sales/sales-operations/wor
   beforeLoad: () => ensureRoleAccess([RoleId.SystemAdmin, RoleId.TopManager, RoleId.ManagerSales, RoleId.ExecutiveCompany]),
   component: () => (
     <Main>
-      <PageHeader title='Working Day' description='Add page description' />
+      <PageHeader
+        title='Working Day'
+        breadcrumbs={[
+          { label: 'Home', to: '/dashboard/overview' },
+          { label: 'Sales' },
+          { label: 'Sales Operations' },
+          { label: 'Working Day' },
+        ]}
+      />
       <div>Sales Operations - Working Day</div>
     </Main>
   ),

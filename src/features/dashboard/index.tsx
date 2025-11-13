@@ -17,7 +17,14 @@ export function Dashboard() {
     <>
       {/* ===== Main ===== */}
       <Main>
-        <PageHeader title='Dashboard' />
+        <PageHeader
+          title='Dashboard'
+          breadcrumbs={[
+            { label: 'Home', to: '/dashboard/overview' },
+            { label: 'Dashboards' },
+            { label: 'Overview' },
+          ]}
+        />
         <Tabs
           orientation='vertical'
           defaultValue='overview'

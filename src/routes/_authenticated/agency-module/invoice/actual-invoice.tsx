@@ -7,7 +7,15 @@ export const Route = createFileRoute('/_authenticated/agency-module/invoice/actu
   beforeLoad: () => ensureRoleAccess([RoleId.SystemAdmin, RoleId.OperationSales]),
   component: () => (
     <Main>
-      <PageHeader title='Actual Invoice' description='Add page description' />
+      <PageHeader
+        title='Actual Invoice'
+        breadcrumbs={[
+          { label: 'Home', to: '/dashboard/overview' },
+          { label: 'Agency Module' },
+          { label: 'Invoice' },
+          { label: 'Actual Invoice' },
+        ]}
+      />
       <div>Agency Module - Invoice - Actual Invoice</div>
     </Main>
   ),

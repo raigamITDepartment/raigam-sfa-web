@@ -5,7 +5,15 @@ import { PageHeader } from '@/components/layout/page-header'
 export const Route = createFileRoute('/_authenticated/sales/sales-details/view-invoices')({
   component: () => (
     <Main>
-      <PageHeader title='View Invoices' description='Add page description' />
+      <PageHeader
+        title='View Invoices'
+        breadcrumbs={[
+          { label: 'Home', to: '/dashboard/overview' },
+          { label: 'Sales' },
+          { label: 'Sales Details' },
+          { label: 'View Invoices' },
+        ]}
+      />
       <div>Sales Details - View Invoices</div>
     </Main>
   ),

@@ -7,7 +7,15 @@ export const Route = createFileRoute('/_authenticated/agency-module/dashboard/mo
   beforeLoad: () => ensureRoleAccess([RoleId.SystemAdmin, RoleId.OperationSales]),
   component: () => (
     <Main>
-      <PageHeader title='Monthly Target' description='Add page description' />
+      <PageHeader
+        title='Monthly Target'
+        breadcrumbs={[
+          { label: 'Home', to: '/dashboard/overview' },
+          { label: 'Agency Module' },
+          { label: 'Dashboard' },
+          { label: 'Monthly Target' },
+        ]}
+      />
       <div>Agency Module - Dashboard - Monthly Target</div>
     </Main>
   ),

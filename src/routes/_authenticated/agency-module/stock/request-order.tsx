@@ -7,7 +7,15 @@ export const Route = createFileRoute('/_authenticated/agency-module/stock/reques
   beforeLoad: () => ensureRoleAccess([RoleId.SystemAdmin, RoleId.TopManager, RoleId.SeniorManagerSales, RoleId.ManagerSales, RoleId.ExecutiveSales, RoleId.OperationCompany]),
   component: () => (
     <Main>
-      <PageHeader title='Request Order' description='Add page description' />
+      <PageHeader
+        title='Request Order'
+        breadcrumbs={[
+          { label: 'Home', to: '/dashboard/overview' },
+          { label: 'Agency Module' },
+          { label: 'Stock' },
+          { label: 'Request Order' },
+        ]}
+      />
       <div>Agency Module - Stock - Request Order</div>
     </Main>
   ),

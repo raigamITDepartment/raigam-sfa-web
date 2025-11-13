@@ -33,7 +33,19 @@ const monthOptions = [
   { value: 12, label: 'December' },
 ]
 
-function Filters() {
+type FiltersPayload = {
+  subChannelId?: number
+  areaId?: number
+  rangeId?: number
+  year?: number
+  month?: number
+}
+
+type FiltersProps = {
+  onApply?: (payload: FiltersPayload) => void
+}
+
+function Filters({ onApply }: FiltersProps) {
   const [subChannelId, setSubChannelId] = useState<string>('')
   const [areaId, setAreaId] = useState<string>('')
   const [rangeId, setRangeId] = useState<string>('')
@@ -72,7 +84,7 @@ function Filters() {
   })
 
   const handleApply = () => {
-    const payload = {
+    const payload: FiltersPayload = {
       subChannelId: subChannelId ? Number(subChannelId) : undefined,
       areaId: areaId ? Number(areaId) : undefined,
       rangeId: rangeId ? Number(rangeId) : undefined,
@@ -80,13 +92,8 @@ function Filters() {
       month: month ? Number(month) : undefined,
     }
 
-    // eslint-disable-next-line no-console
-    console.log(payload)
+    onApply?.(payload)
   }
-
-  console.log('subChannels', subChannels)
-  console.log('areas', areas)
-  console.log('ranges', ranges)
 
   return (
     <>
@@ -97,7 +104,7 @@ function Filters() {
         <SelectContent>
           {subChannels?.map((sc) => (
             <SelectItem key={sc.id} value={String(sc.id)}>
-              {sc.channelName}
+              {sc.subChannelName}
             </SelectItem>
           ))}
         </SelectContent>

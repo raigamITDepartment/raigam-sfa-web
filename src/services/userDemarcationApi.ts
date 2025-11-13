@@ -10,7 +10,7 @@ export type Id = number | string
 
 // Minimal DTOs – extend once backend payloads are finalized
 export type ChannelDTO = { id: Id; name: string }
-export type SubChannelDTO = { id: Id; channelName: string }
+export type SubChannelDTO = { id: Id; subChannelName: string }
 export type RegionDTO = { id: Id; name: string }
 export type DepartmentDTO = { id: Id; name: string }
 export type TerritoryDTO = { id: Id; name: string }

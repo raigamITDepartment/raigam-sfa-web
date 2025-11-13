@@ -96,7 +96,7 @@ function Filters({ onApply }: FiltersProps) {
   }
 
   return (
-    <>
+    <div className='gird columns-8'>
       <Select value={subChannelId} onValueChange={setSubChannelId}>
         <SelectTrigger className='w-full'>
           <SelectValue placeholder='Select Sub Channel' />
@@ -165,7 +165,7 @@ function Filters({ onApply }: FiltersProps) {
       <Button variant='default' onClick={handleApply}>
         Apply Filters
       </Button>
-    </>
+    </div>
   )
 }
 

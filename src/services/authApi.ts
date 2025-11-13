@@ -48,8 +48,10 @@ export type RefreshResponse = {
   code: number
   message: string
   payload: {
-    token: string
-    accessTokenExpiry: number
+    // Some backends return `accessToken`; others may return `token`
+    accessToken?: string
+    token?: string
+    accessTokenExpiry?: number
     refreshToken?: string
     refreshTokenExpiry?: number
   }
@@ -61,4 +63,3 @@ export async function refresh(refreshToken: string) {
   })
   return res.data
 }
-

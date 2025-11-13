@@ -1,15 +1,11 @@
 import { http } from '@/services/http'
 
 export type HomeReportParams = {
-  // Optional filters supported by the endpoint
-  subChannelId?: number | string
+  subChannelId?: number
   month?: number
   year?: number
-
-  // Explicitly requested params
-  territoryId?: number | string
-  startDate?: string // e.g. '2025-10-01'
-  endDate?: string // e.g. '2025-10-31'
+  rangeId?: number
+  areaId?: number
 }
 
 export type HomeReportItem = {

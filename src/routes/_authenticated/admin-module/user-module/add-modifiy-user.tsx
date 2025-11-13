@@ -7,7 +7,15 @@ export const Route = createFileRoute('/_authenticated/admin-module/user-module/a
   beforeLoad: () => ensureRoleAccess([RoleId.SystemAdmin]),
   component: () => (
     <Main>
-      <PageHeader title='Add / Modify User' description='Add page description' />
+      <PageHeader
+        title='Add / Modify User'
+        breadcrumbs={[
+          { label: 'Home', to: '/dashboard/overview' },
+          { label: 'Admin Module' },
+          { label: 'User Module' },
+          { label: 'Add / Modify User' },
+        ]}
+      />
       <div>Admin Module - User Module - Add/Modifiy User</div>
     </Main>
   ),

@@ -7,7 +7,15 @@ export const Route = createFileRoute('/_authenticated/agency-module/stock/view-s
   beforeLoad: () => ensureRoleAccess([RoleId.SystemAdmin, RoleId.TopManager, RoleId.SeniorManagerSales, RoleId.ManagerSales, RoleId.ExecutiveSales, RoleId.OperationCompany]),
   component: () => (
     <Main>
-      <PageHeader title='View Stock' description='Add page description' />
+      <PageHeader
+        title='View Stock'
+        breadcrumbs={[
+          { label: 'Home', to: '/dashboard/overview' },
+          { label: 'Agency Module' },
+          { label: 'Stock' },
+          { label: 'View Stock' },
+        ]}
+      />
       <div>Agency Module - Stock - View Stock</div>
     </Main>
   ),

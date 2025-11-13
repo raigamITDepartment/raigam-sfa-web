@@ -13,7 +13,14 @@ export const Route = createFileRoute('/_authenticated/hr-module/time-attendance'
     ]),
   component: () => (
     <Main>
-      <PageHeader title='Time Attendance' description='Add page description' />
+      <PageHeader
+        title='Time Attendance'
+        breadcrumbs={[
+          { label: 'Home', to: '/dashboard/overview' },
+          { label: 'HR Module' },
+          { label: 'Time Attendance' },
+        ]}
+      />
       <div>HR Module - Time Attendance</div>
     </Main>
   ),

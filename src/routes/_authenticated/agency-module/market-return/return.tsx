@@ -7,7 +7,15 @@ export const Route = createFileRoute('/_authenticated/agency-module/market-retur
   beforeLoad: () => ensureRoleAccess([RoleId.SystemAdmin, RoleId.OperationSales]),
   component: () => (
     <Main>
-      <PageHeader title='Market Return' description='Add page description' />
+      <PageHeader
+        title='Market Return'
+        breadcrumbs={[
+          { label: 'Home', to: '/dashboard/overview' },
+          { label: 'Agency Module' },
+          { label: 'Market Return' },
+          { label: 'Return' },
+        ]}
+      />
       <div>Agency Module - Market Return - Return</div>
     </Main>
   ),

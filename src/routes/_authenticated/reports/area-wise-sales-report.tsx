@@ -7,7 +7,14 @@ export const Route = createFileRoute('/_authenticated/reports/area-wise-sales-re
   beforeLoad: () => ensureRoleAccess([RoleId.SystemAdmin, RoleId.TopManager, RoleId.ExecutiveCompany, RoleId.ManagerSales]),
   component: () => (
     <Main>
-      <PageHeader title='Area Wise Sales Report' description='Add page description' />
+      <PageHeader
+        title='Area Wise Sales Report'
+        breadcrumbs={[
+          { label: 'Home', to: '/dashboard/overview' },
+          { label: 'Reports' },
+          { label: 'Area Wise Sales Report' },
+        ]}
+      />
       <div>Reports - Area Wise Sales Report</div>
     </Main>
   ),

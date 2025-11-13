@@ -7,7 +7,14 @@ export const Route = createFileRoute('/_authenticated/reports/achievement-catego
   beforeLoad: () => ensureRoleAccess([RoleId.SystemAdmin, RoleId.TopManager, RoleId.ExecutiveCompany, RoleId.ManagerSales]),
   component: () => (
     <Main>
-      <PageHeader title='Achievement Category Wise' description='Add page description' />
+      <PageHeader
+        title='Achievement Category Wise'
+        breadcrumbs={[
+          { label: 'Home', to: '/dashboard/overview' },
+          { label: 'Reports' },
+          { label: 'Achievement Category Wise' },
+        ]}
+      />
       <div>Reports - Achievement Category Wise</div>
     </Main>
   ),

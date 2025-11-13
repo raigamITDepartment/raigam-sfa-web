@@ -7,7 +7,14 @@ export const Route = createFileRoute('/_authenticated/reports/item-summary-repor
   beforeLoad: () => ensureRoleAccess([RoleId.SystemAdmin, RoleId.TopManager, RoleId.ExecutiveCompany, RoleId.ManagerSales]),
   component: () => (
     <Main>
-      <PageHeader title='Item Summary Report' description='Add page description' />
+      <PageHeader
+        title='Item Summary Report'
+        breadcrumbs={[
+          { label: 'Home', to: '/dashboard/overview' },
+          { label: 'Reports' },
+          { label: 'Item Summary Report' },
+        ]}
+      />
       <div>Reports - Item Summary Report</div>
     </Main>
   ),

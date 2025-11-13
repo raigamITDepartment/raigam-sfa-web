@@ -5,7 +5,15 @@ import { PageHeader } from '@/components/layout/page-header'
 export const Route = createFileRoute('/_authenticated/sales/sales-details/stock')({
   component: () => (
     <Main>
-      <PageHeader title='Stock' description='Add page description' />
+      <PageHeader
+        title='Stock'
+        breadcrumbs={[
+          { label: 'Home', to: '/dashboard/overview' },
+          { label: 'Sales' },
+          { label: 'Sales Details' },
+          { label: 'Stock' },
+        ]}
+      />
       <div>Sales Details - Stock</div>
     </Main>
   ),

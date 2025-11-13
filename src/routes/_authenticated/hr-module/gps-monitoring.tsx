@@ -13,7 +13,14 @@ export const Route = createFileRoute('/_authenticated/hr-module/gps-monitoring')
     ]),
   component: () => (
     <Main>
-      <PageHeader title='GPS Monitoring' description='Add page description' />
+      <PageHeader
+        title='GPS Monitoring'
+        breadcrumbs={[
+          { label: 'Home', to: '/dashboard/overview' },
+          { label: 'HR Module' },
+          { label: 'GPS Monitoring' },
+        ]}
+      />
       <div>HR Module - GPS Monitoring</div>
     </Main>
   ),

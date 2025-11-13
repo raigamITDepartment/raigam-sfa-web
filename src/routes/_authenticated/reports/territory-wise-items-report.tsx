@@ -7,7 +7,14 @@ export const Route = createFileRoute('/_authenticated/reports/territory-wise-ite
   beforeLoad: () => ensureRoleAccess([RoleId.SystemAdmin, RoleId.TopManager, RoleId.ExecutiveCompany, RoleId.ManagerSales]),
   component: () => (
     <Main>
-      <PageHeader title='Territory Wise Items Report' description='Add page description' />
+      <PageHeader
+        title='Territory Wise Items Report'
+        breadcrumbs={[
+          { label: 'Home', to: '/dashboard/overview' },
+          { label: 'Reports' },
+          { label: 'Territory Wise Items Report' },
+        ]}
+      />
       <div>Reports - Territory Wise Items Report</div>
     </Main>
   ),

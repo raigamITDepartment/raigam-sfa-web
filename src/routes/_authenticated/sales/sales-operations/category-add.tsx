@@ -7,7 +7,15 @@ export const Route = createFileRoute('/_authenticated/sales/sales-operations/cat
   beforeLoad: () => ensureRoleAccess([RoleId.SystemAdmin, RoleId.TopManager, RoleId.ManagerSales, RoleId.ExecutiveCompany]),
   component: () => (
     <Main>
-      <PageHeader title='Category Add' description='Add page description' />
+      <PageHeader
+        title='Category Add'
+        breadcrumbs={[
+          { label: 'Home', to: '/dashboard/overview' },
+          { label: 'Sales' },
+          { label: 'Sales Operations' },
+          { label: 'Category Add' },
+        ]}
+      />
       <div>Sales Operations - Category Add</div>
     </Main>
   ),

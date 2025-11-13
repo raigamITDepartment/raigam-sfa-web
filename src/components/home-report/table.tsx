@@ -569,6 +569,7 @@ export default function HomeReportTable({ items, periodLabel }: Props) {
             </div>
             <div className='flex items-center space-x-2'>
               <Button
+                variant='secondary'
                 size='sm'
                 onClick={() => setPage((p) => Math.max(p - 1, 1))}
                 disabled={page === 1}
@@ -582,6 +583,7 @@ export default function HomeReportTable({ items, periodLabel }: Props) {
               </div>
               <Button
                 size='sm'
+                variant='secondary'
                 onClick={() =>
                   setPage((p) =>
                     p * rowsPerPage < filtered.length ? p + 1 : p

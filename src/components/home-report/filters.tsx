@@ -1,3 +1,14 @@
+import { useMemo, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import {
+  getAllArea,
+  getAllRange,
+  getAllSubChannel,
+  type ApiResponse,
+  type AreaDTO,
+  type RangeDTO,
+  type SubChannelDTO,
+} from '@/services/userDemarcationApi'
 import {
   Select,
   SelectContent,
@@ -7,72 +18,148 @@ import {
 } from '@/components/ui/select'
 import { Button } from '../ui/button'
 
-const filters = () => {
+const monthOptions = [
+  { value: 1, label: 'January' },
+  { value: 2, label: 'February' },
+  { value: 3, label: 'March' },
+  { value: 4, label: 'April' },
+  { value: 5, label: 'May' },
+  { value: 6, label: 'June' },
+  { value: 7, label: 'July' },
+  { value: 8, label: 'August' },
+  { value: 9, label: 'September' },
+  { value: 10, label: 'October' },
+  { value: 11, label: 'November' },
+  { value: 12, label: 'December' },
+]
+
+function Filters() {
+  const [subChannelId, setSubChannelId] = useState<string>('')
+  const [areaId, setAreaId] = useState<string>('')
+  const [rangeId, setRangeId] = useState<string>('')
+  const [year, setYear] = useState<string>('')
+  const [month, setMonth] = useState<string>('')
+
+  const currentYear = new Date().getFullYear()
+  const yearOptions = useMemo(() => {
+    const start = 2020
+    const end = currentYear + 1
+    return Array.from({ length: end - start + 1 }, (_, i) => start + i)
+  }, [currentYear])
+
+  const { data: subChannels } = useQuery({
+    queryKey: ['user-demarcation', 'sub-channels'],
+    queryFn: async () => {
+      const res = (await getAllSubChannel()) as ApiResponse<SubChannelDTO[]>
+      return res.payload
+    },
+  })
+
+  const { data: areas } = useQuery({
+    queryKey: ['user-demarcation', 'areas'],
+    queryFn: async () => {
+      const res = (await getAllArea()) as ApiResponse<AreaDTO[]>
+      return res.payload
+    },
+  })
+
+  const { data: ranges } = useQuery({
+    queryKey: ['user-demarcation', 'ranges'],
+    queryFn: async () => {
+      const res = (await getAllRange()) as ApiResponse<RangeDTO[]>
+      return res.payload
+    },
+  })
+
+  const handleApply = () => {
+    const payload = {
+      subChannelId: subChannelId ? Number(subChannelId) : undefined,
+      areaId: areaId ? Number(areaId) : undefined,
+      rangeId: rangeId ? Number(rangeId) : undefined,
+      year: year ? Number(year) : undefined,
+      month: month ? Number(month) : undefined,
+    }
+
+    // eslint-disable-next-line no-console
+    console.log(payload)
+  }
+
+  console.log('subChannels', subChannels)
+  console.log('areas', areas)
+  console.log('ranges', ranges)
+
   return (
     <>
-      <Select>
+      <Select value={subChannelId} onValueChange={setSubChannelId}>
         <SelectTrigger className='w-full'>
           <SelectValue placeholder='Select Sub Channel' />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value='1'>Channel 1</SelectItem>
-          <SelectItem value='2'>Channel 2</SelectItem>
-          <SelectItem value='3'>Channel 3</SelectItem>
-          <SelectItem value='3'>Channel 4</SelectItem>
-          <SelectItem value='3'>Channel 5</SelectItem>
+          {subChannels?.map((sc) => (
+            <SelectItem key={sc.id} value={String(sc.id)}>
+              {sc.channelName}
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
-      <Select>
+
+      <Select value={areaId} onValueChange={setAreaId}>
         <SelectTrigger className='w-full'>
           <SelectValue placeholder='Select Area' />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value='1'>Area 1</SelectItem>
-          <SelectItem value='2'>Area 2</SelectItem>
-          <SelectItem value='3'>Area 3</SelectItem>
-          <SelectItem value='3'>Area 4</SelectItem>
-          <SelectItem value='3'>Area 5</SelectItem>
+          {areas?.map((a) => (
+            <SelectItem key={a.id} value={String(a.id)}>
+              {a.areaName}
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
-      <Select>
+
+      <Select value={rangeId} onValueChange={setRangeId}>
         <SelectTrigger className='w-full'>
           <SelectValue placeholder='Select Range' />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value='1'>Range 1</SelectItem>
-          <SelectItem value='2'>Range 2</SelectItem>
-          <SelectItem value='3'>Range 3</SelectItem>
-          <SelectItem value='3'>Range 4</SelectItem>
-          <SelectItem value='3'>Range 5</SelectItem>
+          {ranges?.map((r) => (
+            <SelectItem key={r.id} value={String(r.id)}>
+              {r.rangeName}
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
-      <Select>
+
+      <Select value={year} onValueChange={setYear}>
         <SelectTrigger className='w-full'>
           <SelectValue placeholder='Select Year' />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value='1'>2020</SelectItem>
-          <SelectItem value='2'>2021</SelectItem>
-          <SelectItem value='3'>2022</SelectItem>
-          <SelectItem value='3'>2023</SelectItem>
-          <SelectItem value='3'>2024</SelectItem>
+          {yearOptions.map((y) => (
+            <SelectItem key={y} value={String(y)}>
+              {y}
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
-      <Select>
+
+      <Select value={month} onValueChange={setMonth}>
         <SelectTrigger className='w-full'>
           <SelectValue placeholder='Select Month' />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value='1'>January</SelectItem>
-          <SelectItem value='2'>Febvery</SelectItem>
-          <SelectItem value='3'>March</SelectItem>
-          <SelectItem value='3'>Apprial</SelectItem>
-          <SelectItem value='3'>May</SelectItem>
+          {monthOptions.map((m) => (
+            <SelectItem key={m.value} value={String(m.value)}>
+              {m.label}
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
-      <Button variant='default'>Apply Filters</Button>
+
+      <Button variant='default' onClick={handleApply}>
+        Apply Filters
+      </Button>
     </>
   )
 }
 
-export default filters
+export default Filters

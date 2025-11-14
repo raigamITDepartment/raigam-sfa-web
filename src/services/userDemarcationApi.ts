@@ -22,7 +22,13 @@ export type OutletCategoryDTO = { id: Id; name: string }
 export type OutletDTO = { id: Id; name: string }
 export type AgencyDTO = { id: Id; name: string }
 export type DistributorDTO = { id: Id; name: string }
-export type CountryDTO = { id: Id; name: string }
+export type CountryDTO = {
+  id: Id
+  continentId: Id
+  countryName: string
+  countryCode: string
+  active: boolean
+}
 
 // User-scoped lists
 export type UserAgencyDTO = { id: Id; name: string }
@@ -42,6 +48,32 @@ const USER_DEMARC_BASE = '/api/v1/userDemarcation'
 export async function getAllChannel() {
   const res = await http.get<ApiResponse<ChannelDTO[]>>(
     `${USER_DEMARC_BASE}/channel`
+  )
+  return res.data
+}
+
+export type CreateChannelRequest = {
+  userId: Id
+  countryId: Id
+  channelName: string
+  channelCode: string
+  isActive: boolean
+}
+
+export async function createChannel(body: CreateChannelRequest) {
+  const res = await http.post<ApiResponse<ChannelDTO>>(
+    `${USER_DEMARC_BASE}/channel`,
+    body
+  )
+  return res.data
+}
+
+export type UpdateChannelRequest = CreateChannelRequest & { id: Id }
+
+export async function updateChannel(body: UpdateChannelRequest) {
+  const res = await http.put<ApiResponse<ChannelDTO>>(
+    `${USER_DEMARC_BASE}/channel`,
+    body
   )
   return res.data
 }

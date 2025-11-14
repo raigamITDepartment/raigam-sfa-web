@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { useNavigate, useRouter } from '@tanstack/react-router'
-import type { ColumnDef, SortingState } from '@tanstack/react-table'
+import type { ColumnDef, SortingState, PaginationState } from '@tanstack/react-table'
 import {
   flexRender,
   getCoreRowModel,
@@ -17,8 +16,7 @@ import {
   getAllChannel,
   toggleChannelActive,
 } from '@/services/userDemarcationApi'
-import { Pencil } from 'lucide-react'
-import { useTableUrlState } from '@/hooks/use-table-url-state'
+import { Pencil, Plus } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -42,19 +40,10 @@ import {
   DataTablePagination,
   DataTableToolbar,
 } from '@/components/data-table'
-import type { NavigateFn as TableNavigateFn } from '@/hooks/use-table-url-state'
+import { CommonDialog } from '@/components/common-dialog'
+import { ChannelForm, type ChannelFormValues } from './channel-form'
 
 export default function Channel() {
-  const navigate = useNavigate()
-  const router = useRouter()
-  const search = router.state.location.search as Record<string, unknown>
-
-  const tableNavigate: TableNavigateFn = (opts) =>
-    navigate({
-      search: opts.search as any,
-      replace: opts.replace,
-    })
-
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['channels'],
     queryFn: async () => {
@@ -69,26 +58,26 @@ export default function Channel() {
     Record<string, boolean>
   >({})
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const [channelDialogOpen, setChannelDialogOpen] = useState(false)
+  const [channelDialogMode, setChannelDialogMode] = useState<'create' | 'edit'>(
+    'create'
+  )
+  const [editingChannelId, setEditingChannelId] = useState<Id | null>(null)
+  const [channelInitialValues, setChannelInitialValues] = useState<
+    Partial<ChannelFormValues> | undefined
+  >(undefined)
   const [pendingToggle, setPendingToggle] = useState<{
     key: string
     channelName: string
     nextActive: boolean
   } | null>(null)
 
-  const {
-    globalFilter,
-    onGlobalFilterChange,
-    pagination,
-    onPaginationChange,
-    ensurePageInRange,
-  } = useTableUrlState({
-    search,
-    navigate: tableNavigate,
-    pagination: { defaultPage: 1, defaultPageSize: 10 },
-    globalFilter: { enabled: true, key: 'filter', trim: true },
-  })
-
   const [sorting, setSorting] = useState<SortingState>([])
+  const [globalFilter, setGlobalFilter] = useState<string>('')
+  const [pagination, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 10,
+  })
 
   const toggleStatusMutation = useMutation({
     mutationFn: async (vars: { id: Id; nextActive: boolean }) => {
@@ -110,7 +99,9 @@ export default function Channel() {
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title='Channel Code' />
         ),
-        cell: ({ row }) => <span>{row.getValue('channelCode')}</span>,
+        cell: ({ row }) => (
+          <span className='pl-4'>{row.getValue('channelCode')}</span>
+        ),
         meta: { thClassName: 'w-[180px]' },
       },
       {
@@ -119,7 +110,7 @@ export default function Channel() {
           <DataTableColumnHeader column={column} title='Channel Name' />
         ),
         cell: ({ row }) => (
-          <span className='truncate'>{row.getValue('channelName')}</span>
+          <span className='pl-4 truncate'>{row.getValue('channelName')}</span>
         ),
       },
       {
@@ -168,7 +159,7 @@ export default function Channel() {
       },
       {
         id: 'actions',
-        header: () => <div className='text-end'>Actions</div>,
+        header: () => <div className='pr-4 text-end'>Actions</div>,
         cell: ({ row }) => {
           const original = row.original as unknown as Record<string, unknown>
           const rawStatus =
@@ -190,7 +181,7 @@ export default function Channel() {
           const isActive = statusOverrides[idKey] ?? baseActive
 
           return (
-            <div className='flex items-center justify-end gap-1'>
+            <div className='flex items-center justify-end gap-1 pr-4'>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -198,6 +189,26 @@ export default function Channel() {
                     size='icon'
                     className='size-8'
                     aria-label='Edit channel'
+                    onClick={() => {
+                      const countryIdRaw = original.countryId as Id | undefined
+                      const activeRaw =
+                        (original.isActive as boolean | undefined) ??
+                        (original.active as boolean | undefined) ??
+                        (original.enabled as boolean | undefined) ??
+                        baseActive
+
+                      setChannelDialogMode('edit')
+                      setEditingChannelId((original.id as Id | undefined) ?? null)
+                      setChannelInitialValues({
+                        countryId: countryIdRaw ? String(countryIdRaw) : '',
+                        channelCode:
+                          (original.channelCode as string | undefined) ?? '',
+                        channelName:
+                          (original.channelName as string | undefined) ?? '',
+                        isActive: Boolean(activeRaw),
+                      })
+                      setChannelDialogOpen(true)
+                    }}
                   >
                     <Pencil />
                   </Button>
@@ -239,22 +250,31 @@ export default function Channel() {
     columns,
     state: { sorting, globalFilter, pagination },
     onSortingChange: setSorting,
-    onGlobalFilterChange,
-    onPaginationChange,
+    onGlobalFilterChange: setGlobalFilter,
+    onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
   })
 
-  useEffect(() => {
-    ensurePageInRange(table.getPageCount())
-  }, [rows.length, table, ensurePageInRange])
-
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className='flex flex-row items-center justify-between gap-2'>
         <CardTitle>Channel List</CardTitle>
+        <Button
+          size='sm'
+          className='gap-1'
+          onClick={() => {
+            setChannelDialogMode('create')
+            setEditingChannelId(null)
+            setChannelInitialValues(undefined)
+            setChannelDialogOpen(true)
+          }}
+        >
+          <Plus className='size-4' />
+          Create Channel
+        </Button>
       </CardHeader>
       <CardContent className='space-y-2'>
         <DataTableToolbar
@@ -337,6 +357,44 @@ export default function Channel() {
 
         <DataTablePagination table={table} />
       </CardContent>
+      <CommonDialog
+        open={channelDialogOpen}
+        onOpenChange={(open) => {
+          setChannelDialogOpen(open)
+          if (!open) {
+            setChannelDialogMode('create')
+            setEditingChannelId(null)
+            setChannelInitialValues(undefined)
+          }
+        }}
+        title={
+          channelDialogMode === 'create' ? 'Create Channel' : 'Update Channel'
+        }
+        description={
+          channelDialogMode === 'create'
+            ? 'Create a new sales channel.'
+            : 'Update channel details.'
+        }
+        hideFooter
+      >
+        <ChannelForm
+          mode={channelDialogMode}
+          channelId={editingChannelId ?? undefined}
+          initialValues={channelInitialValues}
+          onSubmit={async () => {
+            setChannelDialogOpen(false)
+            setChannelDialogMode('create')
+            setEditingChannelId(null)
+            setChannelInitialValues(undefined)
+          }}
+          onCancel={() => {
+            setChannelDialogOpen(false)
+            setChannelDialogMode('create')
+            setEditingChannelId(null)
+            setChannelInitialValues(undefined)
+          }}
+        />
+      </CommonDialog>
       <ConfirmDialog
         destructive
         open={confirmOpen}

@@ -9,7 +9,7 @@ export type ApiResponse<T> = {
 export type Id = number | string
 
 // Minimal DTOs – extend once backend payloads are finalized
-export type ChannelDTO = { id: Id; name: string }
+export type ChannelDTO = { id: Id; channelCode: string; channelName: string }
 export type SubChannelDTO = { id: Id; subChannelName: string }
 export type RegionDTO = { id: Id; name: string }
 export type DepartmentDTO = { id: Id; name: string }
@@ -42,6 +42,13 @@ const USER_DEMARC_BASE = '/api/v1/userDemarcation'
 export async function getAllChannel() {
   const res = await http.get<ApiResponse<ChannelDTO[]>>(
     `${USER_DEMARC_BASE}/channel`
+  )
+  return res.data
+}
+
+export async function toggleChannelActive(id: Id) {
+  const res = await http.delete<ApiResponse<ChannelDTO>>(
+    `${USER_DEMARC_BASE}/channel/deactivateChannel/${id}`
   )
   return res.data
 }

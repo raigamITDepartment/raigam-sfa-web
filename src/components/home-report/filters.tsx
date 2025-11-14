@@ -58,10 +58,16 @@ type FiltersProps = {
 
 function Filters({ onApply }: FiltersProps) {
   const [subChannelId, setSubChannelId] = useState<string>('')
-  const [areaId, setAreaId] = useState<string>('')
+  const [areaId, setAreaId] = useState<string>('0')
   const [rangeId, setRangeId] = useState<string>('')
   const [year, setYear] = useState<string>('')
   const [month, setMonth] = useState<string>('')
+  const [errors, setErrors] = useState({
+    subChannelId: false,
+    rangeId: false,
+    year: false,
+    month: false,
+  })
 
   const currentYear = new Date().getFullYear()
   const yearOptions = useMemo(() => {
@@ -95,6 +101,31 @@ function Filters({ onApply }: FiltersProps) {
   })
 
   const handleApply = () => {
+    const nextErrors = {
+      subChannelId: !subChannelId,
+      rangeId: !rangeId,
+      year: !year,
+      month: !month,
+    }
+
+    const hasError =
+      nextErrors.subChannelId ||
+      nextErrors.rangeId ||
+      nextErrors.year ||
+      nextErrors.month
+
+    if (hasError) {
+      setErrors(nextErrors)
+      return
+    }
+
+    setErrors({
+      subChannelId: false,
+      rangeId: false,
+      year: false,
+      month: false,
+    })
+
     const payload: FiltersPayload = {
       subChannelId: subChannelId ? Number(subChannelId) : undefined,
       areaId: areaId ? Number(areaId) : undefined,
@@ -103,6 +134,31 @@ function Filters({ onApply }: FiltersProps) {
       month: month ? Number(month) : undefined,
     }
 
+    onApply?.(payload)
+  }
+
+  const handleReset = () => {
+    // Reset local state
+    setSubChannelId('')
+    setRangeId('')
+    setAreaId('0')
+    setYear('')
+    setMonth('')
+    setErrors({
+      subChannelId: false,
+      rangeId: false,
+      year: false,
+      month: false,
+    })
+
+    // Trigger reload with cleared filters; areaId explicitly 0 = All Areas
+    const payload: FiltersPayload = {
+      subChannelId: undefined,
+      areaId: 0,
+      rangeId: undefined,
+      year: undefined,
+      month: undefined,
+    }
     onApply?.(payload)
   }
 
@@ -117,12 +173,31 @@ function Filters({ onApply }: FiltersProps) {
   // Clear selected range when sub channel changes to avoid invalid selection
   useEffect(() => {
     setRangeId('')
+    setErrors((prev) => ({ ...prev, subChannelId: false, rangeId: false }))
   }, [subChannelId])
 
+  // Change handlers that also clear any prior error for the field
+  const onChangeSubChannel = (val: string) => {
+    setSubChannelId(val)
+    setErrors((prev) => ({ ...prev, subChannelId: false }))
+  }
+  const onChangeRange = (val: string) => {
+    setRangeId(val)
+    setErrors((prev) => ({ ...prev, rangeId: false }))
+  }
+  const onChangeYear = (val: string) => {
+    setYear(val)
+    setErrors((prev) => ({ ...prev, year: false }))
+  }
+  const onChangeMonth = (val: string) => {
+    setMonth(val)
+    setErrors((prev) => ({ ...prev, month: false }))
+  }
   return (
-    <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-6'>
-      <Select value={subChannelId} onValueChange={setSubChannelId}>
-        <SelectTrigger className='w-full'>
+    <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-8'>
+      {/* Sub Channel */}
+      <Select value={subChannelId} onValueChange={onChangeSubChannel}>
+        <SelectTrigger className='w-full' aria-invalid={errors.subChannelId}>
           <SelectValue placeholder='Select Sub Channel' />
         </SelectTrigger>
         <SelectContent>
@@ -134,8 +209,9 @@ function Filters({ onApply }: FiltersProps) {
         </SelectContent>
       </Select>
 
-      <Select value={rangeId} onValueChange={setRangeId}>
-        <SelectTrigger className='w-full'>
+      {/* Range */}
+      <Select value={rangeId} onValueChange={onChangeRange}>
+        <SelectTrigger className='w-full' aria-invalid={errors.rangeId}>
           <SelectValue placeholder='Select Range' />
         </SelectTrigger>
         <SelectContent>
@@ -147,11 +223,13 @@ function Filters({ onApply }: FiltersProps) {
         </SelectContent>
       </Select>
 
+      {/* Area */}
       <Select value={areaId} onValueChange={setAreaId}>
         <SelectTrigger className='w-full'>
           <SelectValue placeholder='Select Area' />
         </SelectTrigger>
         <SelectContent>
+          <SelectItem value='0'>All Areas</SelectItem>
           {areas?.map((a) => (
             <SelectItem key={a.id} value={String(a.id)}>
               {a.areaName}
@@ -160,8 +238,9 @@ function Filters({ onApply }: FiltersProps) {
         </SelectContent>
       </Select>
 
-      <Select value={year} onValueChange={setYear}>
-        <SelectTrigger className='w-full'>
+      {/* Year */}
+      <Select value={year} onValueChange={onChangeYear}>
+        <SelectTrigger className='w-full' aria-invalid={errors.year}>
           <SelectValue placeholder='Select Year' />
         </SelectTrigger>
         <SelectContent>
@@ -173,8 +252,9 @@ function Filters({ onApply }: FiltersProps) {
         </SelectContent>
       </Select>
 
-      <Select value={month} onValueChange={setMonth}>
-        <SelectTrigger className='w-full'>
+      {/* Month */}
+      <Select value={month} onValueChange={onChangeMonth}>
+        <SelectTrigger className='w-full' aria-invalid={errors.month}>
           <SelectValue placeholder='Select Month' />
         </SelectTrigger>
         <SelectContent>
@@ -186,8 +266,22 @@ function Filters({ onApply }: FiltersProps) {
         </SelectContent>
       </Select>
 
-      <Button variant='default' onClick={handleApply}>
+      {/* Apply Button */}
+      <Button
+        variant='default'
+        onClick={handleApply}
+        className='w-full sm:col-span-2 md:col-span-1'
+      >
         Apply Filters
+      </Button>
+
+      {/* Reset Button */}
+      <Button
+        variant='outline'
+        onClick={handleReset}
+        className='w-full sm:col-span-2 md:col-span-1'
+      >
+        Reset All Filters
       </Button>
     </div>
   )

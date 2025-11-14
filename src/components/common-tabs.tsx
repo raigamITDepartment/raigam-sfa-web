@@ -17,7 +17,10 @@ export type TabItem = {
 }
 
 export interface CommonTabsProps
-  extends Omit<RootProps, 'children' | 'value' | 'defaultValue' | 'onValueChange'> {
+  extends Omit<
+    RootProps,
+    'children' | 'value' | 'defaultValue' | 'onValueChange'
+  > {
   items: TabItem[]
   value?: string
   defaultValue?: string
@@ -51,13 +54,23 @@ export function CommonTabs({
       className={cn(className)}
       {...rootProps}
     >
-      <TabsList className={cn(listClassName)}>
+      <TabsList
+        className={cn(
+          // Ensure responsive behavior: scroll on small screens
+          'items-start gap-2 overflow-x-auto md:overflow-visible',
+          listClassName
+        )}
+      >
         {items.map((item) => (
           <TabsTrigger
             key={item.value}
             value={item.value}
             disabled={item.disabled}
-            className={cn(triggerClassName)}
+            className={cn(
+              // Prevent stretching so items size to content and can scroll
+              'flex-none',
+              triggerClassName
+            )}
           >
             {item.label}
           </TabsTrigger>
@@ -77,4 +90,3 @@ export function CommonTabs({
 }
 
 export default CommonTabs
-

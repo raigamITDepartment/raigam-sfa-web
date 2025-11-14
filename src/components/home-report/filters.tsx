@@ -106,6 +106,25 @@ function Filters({ onApply }: FiltersProps) {
     onApply?.(payload)
   }
 
+  const handleReset = () => {
+    // Reset local state
+    setSubChannelId('')
+    setRangeId('')
+    setAreaId('0')
+    setYear('')
+    setMonth('')
+
+    // Trigger reload with cleared filters; areaId explicitly 0 = All Areas
+    const payload: FiltersPayload = {
+      subChannelId: undefined,
+      areaId: 0,
+      rangeId: undefined,
+      year: undefined,
+      month: undefined,
+    }
+    onApply?.(payload)
+  }
+
   // Derive allowed ranges based on selected subChannel
   const filteredRanges = useMemo(() => {
     if (!ranges) return [] as RangeDTO[]
@@ -120,7 +139,8 @@ function Filters({ onApply }: FiltersProps) {
   }, [subChannelId])
 
   return (
-    <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-6'>
+    <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-8'>
+      {/* Sub Channel */}
       <Select value={subChannelId} onValueChange={setSubChannelId}>
         <SelectTrigger className='w-full'>
           <SelectValue placeholder='Select Sub Channel' />
@@ -134,6 +154,7 @@ function Filters({ onApply }: FiltersProps) {
         </SelectContent>
       </Select>
 
+      {/* Range */}
       <Select value={rangeId} onValueChange={setRangeId}>
         <SelectTrigger className='w-full'>
           <SelectValue placeholder='Select Range' />
@@ -147,11 +168,13 @@ function Filters({ onApply }: FiltersProps) {
         </SelectContent>
       </Select>
 
+      {/* Area */}
       <Select value={areaId} onValueChange={setAreaId}>
         <SelectTrigger className='w-full'>
           <SelectValue placeholder='Select Area' />
         </SelectTrigger>
         <SelectContent>
+          <SelectItem value='0'>All Areas</SelectItem>
           {areas?.map((a) => (
             <SelectItem key={a.id} value={String(a.id)}>
               {a.areaName}
@@ -160,6 +183,7 @@ function Filters({ onApply }: FiltersProps) {
         </SelectContent>
       </Select>
 
+      {/* Year */}
       <Select value={year} onValueChange={setYear}>
         <SelectTrigger className='w-full'>
           <SelectValue placeholder='Select Year' />
@@ -173,6 +197,7 @@ function Filters({ onApply }: FiltersProps) {
         </SelectContent>
       </Select>
 
+      {/* Month */}
       <Select value={month} onValueChange={setMonth}>
         <SelectTrigger className='w-full'>
           <SelectValue placeholder='Select Month' />
@@ -186,8 +211,22 @@ function Filters({ onApply }: FiltersProps) {
         </SelectContent>
       </Select>
 
-      <Button variant='default' onClick={handleApply}>
+      {/* Apply Button */}
+      <Button
+        variant='default'
+        onClick={handleApply}
+        className='w-full sm:col-span-2 md:col-span-1'
+      >
         Apply Filters
+      </Button>
+
+      {/* Reset Button */}
+      <Button
+        variant='outline'
+        onClick={handleReset}
+        className='w-full sm:col-span-2 md:col-span-1'
+      >
+        Reset All Filters
       </Button>
     </div>
   )

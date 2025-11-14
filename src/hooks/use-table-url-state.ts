@@ -113,9 +113,24 @@ export function useTableUrlState(
   const pagination: PaginationState = useMemo(() => {
     const rawPage = (search as SearchRecord)[pageKey]
     const rawPageSize = (search as SearchRecord)[pageSizeKey]
-    const pageNum = typeof rawPage === 'number' ? rawPage : defaultPage
-    const pageSizeNum =
-      typeof rawPageSize === 'number' ? rawPageSize : defaultPageSize
+
+    const parsedPage =
+      typeof rawPage === 'number'
+        ? rawPage
+        : typeof rawPage === 'string' && !Number.isNaN(Number(rawPage))
+          ? Number(rawPage)
+          : undefined
+
+    const parsedPageSize =
+      typeof rawPageSize === 'number'
+        ? rawPageSize
+        : typeof rawPageSize === 'string' && !Number.isNaN(Number(rawPageSize))
+          ? Number(rawPageSize)
+          : undefined
+
+    const pageNum = parsedPage ?? defaultPage
+    const pageSizeNum = parsedPageSize ?? defaultPageSize
+
     return { pageIndex: Math.max(0, pageNum - 1), pageSize: pageSizeNum }
   }, [search, pageKey, pageSizeKey, defaultPage, defaultPageSize])
 
@@ -195,7 +210,13 @@ export function useTableUrlState(
     opts: { resetTo?: 'first' | 'last' } = { resetTo: 'first' }
   ) => {
     const currentPage = (search as SearchRecord)[pageKey]
-    const pageNum = typeof currentPage === 'number' ? currentPage : defaultPage
+    const parsedCurrent =
+      typeof currentPage === 'number'
+        ? currentPage
+        : typeof currentPage === 'string' && !Number.isNaN(Number(currentPage))
+          ? Number(currentPage)
+          : undefined
+    const pageNum = parsedCurrent ?? defaultPage
     if (pageCount > 0 && pageNum > pageCount) {
       navigate({
         replace: true,

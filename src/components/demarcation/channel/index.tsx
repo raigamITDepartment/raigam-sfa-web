@@ -19,6 +19,7 @@ import {
 } from '@/services/userDemarcationApi'
 import { Pencil } from 'lucide-react'
 import { useTableUrlState } from '@/hooks/use-table-url-state'
+import type { NavigateFn as TableNavigateFn } from '@/hooks/use-table-url-state'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -42,7 +43,6 @@ import {
   DataTablePagination,
   DataTableToolbar,
 } from '@/components/data-table'
-import type { NavigateFn as TableNavigateFn } from '@/hooks/use-table-url-state'
 
 export default function Channel() {
   const navigate = useNavigate()
@@ -110,7 +110,9 @@ export default function Channel() {
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title='Channel Code' />
         ),
-        cell: ({ row }) => <span>{row.getValue('channelCode')}</span>,
+        cell: ({ row }) => (
+          <span className='pl-4'>{row.getValue('channelCode')}</span>
+        ),
         meta: { thClassName: 'w-[180px]' },
       },
       {
@@ -119,7 +121,7 @@ export default function Channel() {
           <DataTableColumnHeader column={column} title='Channel Name' />
         ),
         cell: ({ row }) => (
-          <span className='truncate'>{row.getValue('channelName')}</span>
+          <span className='pl-4 truncate'>{row.getValue('channelName')}</span>
         ),
       },
       {
@@ -168,7 +170,7 @@ export default function Channel() {
       },
       {
         id: 'actions',
-        header: () => <div className='text-end'>Actions</div>,
+        header: () => <div className='pr-4 text-end'>Actions</div>,
         cell: ({ row }) => {
           const original = row.original as unknown as Record<string, unknown>
           const rawStatus =
@@ -190,7 +192,7 @@ export default function Channel() {
           const isActive = statusOverrides[idKey] ?? baseActive
 
           return (
-            <div className='flex items-center justify-end gap-1'>
+            <div className='flex items-center justify-end gap-1 pr-4'>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button

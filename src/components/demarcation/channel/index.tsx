@@ -1,13 +1,9 @@
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 
 export default function Channel() {
-  return <Card>Channel</Card>
+  return (
+    <Card>
+      <CardContent>Channel</CardContent>
+    </Card>
+  )
 }

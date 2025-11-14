@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   getAllArea,
@@ -32,6 +32,17 @@ const monthOptions = [
   { value: 11, label: 'November' },
   { value: 12, label: 'December' },
 ]
+
+// Mapping of Sub Channel ID -> allowed Range IDs
+const subChannelRangeMap: Record<number, number[]> = {
+  1: [1, 3],
+  2: [2, 3],
+  3: [4],
+  4: [6],
+  5: [7],
+  6: [9],
+  7: [8],
+}
 
 type FiltersPayload = {
   subChannelId?: number
@@ -67,18 +78,18 @@ function Filters({ onApply }: FiltersProps) {
     },
   })
 
-  const { data: areas } = useQuery({
-    queryKey: ['user-demarcation', 'areas'],
-    queryFn: async () => {
-      const res = (await getAllArea()) as ApiResponse<AreaDTO[]>
-      return res.payload
-    },
-  })
-
   const { data: ranges } = useQuery({
     queryKey: ['user-demarcation', 'ranges'],
     queryFn: async () => {
       const res = (await getAllRange()) as ApiResponse<RangeDTO[]>
+      return res.payload
+    },
+  })
+
+  const { data: areas } = useQuery({
+    queryKey: ['user-demarcation', 'areas'],
+    queryFn: async () => {
+      const res = (await getAllArea()) as ApiResponse<AreaDTO[]>
       return res.payload
     },
   })
@@ -95,6 +106,19 @@ function Filters({ onApply }: FiltersProps) {
     onApply?.(payload)
   }
 
+  // Derive allowed ranges based on selected subChannel
+  const filteredRanges = useMemo(() => {
+    if (!ranges) return [] as RangeDTO[]
+    if (!subChannelId) return ranges
+    const allowed = subChannelRangeMap[Number(subChannelId)] || []
+    return ranges.filter((r) => allowed.includes(Number(r.id)))
+  }, [ranges, subChannelId])
+
+  // Clear selected range when sub channel changes to avoid invalid selection
+  useEffect(() => {
+    setRangeId('')
+  }, [subChannelId])
+
   return (
     <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-6'>
       <Select value={subChannelId} onValueChange={setSubChannelId}>
@@ -110,6 +134,19 @@ function Filters({ onApply }: FiltersProps) {
         </SelectContent>
       </Select>
 
+      <Select value={rangeId} onValueChange={setRangeId}>
+        <SelectTrigger className='w-full'>
+          <SelectValue placeholder='Select Range' />
+        </SelectTrigger>
+        <SelectContent>
+          {filteredRanges?.map((r) => (
+            <SelectItem key={r.id} value={String(r.id)}>
+              {r.rangeName}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
       <Select value={areaId} onValueChange={setAreaId}>
         <SelectTrigger className='w-full'>
           <SelectValue placeholder='Select Area' />
@@ -118,19 +155,6 @@ function Filters({ onApply }: FiltersProps) {
           {areas?.map((a) => (
             <SelectItem key={a.id} value={String(a.id)}>
               {a.areaName}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      <Select value={rangeId} onValueChange={setRangeId}>
-        <SelectTrigger className='w-full'>
-          <SelectValue placeholder='Select Range' />
-        </SelectTrigger>
-        <SelectContent>
-          {ranges?.map((r) => (
-            <SelectItem key={r.id} value={String(r.id)}>
-              {r.rangeName}
             </SelectItem>
           ))}
         </SelectContent>

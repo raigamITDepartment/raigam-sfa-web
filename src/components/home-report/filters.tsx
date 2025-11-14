@@ -109,14 +109,22 @@ function Filters({ onApply }: FiltersProps) {
     }
 
     const hasError =
-      nextErrors.subChannelId || nextErrors.rangeId || nextErrors.year || nextErrors.month
+      nextErrors.subChannelId ||
+      nextErrors.rangeId ||
+      nextErrors.year ||
+      nextErrors.month
 
     if (hasError) {
       setErrors(nextErrors)
       return
     }
 
-    setErrors({ subChannelId: false, rangeId: false, year: false, month: false })
+    setErrors({
+      subChannelId: false,
+      rangeId: false,
+      year: false,
+      month: false,
+    })
 
     const payload: FiltersPayload = {
       subChannelId: subChannelId ? Number(subChannelId) : undefined,
@@ -136,7 +144,12 @@ function Filters({ onApply }: FiltersProps) {
     setAreaId('0')
     setYear('')
     setMonth('')
-    setErrors({ subChannelId: false, rangeId: false, year: false, month: false })
+    setErrors({
+      subChannelId: false,
+      rangeId: false,
+      year: false,
+      month: false,
+    })
 
     // Trigger reload with cleared filters; areaId explicitly 0 = All Areas
     const payload: FiltersPayload = {
@@ -275,4 +288,3 @@ function Filters({ onApply }: FiltersProps) {
 }
 
 export default Filters
-

@@ -113,9 +113,20 @@ export function ChannelForm(props: ChannelFormProps) {
       }
       return updateChannel(payload)
     },
-    onSuccess: async (_data, { values }) => {
+    onSuccess: async (data, { values }) => {
       toast.success('Channel updated successfully')
-      await queryClient.invalidateQueries({ queryKey: ['channels'] })
+      queryClient.setQueryData<ApiResponse<any>>(
+        ['channels'],
+        (old) => {
+          if (!old || !Array.isArray(old.payload)) return old
+          return {
+            ...old,
+            payload: old.payload.map((ch: any) =>
+              ch.id === data.payload.id ? data.payload : ch
+            ),
+          }
+        }
+      )
       await onSubmit?.(values)
     },
     onError: (error: unknown) => {

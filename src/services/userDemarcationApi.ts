@@ -27,7 +27,19 @@ export type SubChannelDTO = {
   active?: boolean
   status?: string
 }
-export type RegionDTO = { id: Id; name: string }
+export type RegionDTO = {
+  id: Id
+  regionName?: string
+  name?: string
+  channelId?: Id
+  channelName?: string
+  subChannelId?: Id
+  subChannelName?: string
+  regionCode?: string
+  isActive?: boolean
+  active?: boolean
+  status?: string
+}
 export type DepartmentDTO = { id: Id; name: string }
 export type TerritoryDTO = { id: Id; name: string }
 export type AreaDTO = { id: Id; areaName: string }
@@ -150,6 +162,39 @@ export async function deactivateSubChannel(channelId: Id) {
 export async function getAllRegion() {
   const res = await http.get<ApiResponse<RegionDTO[]>>(
     `${USER_DEMARC_BASE}/region`
+  )
+  return res.data
+}
+
+export type CreateRegionRequest = {
+  userId: Id
+  channelId: Id
+  subChannelId?: Id
+  regionName: string
+  regionCode: string
+  isActive: boolean
+}
+export type UpdateRegionRequest = CreateRegionRequest & { id: Id }
+
+export async function createRegion(body: CreateRegionRequest) {
+  const res = await http.post<ApiResponse<RegionDTO>>(
+    `${USER_DEMARC_BASE}/region`,
+    body
+  )
+  return res.data
+}
+
+export async function updateRegion(body: UpdateRegionRequest) {
+  const res = await http.put<ApiResponse<RegionDTO>>(
+    `${USER_DEMARC_BASE}/region`,
+    body
+  )
+  return res.data
+}
+
+export async function deactivateRegion(id: Id) {
+  const res = await http.delete<ApiResponse<RegionDTO>>(
+    `${USER_DEMARC_BASE}/region/deactivateRegion/${id}`
   )
   return res.data
 }

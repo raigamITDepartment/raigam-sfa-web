@@ -51,7 +51,17 @@ export type AreaDTO = {
   active?: boolean
   status?: string
 }
-export type AreaRegionDTO = { id: Id; name: string }
+export type AreaRegionDTO = {
+  id: Id
+  areaId?: Id
+  regionId?: Id
+  areaName?: string
+  regionName?: string
+  displayOrder?: number
+  isActive?: boolean
+  active?: boolean
+  status?: string
+}
 export type RangeDTO = { id: Id; rangeName: string }
 export type RouteDTO = { id: Id; name: string }
 export type OutletCategoryDTO = { id: Id; name: string }
@@ -261,6 +271,49 @@ export async function deactivateArea(id: Id) {
 export async function getAllAreaRegions() {
   const res = await http.get<ApiResponse<AreaRegionDTO[]>>(
     `${USER_DEMARC_BASE}/areaRegions`
+  )
+  return res.data
+}
+
+export type CreateAreaRegionMappingRequest = {
+  areaRegionsDTOList: Array<{
+    userId: Id
+    areaId: Id
+    regionId: Id
+    isActive: boolean
+  }>
+}
+
+export type UpdateAreaRegionRequest = {
+  id: Id
+  userId: Id
+  areaId: Id
+  regionId: Id
+  displayOrder?: number
+  isActive: boolean
+}
+
+export async function createNewAreaRegionMapping(
+  body: CreateAreaRegionMappingRequest
+) {
+  const res = await http.post<ApiResponse<AreaRegionDTO>>(
+    `${USER_DEMARC_BASE}/areaRegions`,
+    body
+  )
+  return res.data
+}
+
+export async function updateAreaRegion(body: UpdateAreaRegionRequest) {
+  const res = await http.put<ApiResponse<AreaRegionDTO>>(
+    `${USER_DEMARC_BASE}/areaRegions`,
+    body
+  )
+  return res.data
+}
+
+export async function deactivateAreaRegion(id: Id) {
+  const res = await http.delete<ApiResponse<AreaRegionDTO>>(
+    `${USER_DEMARC_BASE}/areaRegions/deactivateAreaRegion/${id}`
   )
   return res.data
 }

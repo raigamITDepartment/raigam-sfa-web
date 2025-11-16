@@ -224,12 +224,6 @@ export default function Channel() {
             (original.active as boolean | undefined) ??
             (original.enabled as boolean | undefined)
 
-          const idKey = String(
-            (original.id as Id | undefined) ??
-              (original.channelCode as string | undefined) ??
-              row.id
-          )
-
           const baseActive =
             typeof raw === 'string'
               ? raw.toLowerCase() === 'active'
@@ -269,8 +263,6 @@ export default function Channel() {
             (original.id as Id | undefined) ??
             (original.channelCode as Id | undefined) ??
             (row.id as Id)
-          const idKey = String(recordId)
-
           const baseActive =
             typeof rawStatus === 'string'
               ? rawStatus.toLowerCase() === 'active'

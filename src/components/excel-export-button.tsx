@@ -239,11 +239,6 @@ function buildHtmlDocument(args: BuildHtmlDocumentArgs) {
 </html>`
 }
 
-type CellData = {
-  value: string
-  className?: string
-}
-
 function getCellData<T extends Record<string, any>>(
   row: T,
   column: ExcelExportColumn<T>,

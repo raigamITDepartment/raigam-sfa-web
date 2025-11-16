@@ -27,11 +27,8 @@ import { Input } from '@/components/ui/input'
 const areaFormSchema = z.object({
   areaCode: z.string().min(1, 'Please enter area code'),
   areaName: z.string().min(1, 'Please enter area name'),
-  displayOrder: z
-    .number({
-      coerce: true,
-      invalid_type_error: 'Display order must be a number',
-    })
+  displayOrder: z.coerce
+    .number()
     .int('Display order must be an integer')
     .nonnegative('Display order must be positive'),
   isActive: z.boolean().default(true),
@@ -179,9 +176,14 @@ export function AreaForm(props: AreaFormProps) {
               <FormControl>
                 <Input
                   placeholder='Display Order'
-                  {...field}
                   type='number'
                   min={0}
+                  {...field}
+                  value={
+                    field.value === undefined
+                      ? ''
+                      : (field.value as number | string)
+                  }
                 />
               </FormControl>
               <FormMessage />

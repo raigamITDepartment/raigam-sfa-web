@@ -58,6 +58,17 @@ export type ExcelExportButtonProps<T extends Record<string, any>> = {
    * Invoked once the file download is triggered.
    */
   afterExport?: () => void
+  /**
+   * When provided, exports raw HTML instead of generated table markup.
+   * Useful for complex layouts that already exist in the DOM.
+   */
+  getHtmlContent?: () =>
+    | {
+        html: string
+        styles?: string
+        worksheetName?: string
+      }
+    | null
 } & ButtonProps
 
 export function ExcelExportButton<T extends Record<string, any>>(
@@ -75,6 +86,7 @@ export function ExcelExportButton<T extends Record<string, any>>(
     disabled,
     onClick,
     type,
+    getHtmlContent,
     ...buttonProps
   } = props
 
@@ -89,23 +101,44 @@ export function ExcelExportButton<T extends Record<string, any>>(
   }, [columns, data])
 
   const hasRows = data.length > 0 && normalizedColumns.length > 0
+  const canExport = typeof getHtmlContent === 'function' ? true : hasRows
 
   const handleExport = (event: MouseEvent<HTMLButtonElement>) => {
     onClick?.(event)
     if (event.defaultPrevented) return
-    if (!hasRows) return
+    if (!canExport) return
     if (typeof window === 'undefined') return
 
     beforeExport?.()
 
-    const doc = buildExcelDocument({
-      columns: normalizedColumns,
-      data,
-      worksheetName,
-      customStyles,
-    })
+    let documentString: string | null = null
+    let effectiveWorksheetName = worksheetName
+
+    if (typeof getHtmlContent === 'function') {
+      const result = getHtmlContent()
+      if (!result?.html) {
+        return
+      }
+      effectiveWorksheetName = result.worksheetName ?? worksheetName
+      documentString = buildHtmlDocument({
+        html: result.html,
+        styles: result.styles ?? customStyles,
+        worksheetName: effectiveWorksheetName,
+      })
+    } else {
+      const doc = buildExcelDocument({
+        columns: normalizedColumns,
+        data,
+        worksheetName,
+        customStyles,
+      })
+      documentString = doc
+    }
+
+    if (!documentString) return
+
     const finalFileName = ensureExcelExtension(fileName)
-    const blob = new Blob([doc], {
+    const blob = new Blob([documentString], {
       type: 'application/vnd.ms-excel;charset=utf-8;',
     })
     const url = URL.createObjectURL(blob)
@@ -123,7 +156,7 @@ export function ExcelExportButton<T extends Record<string, any>>(
   return (
     <Button
       type={type ?? 'button'}
-      disabled={disabled || !hasRows}
+      disabled={disabled || !canExport}
       onClick={handleExport}
       {...buttonProps}
     >
@@ -183,6 +216,26 @@ ${customStyles ?? ''}
     <style>${styles}</style>
   </head>
   <body>${tableMarkup}</body>
+</html>`
+}
+
+type BuildHtmlDocumentArgs = {
+  html: string
+  styles?: string
+  worksheetName: string
+}
+
+function buildHtmlDocument(args: BuildHtmlDocumentArgs) {
+  const { html, styles, worksheetName } = args
+  const styleBlock = styles ?? ''
+  return `<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>${escapeHtml(worksheetName || 'Worksheet')}</title>
+    <style>${styleBlock}</style>
+  </head>
+  <body>${html}</body>
 </html>`
 }
 

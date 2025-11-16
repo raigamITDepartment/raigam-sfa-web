@@ -5,8 +5,11 @@ import {
   ChevronRight,
   Maximize as Fullscreen,
   Minimize,
-  Download,
 } from 'lucide-react'
+import {
+  ExcelExportButton,
+  type ExcelExportColumn,
+} from '@/components/excel-export-button'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
@@ -322,7 +325,6 @@ export default function HomeReportTable({ items, periodLabel }: Props) {
   const [search, setSearch] = useState('')
   const [isFullScreen, setIsFullScreen] = useState(false)
   const rowsPerPage = isFullScreen ? 50 : 10
-  const tableRef = useRef<HTMLDivElement | null>(null)
   const exportRef = useRef<HTMLDivElement | null>(null)
 
   const buildExportCss = () => `
@@ -397,22 +399,6 @@ export default function HomeReportTable({ items, periodLabel }: Props) {
     .sticky { position: sticky; }
     .left-0 { left: 0; }
   `
-
-  const handleExportExcel = () => {
-    const html =
-      exportRef.current?.innerHTML || tableRef.current?.innerHTML || ''
-    const styles = buildExportCss()
-    const content = `<!doctype html><html><head><meta charset="utf-8"/><style>${styles}</style></head><body>${html}</body></html>`
-    const blob = new Blob([content], { type: 'application/vnd.ms-excel' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `Home_Report_${monthKey || 'report'}.xls`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-  }
 
   const monthKey = useMemo(() => {
     if (periodLabel) return periodLabel
@@ -568,6 +554,20 @@ export default function HomeReportTable({ items, periodLabel }: Props) {
     return filtered.slice(start, start + rowsPerPage)
   }, [filtered, page, rowsPerPage])
 
+  const exportColumns = useMemo<ExcelExportColumn<RowRecord>[]>(() => {
+    if (!headers.length) return []
+    return headers.map((header) => ({
+      header,
+      accessor: (row) => row[header] ?? '',
+    }))
+  }, [headers])
+
+  const exportStyles = buildExportCss()
+  const exportFileName = useMemo(
+    () => `Home_Report_${monthKey || 'report'}`,
+    [monthKey]
+  )
+
   const [currentMonthHeaders, pastMonthsHeaders] = useMemo(() => {
     if (headers.length === 0) return [[], []] as [string[], string[]]
     const idx = headers.findIndex((h) => h.includes('Total-PC'))
@@ -605,15 +605,26 @@ export default function HomeReportTable({ items, periodLabel }: Props) {
           >
             <Fullscreen className='h-4 w-4' />
           </Button>
-          <Button
+          <ExcelExportButton
             size='sm'
             variant='outline'
-            onClick={handleExportExcel}
+            data={filtered}
+            columns={exportColumns}
+            fileName={exportFileName}
+            worksheetName={monthKey || 'Home Report'}
+            customStyles={exportStyles}
             aria-label='Download Excel'
             title='Download Excel (.xls)'
-          >
-            <Download className='h-4 w-4' />
-          </Button>
+            getHtmlContent={() => {
+              const html = exportRef.current?.innerHTML ?? ''
+              if (!html) return null
+              return {
+                html,
+                styles: exportStyles,
+                worksheetName: monthKey || 'Home Report',
+              }
+            }}
+          />
         </div>
       )}
 
@@ -650,7 +661,7 @@ export default function HomeReportTable({ items, periodLabel }: Props) {
 
       {/* Normal Table */}
       {!isFullScreen && (
-        <div className='overflow-auto' ref={tableRef}>
+        <div className='overflow-auto'>
           {renderTable(
             headers,
             currentMonthHeaders,
@@ -662,7 +673,7 @@ export default function HomeReportTable({ items, periodLabel }: Props) {
         </div>
       )}
 
-      {/* Hidden full table for print/export (no pagination) */}
+      {/* Hidden full table for export */}
       <div className='hidden' ref={exportRef} aria-hidden>
         {renderTable(
           headers,

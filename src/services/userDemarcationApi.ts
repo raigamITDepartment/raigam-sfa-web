@@ -17,7 +17,16 @@ export type ChannelDTO = {
   active?: boolean
   status?: string
 }
-export type SubChannelDTO = { id: Id; subChannelName: string }
+export type SubChannelDTO = {
+  id: Id
+  channelId?: Id
+  channelName?: string
+  subChannelName: string
+  subChannelCode?: string
+  isActive?: boolean
+  active?: boolean
+  status?: string
+}
 export type RegionDTO = { id: Id; name: string }
 export type DepartmentDTO = { id: Id; name: string }
 export type TerritoryDTO = { id: Id; name: string }
@@ -85,6 +94,30 @@ export async function updateChannel(body: UpdateChannelRequest) {
   return res.data
 }
 
+export type CreateSubChannelRequest = {
+  channelId: Id
+  userId: Id
+  subChannelName: string
+  subChannelCode: string
+  isActive: boolean
+}
+export type UpdateSubChannelRequest = {
+  id: Id
+  channelId: Id
+  userId: Id
+  subChannelName: string
+  subChannelCode: string
+  isActive: boolean
+}
+
+export async function createSubChannel(body: CreateSubChannelRequest) {
+  const res = await http.post<ApiResponse<SubChannelDTO>>(
+    `${USER_DEMARC_BASE}/subChannel`,
+    body
+  )
+  return res.data
+}
+
 export async function toggleChannelActive(id: Id) {
   const res = await http.delete<ApiResponse<ChannelDTO>>(
     `${USER_DEMARC_BASE}/channel/deactivateChannel/${id}`
@@ -95,6 +128,21 @@ export async function toggleChannelActive(id: Id) {
 export async function getAllSubChannel() {
   const res = await http.get<ApiResponse<SubChannelDTO[]>>(
     `${USER_DEMARC_BASE}/subChannel`
+  )
+  return res.data
+}
+
+export async function updateSubChannel(body: UpdateSubChannelRequest) {
+  const res = await http.put<ApiResponse<SubChannelDTO>>(
+    `${USER_DEMARC_BASE}/subChannel`,
+    body
+  )
+  return res.data
+}
+
+export async function deactivateSubChannel(channelId: Id) {
+  const res = await http.delete<ApiResponse<SubChannelDTO>>(
+    `${USER_DEMARC_BASE}/subChannel/deactivateSubChannel/${channelId}`
   )
   return res.data
 }

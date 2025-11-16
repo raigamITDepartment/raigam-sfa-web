@@ -42,7 +42,15 @@ export type RegionDTO = {
 }
 export type DepartmentDTO = { id: Id; name: string }
 export type TerritoryDTO = { id: Id; name: string }
-export type AreaDTO = { id: Id; areaName: string }
+export type AreaDTO = {
+  id: Id
+  areaName: string
+  areaCode?: string
+  displayOrder?: number
+  isActive?: boolean
+  active?: boolean
+  status?: string
+}
 export type AreaRegionDTO = { id: Id; name: string }
 export type RangeDTO = { id: Id; rangeName: string }
 export type RouteDTO = { id: Id; name: string }
@@ -215,6 +223,38 @@ export async function getAllTerritories() {
 
 export async function getAllArea() {
   const res = await http.get<ApiResponse<AreaDTO[]>>(`${USER_DEMARC_BASE}/area`)
+  return res.data
+}
+
+export type CreateAreaRequest = {
+  userId: Id
+  areaName: string
+  areaCode: string
+  displayOrder: number
+  isActive: boolean
+}
+export type UpdateAreaRequest = CreateAreaRequest & { id: Id }
+
+export async function createArea(body: CreateAreaRequest) {
+  const res = await http.post<ApiResponse<AreaDTO>>(
+    `${USER_DEMARC_BASE}/area`,
+    body
+  )
+  return res.data
+}
+
+export async function updateArea(body: UpdateAreaRequest) {
+  const res = await http.put<ApiResponse<AreaDTO>>(
+    `${USER_DEMARC_BASE}/area`,
+    body
+  )
+  return res.data
+}
+
+export async function deactivateArea(id: Id) {
+  const res = await http.delete<ApiResponse<AreaDTO>>(
+    `${USER_DEMARC_BASE}/area/deactivateArea/${id}`
+  )
   return res.data
 }
 

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { ColumnDef, SortingState, PaginationState } from '@tanstack/react-table'
 import {
   flexRender,
@@ -17,6 +17,7 @@ import {
   toggleChannelActive,
 } from '@/services/userDemarcationApi'
 import { Pencil, Plus } from 'lucide-react'
+import { ExcelExportButton, type ExcelExportColumn } from '@/components/excel-export-button'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -41,9 +42,17 @@ import {
   DataTableToolbar,
 } from '@/components/data-table'
 import { CommonDialog } from '@/components/common-dialog'
+import { toast } from 'sonner'
 import { ChannelForm, type ChannelFormValues } from './channel-form'
 
+type ChannelExportRow = {
+  channelCode: string
+  channelName: string
+  status: string
+}
+
 export default function Channel() {
+  const queryClient = useQueryClient()
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['channels'],
     queryFn: async () => {
@@ -54,9 +63,49 @@ export default function Channel() {
 
   const rows = useMemo(() => data?.payload ?? [], [data])
 
-  const [statusOverrides, setStatusOverrides] = useState<
-    Record<string, boolean>
-  >({})
+  const exportRows = useMemo<ChannelExportRow[]>(() => {
+    return rows.map((channel) => {
+      const rawStatus =
+        (channel.status as string | boolean | undefined) ??
+        (channel.isActive as boolean | undefined) ??
+        (channel.active as boolean | undefined)
+      const statusLabel =
+        typeof rawStatus === 'string'
+          ? rawStatus
+          : rawStatus
+            ? 'Active'
+            : 'Inactive'
+
+      return {
+        channelCode: channel.channelCode,
+        channelName: channel.channelName,
+        status: statusLabel,
+      }
+    })
+  }, [rows])
+
+  const exportColumns = useMemo<ExcelExportColumn<ChannelExportRow>[]>(() => {
+    return [
+      { header: 'Channel Code', accessor: 'channelCode' },
+      { header: 'Channel Name', accessor: 'channelName' },
+      {
+        header: 'Status',
+        accessor: 'status',
+        cellClassName: (value) => {
+          const normalized = String(value ?? '').toLowerCase()
+          if (normalized === 'active') return 'status-active'
+          if (!normalized) return undefined
+          return 'status-inactive'
+        },
+      },
+    ]
+  }, [])
+
+  const exportStatusStyles = `
+.status-active { background-color: #d1fae5; color: #065f46; font-weight: 600; }
+.status-inactive { background-color: #fee2e2; color: #991b1b; font-weight: 600; }
+`
+
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [channelDialogOpen, setChannelDialogOpen] = useState(false)
   const [channelDialogMode, setChannelDialogMode] = useState<'create' | 'edit'>(
@@ -67,7 +116,7 @@ export default function Channel() {
     Partial<ChannelFormValues> | undefined
   >(undefined)
   const [pendingToggle, setPendingToggle] = useState<{
-    key: string
+    id: Id
     channelName: string
     nextActive: boolean
   } | null>(null)
@@ -81,14 +130,62 @@ export default function Channel() {
 
   const toggleStatusMutation = useMutation({
     mutationFn: async (vars: { id: Id; nextActive: boolean }) => {
-      await toggleChannelActive(vars.id)
-      return vars
+      const response = await toggleChannelActive(vars.id)
+      return { ...vars, response }
     },
-    onSuccess: ({ id, nextActive }) => {
-      setStatusOverrides((prev) => ({
-        ...prev,
-        [String(id)]: nextActive,
-      }))
+    onSuccess: ({ id, nextActive, response }) => {
+      queryClient.setQueryData<ApiResponse<ChannelDTO[]>>(
+        ['channels'],
+        (old) => {
+          if (!old || !Array.isArray(old.payload)) return old
+          const updatedPayload = old.payload.map((channel) => {
+            const channelId =
+              (channel.id as Id | undefined) ??
+              (channel.channelCode as Id | undefined)
+            if (String(channelId) !== String(id)) return channel
+
+            const payload = response?.payload
+            if (payload) {
+              const resolvedActive =
+                (payload.isActive as boolean | undefined) ??
+                (payload.active as boolean | undefined) ??
+                nextActive
+              const resolvedStatus =
+                payload.status ?? (resolvedActive ? 'Active' : 'Inactive')
+              return {
+                ...channel,
+                ...payload,
+                isActive: resolvedActive,
+                active: resolvedActive,
+                status: resolvedStatus,
+              }
+            }
+
+            return {
+              ...channel,
+              isActive: nextActive,
+              active: nextActive,
+              status: nextActive ? 'Active' : 'Inactive',
+            }
+          })
+
+          return {
+            ...old,
+            payload: updatedPayload,
+          }
+        }
+      )
+      toast.success(
+        response?.message ??
+          (nextActive ? 'Channel activated successfully' : 'Channel deactivated successfully')
+      )
+    },
+    onError: (error: unknown) => {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Failed to update channel status'
+      toast.error(message)
     },
   })
 
@@ -137,7 +234,7 @@ export default function Channel() {
             typeof raw === 'string'
               ? raw.toLowerCase() === 'active'
               : Boolean(raw)
-          const isActive = statusOverrides[idKey] ?? baseActive
+          const isActive = baseActive
 
           const label = isActive ? 'Active' : 'Inactive'
           const variant = isActive ? 'secondary' : 'destructive'
@@ -168,17 +265,17 @@ export default function Channel() {
             (original.active as boolean | undefined) ??
             (original.enabled as boolean | undefined)
 
-          const idKey = String(
+          const recordId =
             (original.id as Id | undefined) ??
-              (original.channelCode as string | undefined) ??
-              row.id
-          )
+            (original.channelCode as Id | undefined) ??
+            (row.id as Id)
+          const idKey = String(recordId)
 
           const baseActive =
             typeof rawStatus === 'string'
               ? rawStatus.toLowerCase() === 'active'
               : Boolean(rawStatus)
-          const isActive = statusOverrides[idKey] ?? baseActive
+          const isActive = baseActive
 
           return (
             <div className='flex items-center justify-end gap-1 pr-4'>
@@ -219,8 +316,9 @@ export default function Channel() {
                 <Switch
                   checked={isActive}
                   onCheckedChange={(value) => {
+                    if (recordId == null) return
                     setPendingToggle({
-                      key: idKey,
+                      id: recordId,
                       channelName:
                         (original.channelName as string | undefined) ??
                         (row.getValue('channelName') as string | undefined) ??
@@ -242,7 +340,7 @@ export default function Channel() {
         meta: { thClassName: 'w-[120px]' },
       },
     ],
-    [statusOverrides]
+    []
   )
 
   const table = useReactTable({
@@ -263,19 +361,30 @@ export default function Channel() {
     <Card>
       <CardHeader className='flex flex-row items-center justify-between gap-2'>
         <CardTitle>Channel List</CardTitle>
-        <Button
-          size='sm'
-          className='gap-1'
-          onClick={() => {
-            setChannelDialogMode('create')
-            setEditingChannelId(null)
-            setChannelInitialValues(undefined)
-            setChannelDialogOpen(true)
-          }}
-        >
-          <Plus className='size-4' />
-          Create Channel
-        </Button>
+        <div className='flex items-center gap-2'>
+          <ExcelExportButton
+            size='sm'
+            variant='outline'
+            data={exportRows}
+            columns={exportColumns}
+            fileName='channels'
+            worksheetName='Channels'
+            customStyles={exportStatusStyles}
+          />
+          <Button
+            size='sm'
+            className='gap-1'
+            onClick={() => {
+              setChannelDialogMode('create')
+              setEditingChannelId(null)
+              setChannelInitialValues(undefined)
+              setChannelDialogOpen(true)
+            }}
+          >
+            <Plus className='size-4' />
+            Create Channel
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className='space-y-2'>
         <DataTableToolbar
@@ -425,7 +534,7 @@ export default function Channel() {
         handleConfirm={() => {
           if (!pendingToggle) return
           toggleStatusMutation.mutate({
-            id: pendingToggle.key,
+            id: pendingToggle.id,
             nextActive: pendingToggle.nextActive,
           })
           setConfirmOpen(false)

@@ -9,13 +9,59 @@ export type ApiResponse<T> = {
 export type Id = number | string
 
 // Minimal DTOs – extend once backend payloads are finalized
-export type ChannelDTO = { id: Id; channelCode: string; channelName: string }
-export type SubChannelDTO = { id: Id; subChannelName: string }
-export type RegionDTO = { id: Id; name: string }
+export type ChannelDTO = {
+  id: Id
+  channelCode: string
+  channelName: string
+  isActive?: boolean
+  active?: boolean
+  status?: string
+}
+export type SubChannelDTO = {
+  id: Id
+  channelId?: Id
+  channelName?: string
+  subChannelName: string
+  subChannelCode?: string
+  isActive?: boolean
+  active?: boolean
+  status?: string
+}
+export type RegionDTO = {
+  id: Id
+  regionName?: string
+  name?: string
+  channelId?: Id
+  channelName?: string
+  subChannelId?: Id
+  subChannelName?: string
+  regionCode?: string
+  isActive?: boolean
+  active?: boolean
+  status?: string
+}
 export type DepartmentDTO = { id: Id; name: string }
 export type TerritoryDTO = { id: Id; name: string }
-export type AreaDTO = { id: Id; areaName: string }
-export type AreaRegionDTO = { id: Id; name: string }
+export type AreaDTO = {
+  id: Id
+  areaName: string
+  areaCode?: string
+  displayOrder?: number
+  isActive?: boolean
+  active?: boolean
+  status?: string
+}
+export type AreaRegionDTO = {
+  id: Id
+  areaId?: Id
+  regionId?: Id
+  areaName?: string
+  regionName?: string
+  displayOrder?: number
+  isActive?: boolean
+  active?: boolean
+  status?: string
+}
 export type RangeDTO = { id: Id; rangeName: string }
 export type RouteDTO = { id: Id; name: string }
 export type OutletCategoryDTO = { id: Id; name: string }
@@ -78,6 +124,30 @@ export async function updateChannel(body: UpdateChannelRequest) {
   return res.data
 }
 
+export type CreateSubChannelRequest = {
+  channelId: Id
+  userId: Id
+  subChannelName: string
+  subChannelCode: string
+  isActive: boolean
+}
+export type UpdateSubChannelRequest = {
+  id: Id
+  channelId: Id
+  userId: Id
+  subChannelName: string
+  subChannelCode: string
+  isActive: boolean
+}
+
+export async function createSubChannel(body: CreateSubChannelRequest) {
+  const res = await http.post<ApiResponse<SubChannelDTO>>(
+    `${USER_DEMARC_BASE}/subChannel`,
+    body
+  )
+  return res.data
+}
+
 export async function toggleChannelActive(id: Id) {
   const res = await http.delete<ApiResponse<ChannelDTO>>(
     `${USER_DEMARC_BASE}/channel/deactivateChannel/${id}`
@@ -92,9 +162,57 @@ export async function getAllSubChannel() {
   return res.data
 }
 
+export async function updateSubChannel(body: UpdateSubChannelRequest) {
+  const res = await http.put<ApiResponse<SubChannelDTO>>(
+    `${USER_DEMARC_BASE}/subChannel`,
+    body
+  )
+  return res.data
+}
+
+export async function deactivateSubChannel(channelId: Id) {
+  const res = await http.delete<ApiResponse<SubChannelDTO>>(
+    `${USER_DEMARC_BASE}/subChannel/deactivateSubChannel/${channelId}`
+  )
+  return res.data
+}
+
 export async function getAllRegion() {
   const res = await http.get<ApiResponse<RegionDTO[]>>(
     `${USER_DEMARC_BASE}/region`
+  )
+  return res.data
+}
+
+export type CreateRegionRequest = {
+  userId: Id
+  channelId: Id
+  subChannelId?: Id
+  regionName: string
+  regionCode: string
+  isActive: boolean
+}
+export type UpdateRegionRequest = CreateRegionRequest & { id: Id }
+
+export async function createRegion(body: CreateRegionRequest) {
+  const res = await http.post<ApiResponse<RegionDTO>>(
+    `${USER_DEMARC_BASE}/region`,
+    body
+  )
+  return res.data
+}
+
+export async function updateRegion(body: UpdateRegionRequest) {
+  const res = await http.put<ApiResponse<RegionDTO>>(
+    `${USER_DEMARC_BASE}/region`,
+    body
+  )
+  return res.data
+}
+
+export async function deactivateRegion(id: Id) {
+  const res = await http.delete<ApiResponse<RegionDTO>>(
+    `${USER_DEMARC_BASE}/region/deactivateRegion/${id}`
   )
   return res.data
 }
@@ -118,9 +236,84 @@ export async function getAllArea() {
   return res.data
 }
 
+export type CreateAreaRequest = {
+  userId: Id
+  areaName: string
+  areaCode: string
+  displayOrder: number
+  isActive: boolean
+}
+export type UpdateAreaRequest = CreateAreaRequest & { id: Id }
+
+export async function createArea(body: CreateAreaRequest) {
+  const res = await http.post<ApiResponse<AreaDTO>>(
+    `${USER_DEMARC_BASE}/area`,
+    body
+  )
+  return res.data
+}
+
+export async function updateArea(body: UpdateAreaRequest) {
+  const res = await http.put<ApiResponse<AreaDTO>>(
+    `${USER_DEMARC_BASE}/area`,
+    body
+  )
+  return res.data
+}
+
+export async function deactivateArea(id: Id) {
+  const res = await http.delete<ApiResponse<AreaDTO>>(
+    `${USER_DEMARC_BASE}/area/deactivateArea/${id}`
+  )
+  return res.data
+}
+
 export async function getAllAreaRegions() {
   const res = await http.get<ApiResponse<AreaRegionDTO[]>>(
     `${USER_DEMARC_BASE}/areaRegions`
+  )
+  return res.data
+}
+
+export type CreateAreaRegionMappingRequest = {
+  areaRegionsDTOList: Array<{
+    userId: Id
+    areaId: Id
+    regionId: Id
+    isActive: boolean
+  }>
+}
+
+export type UpdateAreaRegionRequest = {
+  id: Id
+  userId: Id
+  areaId: Id
+  regionId: Id
+  displayOrder?: number
+  isActive: boolean
+}
+
+export async function createNewAreaRegionMapping(
+  body: CreateAreaRegionMappingRequest
+) {
+  const res = await http.post<ApiResponse<AreaRegionDTO>>(
+    `${USER_DEMARC_BASE}/areaRegions`,
+    body
+  )
+  return res.data
+}
+
+export async function updateAreaRegion(body: UpdateAreaRegionRequest) {
+  const res = await http.put<ApiResponse<AreaRegionDTO>>(
+    `${USER_DEMARC_BASE}/areaRegions`,
+    body
+  )
+  return res.data
+}
+
+export async function deactivateAreaRegion(id: Id) {
+  const res = await http.delete<ApiResponse<AreaRegionDTO>>(
+    `${USER_DEMARC_BASE}/areaRegions/deactivateAreaRegion/${id}`
   )
   return res.data
 }

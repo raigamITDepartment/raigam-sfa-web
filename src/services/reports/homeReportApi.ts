@@ -90,6 +90,32 @@ export type HomeReportItem = {
   day31Value: number
   totalCount: number
   totalValue: number
+  currentMonthName: string
+  currentMonthNumber: number
+  past1MonthTotalPcCount: number
+  past1MonthTotalValue: number
+  past1MonthName: string
+  past1MonthNumber: number
+  past2MonthTotalPcCount: number
+  past2MonthTotalValue: number
+  past2MonthName: string
+  past2MonthNumber: number
+  past3MonthTotalPcCount: number
+  past3MonthTotalValue: number
+  past3MonthName: string
+  past3MonthNumber: number
+  past4MonthTotalPcCount: number
+  past4MonthTotalValue: number
+  past4MonthName: string
+  past4MonthNumber: number
+  past5MonthTotalPcCount: number
+  past5MonthTotalValue: number
+  past5MonthName: string
+  past5MonthNumber: number
+  past6MonthTotalPcCount: number
+  past6MonthTotalValue: number
+  past6MonthName: string
+  past6MonthNumber: number
 }
 
 export type HomeReportResponse = {
@@ -105,5 +131,6 @@ export async function getHomeReportData(params: HomeReportParams) {
     `${BASE}/getHomeReportDataByRequiredArgs`,
     { params }
   )
+  console.log('home report data', res.data)
   return res.data
 }

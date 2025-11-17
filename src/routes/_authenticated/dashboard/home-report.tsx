@@ -13,6 +13,14 @@ import TableSkeleton from '@/components/home-report/table-skeleton'
 import { Main } from '@/components/layout/main'
 import { PageHeader } from '@/components/layout/page-header'
 
+const formatMonthYear = (month: number, year: number) => {
+  const date = new Date(Date.UTC(year, month - 1, 1))
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'long',
+    year: 'numeric',
+  }).format(date)
+}
+
 export const Route = createFileRoute('/_authenticated/dashboard/home-report')({
   component: HomeReportPage,
 })
@@ -74,7 +82,9 @@ function HomeReportPage() {
             <HomeReportTable
               items={data.payload}
               periodLabel={
-                params ? `${params.month}/${params.year}` : undefined
+                params?.month && params?.year
+                  ? formatMonthYear(params.month, params.year)
+                  : undefined
               }
             />
           )}

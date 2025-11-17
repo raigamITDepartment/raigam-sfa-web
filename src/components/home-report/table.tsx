@@ -6,12 +6,12 @@ import {
   Maximize as Fullscreen,
   Minimize,
 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
   ExcelExportButton,
   type ExcelExportColumn,
 } from '@/components/excel-export-button'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 
 type RowRecord = {
   [key: string]: string | number
@@ -35,6 +35,98 @@ type Props = {
   items: HomeReportItem[]
   periodLabel?: string
 }
+
+type PastMonthValueKey =
+  | 'past1MonthTotalValue'
+  | 'past2MonthTotalValue'
+  | 'past3MonthTotalValue'
+  | 'past4MonthTotalValue'
+  | 'past5MonthTotalValue'
+  | 'past6MonthTotalValue'
+
+type PastMonthPcKey =
+  | 'past1MonthTotalPcCount'
+  | 'past2MonthTotalPcCount'
+  | 'past3MonthTotalPcCount'
+  | 'past4MonthTotalPcCount'
+  | 'past5MonthTotalPcCount'
+  | 'past6MonthTotalPcCount'
+
+type PastMonthNameKey =
+  | 'past1MonthName'
+  | 'past2MonthName'
+  | 'past3MonthName'
+  | 'past4MonthName'
+  | 'past5MonthName'
+  | 'past6MonthName'
+
+type PastMonthNumberKey =
+  | 'past1MonthNumber'
+  | 'past2MonthNumber'
+  | 'past3MonthNumber'
+  | 'past4MonthNumber'
+  | 'past5MonthNumber'
+  | 'past6MonthNumber'
+
+type PastMonthColumnDef = {
+  index: number
+  defaultLabel: string
+  valueKey: PastMonthValueKey
+  pcKey: PastMonthPcKey
+  nameKey: PastMonthNameKey
+  numberKey: PastMonthNumberKey
+}
+
+const PAST_MONTH_COLUMN_DEFS: PastMonthColumnDef[] = [
+  {
+    index: 1,
+    defaultLabel: 'Past 1 Month',
+    valueKey: 'past1MonthTotalValue',
+    pcKey: 'past1MonthTotalPcCount',
+    nameKey: 'past1MonthName',
+    numberKey: 'past1MonthNumber',
+  },
+  {
+    index: 2,
+    defaultLabel: 'Past 2 Month',
+    valueKey: 'past2MonthTotalValue',
+    pcKey: 'past2MonthTotalPcCount',
+    nameKey: 'past2MonthName',
+    numberKey: 'past2MonthNumber',
+  },
+  {
+    index: 3,
+    defaultLabel: 'Past 3 Month',
+    valueKey: 'past3MonthTotalValue',
+    pcKey: 'past3MonthTotalPcCount',
+    nameKey: 'past3MonthName',
+    numberKey: 'past3MonthNumber',
+  },
+  {
+    index: 4,
+    defaultLabel: 'Past 4 Month',
+    valueKey: 'past4MonthTotalValue',
+    pcKey: 'past4MonthTotalPcCount',
+    nameKey: 'past4MonthName',
+    numberKey: 'past4MonthNumber',
+  },
+  {
+    index: 5,
+    defaultLabel: 'Past 5 Month',
+    valueKey: 'past5MonthTotalValue',
+    pcKey: 'past5MonthTotalPcCount',
+    nameKey: 'past5MonthName',
+    numberKey: 'past5MonthNumber',
+  },
+  {
+    index: 6,
+    defaultLabel: 'Past 6 Month',
+    valueKey: 'past6MonthTotalValue',
+    pcKey: 'past6MonthTotalPcCount',
+    nameKey: 'past6MonthName',
+    numberKey: 'past6MonthNumber',
+  },
+]
 
 // Color palette for daily columns (1–31)
 const dayColors = [
@@ -76,6 +168,29 @@ const parseNum = (v: string | number | undefined): number => {
   const s = String(v).replace(/,/g, '').replace(/%/g, '').trim()
   const n = parseFloat(s)
   return isNaN(n) ? 0 : n
+}
+
+const formatPastMonthCurrency = (value: number): string => {
+  return Math.round(value).toLocaleString('en-LK')
+}
+
+const monthNameFormatter = new Intl.DateTimeFormat('en-US', {
+  month: 'long',
+})
+
+const resolvePastMonthLabel = (
+  rawName: string | undefined,
+  monthNumber: number | undefined,
+  fallback: string
+) => {
+  if (typeof rawName === 'string' && rawName.trim().length > 0) {
+    return rawName.trim()
+  }
+  if (monthNumber && monthNumber >= 1 && monthNumber <= 12) {
+    const date = new Date(Date.UTC(2000, monthNumber - 1, 1))
+    return monthNameFormatter.format(date)
+  }
+  return fallback
 }
 const isPercentHeader = (h: string) => h.includes('%')
 const isAverageHeader = (h: string) => /avg/i.test(h)
@@ -154,13 +269,14 @@ function renderTable(
   paginated: RowRecord[],
   isFullScreen: boolean
 ) {
+  const pastMonthColumnSet = new Set(pastMonthsHeaders)
   return (
     <div className='relative border-r border-l border-gray-200'>
       <table className='w-full min-w-[2400px] border-collapse text-sm'>
         <thead>
           {/* Month Row */}
           <tr
-            className={`sticky top-0 z-30 dark:bg-gray-900 ${isFullScreen ? 'top-0 bg-blue-100' : 'bg-blue-100'}`}
+            className={`sticky top-0 z-30 dark:bg-gray-900 border-b border-gray-300 ${isFullScreen ? 'top-0 bg-blue-100' : 'bg-blue-100'}`}
           >
             {currentMonthHeaders.length > 0 && (
               <th
@@ -173,7 +289,7 @@ function renderTable(
             {pastMonthsHeaders.length > 0 && (
               <th
                 colSpan={pastMonthsHeaders.length}
-                className='border border-gray-300 py-3 text-center font-bold text-blue-900 dark:text-white'
+                className='border border-gray-300 border-l border-gray-300 py-3 text-center font-bold text-blue-900 dark:text-white bg-slate-200'
               >
                 Past 6 Months Figures
               </th>
@@ -189,15 +305,23 @@ function renderTable(
           </tr>
 
           {/* Column Headers */}
-          <tr className='sticky top-[45px] z-20 bg-gray-200'>
-            {headers.map((h, i) => (
-              <th
-                key={i}
-                className={`border border-gray-300 px-5 py-3 text-center text-sm font-semibold dark:bg-gray-800 ${h === 'Territory' ? 'sticky left-0 border-l-2 border-blue-500 bg-gray-200 shadow-md' : ''}`}
-              >
-                {h}
-              </th>
-            ))}
+          <tr className='sticky top-[45px] z-20 bg-gray-200 border-b border-gray-300'>
+            {headers.map((h, i) => {
+              const isPastMonthHeader = pastMonthColumnSet.has(h)
+              const headerBgClass = isPastMonthHeader
+                ? h.endsWith('PC')
+                  ? ' bg-slate-100'
+                  : ' bg-slate-50'
+                : ''
+              return (
+                <th
+                  key={i}
+                  className={`border border-gray-300 px-5 py-3 text-center text-sm font-semibold dark:bg-gray-800 ${h === 'Territory' ? 'sticky left-0 border-l-2 border-blue-500 bg-gray-200 shadow-md' : ''}${headerBgClass}`}
+                >
+                  {h}
+                </th>
+              )
+            })}
           </tr>
         </thead>
         <tbody>
@@ -285,6 +409,16 @@ function renderTable(
                       }
                     }
                   }
+                  const isPastMonthColumn = pastMonthColumnSet.has(header)
+                  if (
+                    isPastMonthColumn &&
+                    !isGrandTotal &&
+                    !(isAreaTotal || isRegionTotal)
+                  ) {
+                    cellClass += header.endsWith('PC')
+                      ? ' bg-slate-100'
+                      : ' bg-slate-50'
+                  }
 
                   return (
                     <td
@@ -349,6 +483,9 @@ export default function HomeReportTable({ items, periodLabel }: Props) {
     .bg-gray-200 { background-color: #E5E7EB; }
     .bg-gray-300 { background-color: #D1D5DB; }
     .bg-blue-100 { background-color: #DBEAFE; }
+    .bg-slate-50 { background-color: #F8FAFC; }
+    .bg-slate-100 { background-color: #E2E8F0; }
+    .bg-slate-200 { background-color: #CBD5F5; }
     /* Tailwind 50 shades used for daily columns */
     .bg-blue-50 { background-color: #EFF6FF; }
     .bg-green-50 { background-color: #F0FDF4; }
@@ -420,6 +557,23 @@ export default function HomeReportTable({ items, periodLabel }: Props) {
       if (has) daysWithData.add(day)
     }
 
+    const firstItem = items[0]
+    const pastMonthMeta = PAST_MONTH_COLUMN_DEFS.map((column) => {
+      const rawName = firstItem?.[column.nameKey]
+      const monthNumber = firstItem?.[column.numberKey]
+      const label = resolvePastMonthLabel(
+        rawName,
+        monthNumber,
+        column.defaultLabel
+      )
+      return {
+        ...column,
+        label,
+        valueHeader: `${label} Value`,
+        pcHeader: `${label} PC`,
+      }
+    })
+
     const headers: string[] = ['Region Name', 'Area', 'Territory']
     daysWithData.forEach((day) => {
       headers.push(`${day} Value`, `${day} PC`)
@@ -436,6 +590,9 @@ export default function HomeReportTable({ items, periodLabel }: Props) {
       'WD',
       'WD Variance',
       'Avg (With Direct)'
+    )
+    headers.push(
+      ...pastMonthMeta.flatMap((meta) => [meta.valueHeader, meta.pcHeader])
     )
 
     const rows: RowRecord[] = items.map((item) => {
@@ -487,6 +644,13 @@ export default function HomeReportTable({ items, periodLabel }: Props) {
         'WD Variance': givenWD - wd,
         'Avg PC': wd > 0 ? Math.round((item.totalCount || 0) / wd) : 0,
         'Avg (With Direct)': '0',
+      })
+
+      pastMonthMeta.forEach((meta) => {
+        const value = Number(item[meta.valueKey] ?? 0)
+        const pcCount = Math.round(item[meta.pcKey] ?? 0)
+        row[meta.valueHeader] = formatPastMonthCurrency(value)
+        row[meta.pcHeader] = pcCount.toLocaleString('en-LK')
       })
 
       return row
@@ -570,9 +734,10 @@ export default function HomeReportTable({ items, periodLabel }: Props) {
 
   const [currentMonthHeaders, pastMonthsHeaders] = useMemo(() => {
     if (headers.length === 0) return [[], []] as [string[], string[]]
-    const idx = headers.findIndex((h) => h.includes('Total-PC'))
-    if (idx === -1) return [headers, []]
-    return [headers.slice(0, idx + 1), headers.slice(idx + 1)]
+    const pastColumnCount = PAST_MONTH_COLUMN_DEFS.length * 2
+    if (headers.length <= pastColumnCount) return [[], headers]
+    const splitIndex = headers.length - pastColumnCount
+    return [headers.slice(0, splitIndex), headers.slice(splitIndex)]
   }, [headers])
 
   if (!items || items.length === 0) {

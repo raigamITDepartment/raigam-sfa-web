@@ -171,10 +171,7 @@ const parseNum = (v: string | number | undefined): number => {
 }
 
 const formatPastMonthCurrency = (value: number): string => {
-  return value.toLocaleString('en-LK', {
-    minimumFractionDigits: Number.isInteger(value) ? 0 : 2,
-    maximumFractionDigits: 2,
-  })
+  return Math.round(value).toLocaleString('en-LK')
 }
 
 const monthNameFormatter = new Intl.DateTimeFormat('en-US', {

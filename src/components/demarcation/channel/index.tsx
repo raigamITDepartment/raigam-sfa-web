@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { ColumnDef, SortingState, PaginationState } from '@tanstack/react-table'
 import {
@@ -120,6 +120,14 @@ export default function Channel() {
     channelName: string
     nextActive: boolean
   } | null>(null)
+
+  useEffect(() => {
+    if (!channelDialogOpen) {
+      setChannelDialogMode('create')
+      setEditingChannelId(null)
+      setChannelInitialValues(undefined)
+    }
+  }, [channelDialogOpen])
 
   const [sorting, setSorting] = useState<SortingState>([])
   const [globalFilter, setGlobalFilter] = useState<string>('')
@@ -463,11 +471,6 @@ export default function Channel() {
         open={channelDialogOpen}
         onOpenChange={(open) => {
           setChannelDialogOpen(open)
-          if (!open) {
-            setChannelDialogMode('create')
-            setEditingChannelId(null)
-            setChannelInitialValues(undefined)
-          }
         }}
         title={
           channelDialogMode === 'create' ? 'Create Channel' : 'Update Channel'
@@ -485,15 +488,9 @@ export default function Channel() {
           initialValues={channelInitialValues}
           onSubmit={async () => {
             setChannelDialogOpen(false)
-            setChannelDialogMode('create')
-            setEditingChannelId(null)
-            setChannelInitialValues(undefined)
           }}
           onCancel={() => {
             setChannelDialogOpen(false)
-            setChannelDialogMode('create')
-            setEditingChannelId(null)
-            setChannelInitialValues(undefined)
           }}
         />
       </CommonDialog>

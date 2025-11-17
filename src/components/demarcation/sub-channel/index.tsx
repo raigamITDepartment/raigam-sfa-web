@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type {
   ColumnDef,
@@ -135,6 +135,14 @@ export default function SubChannel() {
     subChannelName: string
     nextActive: boolean
   } | null>(null)
+
+  useEffect(() => {
+    if (!subChannelDialogOpen) {
+      setSubChannelDialogMode('create')
+      setEditingSubChannelId(null)
+      setSubChannelInitialValues(undefined)
+    }
+  }, [subChannelDialogOpen])
 
   const toggleStatusMutation = useMutation({
     mutationFn: async (vars: { id: Id; nextActive: boolean }) => {
@@ -473,11 +481,6 @@ export default function SubChannel() {
         open={subChannelDialogOpen}
         onOpenChange={(open) => {
           setSubChannelDialogOpen(open)
-          if (!open) {
-            setSubChannelDialogMode('create')
-            setEditingSubChannelId(null)
-            setSubChannelInitialValues(undefined)
-          }
         }}
         title={
           subChannelDialogMode === 'create'
@@ -497,15 +500,9 @@ export default function SubChannel() {
           initialValues={subChannelInitialValues}
           onSubmit={async () => {
             setSubChannelDialogOpen(false)
-            setSubChannelDialogMode('create')
-            setEditingSubChannelId(null)
-            setSubChannelInitialValues(undefined)
           }}
           onCancel={() => {
             setSubChannelDialogOpen(false)
-            setSubChannelDialogMode('create')
-            setEditingSubChannelId(null)
-            setSubChannelInitialValues(undefined)
           }}
         />
       </CommonDialog>

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type {
   ColumnDef,
@@ -153,6 +153,16 @@ export default function RouteComponent() {
     pageIndex: 0,
     pageSize: 10,
   })
+
+  useEffect(() => {
+    if (!routeDialogOpen) {
+      setRouteDialogMode('create')
+      setEditingRouteId(null)
+      setRouteInitialValues(undefined)
+      setEditingTerritoryName(undefined)
+    }
+  }, [routeDialogOpen])
+
 
   const toggleStatusMutation = useMutation({
     mutationFn: async (vars: { id: Id; nextActive: boolean }) => {
@@ -542,12 +552,6 @@ export default function RouteComponent() {
         open={routeDialogOpen}
         onOpenChange={(open) => {
           setRouteDialogOpen(open)
-          if (!open) {
-            setRouteDialogMode('create')
-            setEditingRouteId(null)
-            setRouteInitialValues(undefined)
-            setEditingTerritoryName(undefined)
-          }
         }}
         title={routeDialogMode === 'create' ? 'Create Route' : 'Update Route'}
         description={
@@ -566,17 +570,9 @@ export default function RouteComponent() {
           }
           onSubmit={async () => {
             setRouteDialogOpen(false)
-            setRouteDialogMode('create')
-            setEditingRouteId(null)
-            setRouteInitialValues(undefined)
-            setEditingTerritoryName(undefined)
           }}
           onCancel={() => {
             setRouteDialogOpen(false)
-            setRouteDialogMode('create')
-            setEditingRouteId(null)
-            setRouteInitialValues(undefined)
-            setEditingTerritoryName(undefined)
           }}
         />
       </CommonDialog>

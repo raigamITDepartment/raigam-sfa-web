@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type {
   ColumnDef,
@@ -151,6 +151,15 @@ export default function AreaRegionMapping() {
     areaName: string
     nextActive: boolean
   } | null>(null)
+
+  useEffect(() => {
+    if (!dialogOpen) {
+      setDialogMode('create')
+      setEditingId(null)
+      setInitialValues(undefined)
+    }
+  }, [dialogOpen])
+
 
   const toggleStatusMutation = useMutation({
     mutationFn: async (vars: { id: Id; nextActive: boolean }) => {
@@ -465,11 +474,6 @@ export default function AreaRegionMapping() {
         open={dialogOpen}
         onOpenChange={(open) => {
           setDialogOpen(open)
-          if (!open) {
-            setDialogMode('create')
-            setEditingId(null)
-            setInitialValues(undefined)
-          }
         }}
         title={
           dialogMode === 'create'
@@ -490,15 +494,9 @@ export default function AreaRegionMapping() {
           channels={channelsData ?? []}
           onSubmit={async () => {
             setDialogOpen(false)
-            setDialogMode('create')
-            setEditingId(null)
-            setInitialValues(undefined)
           }}
           onCancel={() => {
             setDialogOpen(false)
-            setDialogMode('create')
-            setEditingId(null)
-            setInitialValues(undefined)
           }}
         />
       </CommonDialog>

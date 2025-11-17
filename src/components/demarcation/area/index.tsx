@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type {
   ColumnDef,
@@ -133,6 +133,14 @@ export default function Area() {
     areaName: string
     nextActive: boolean
   } | null>(null)
+
+  useEffect(() => {
+    if (!areaDialogOpen) {
+      setAreaDialogMode('create')
+      setEditingAreaId(null)
+      setAreaInitialValues(undefined)
+    }
+  }, [areaDialogOpen])
 
   const toggleStatusMutation = useMutation({
     mutationFn: async (vars: { id: Id; nextActive: boolean }) => {
@@ -456,11 +464,6 @@ export default function Area() {
         open={areaDialogOpen}
         onOpenChange={(open) => {
           setAreaDialogOpen(open)
-          if (!open) {
-            setAreaDialogMode('create')
-            setEditingAreaId(null)
-            setAreaInitialValues(undefined)
-          }
         }}
         title={areaDialogMode === 'create' ? 'Create Area' : 'Update Area'}
         description={
@@ -476,15 +479,9 @@ export default function Area() {
           initialValues={areaInitialValues}
           onSubmit={async () => {
             setAreaDialogOpen(false)
-            setAreaDialogMode('create')
-            setEditingAreaId(null)
-            setAreaInitialValues(undefined)
           }}
           onCancel={() => {
             setAreaDialogOpen(false)
-            setAreaDialogMode('create')
-            setEditingAreaId(null)
-            setAreaInitialValues(undefined)
           }}
         />
       </CommonDialog>

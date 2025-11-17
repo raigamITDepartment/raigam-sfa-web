@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type {
   ColumnDef,
@@ -139,6 +139,14 @@ export default function Territory() {
     territoryName: string
     nextActive: boolean
   } | null>(null)
+
+  useEffect(() => {
+    if (!territoryDialogOpen) {
+      setTerritoryDialogMode('create')
+      setEditingTerritoryId(null)
+      setTerritoryInitialValues(undefined)
+    }
+  }, [territoryDialogOpen])
 
   const toggleStatusMutation = useMutation({
     mutationFn: async (vars: { id: Id; nextActive: boolean }) => {
@@ -350,18 +358,6 @@ export default function Territory() {
 
   const territoryColumns = useMemo<ColumnDef<TerritoryDTO>[]>(
     () => [
-      {
-        accessorKey: 'displayOrder',
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title='Display Order' />
-        ),
-        cell: ({ row }) => (
-          <span className='pl-4'>
-            {row.getValue('displayOrder') ?? '—'}
-          </span>
-        ),
-        meta: { thClassName: 'w-[120px]' },
-      },
       {
         accessorKey: 'areaName',
         accessorFn: (row) => row.areaName ?? '',
@@ -676,11 +672,6 @@ export default function Territory() {
         open={territoryDialogOpen}
         onOpenChange={(open) => {
           setTerritoryDialogOpen(open)
-          if (!open) {
-            setTerritoryDialogMode('create')
-            setEditingTerritoryId(null)
-            setTerritoryInitialValues(undefined)
-          }
         }}
         title={
           territoryDialogMode === 'create'
@@ -700,15 +691,9 @@ export default function Territory() {
           initialValues={territoryInitialValues}
           onSubmit={async () => {
             setTerritoryDialogOpen(false)
-            setTerritoryDialogMode('create')
-            setEditingTerritoryId(null)
-            setTerritoryInitialValues(undefined)
           }}
           onCancel={() => {
             setTerritoryDialogOpen(false)
-            setTerritoryDialogMode('create')
-            setEditingTerritoryId(null)
-            setTerritoryInitialValues(undefined)
           }}
         />
       </CommonDialog>

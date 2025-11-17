@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { HomeReportItem } from '@/services/reports/homeReportApi'
 import {
   ChevronLeft,
@@ -712,6 +712,13 @@ export default function HomeReportTable({ items, periodLabel }: Props) {
       Object.values(row).some((v) => String(v).toLowerCase().includes(q))
     )
   }, [processedData, search])
+
+  useEffect(() => {
+    setPage((prevPage) => {
+      const maxPage = Math.max(1, Math.ceil(filtered.length / rowsPerPage))
+      return prevPage > maxPage ? maxPage : prevPage
+    })
+  }, [filtered.length, rowsPerPage])
 
   const paginated = useMemo(() => {
     const start = (page - 1) * rowsPerPage

@@ -53,6 +53,7 @@ const territoryFormSchema = z.object({
   territoryCode: z.string().min(1, 'Please enter territory code'),
   territoryName: z.string().min(1, 'Please enter territory name'),
   isActive: z.boolean().default(true),
+  oldTerritoryId: z.string().optional(),
 })
 
 type TerritoryFormInput = z.input<typeof territoryFormSchema>
@@ -120,6 +121,7 @@ export function TerritoryForm(props: TerritoryFormProps) {
       territoryCode: '',
       territoryName: '',
       isActive: true,
+      oldTerritoryId: '',
       ...initialValues,
     },
   })
@@ -134,6 +136,7 @@ export function TerritoryForm(props: TerritoryFormProps) {
       territoryCode: '',
       territoryName: '',
       isActive: true,
+      oldTerritoryId: '',
       ...(initialValues as TerritoryFormValues | undefined),
     }
     form.reset(defaults)

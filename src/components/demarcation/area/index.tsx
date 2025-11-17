@@ -92,9 +92,9 @@ export default function Area() {
 
   const exportColumns = useMemo<ExcelExportColumn<AreaExportRow>[]>(() => {
     return [
+      { header: 'Display Order', accessor: 'displayOrder' },
       { header: 'Area Code', accessor: 'areaCode' },
       { header: 'Area Name', accessor: 'areaName' },
-      { header: 'Display Order', accessor: 'displayOrder' },
       {
         header: 'Status',
         accessor: 'status',

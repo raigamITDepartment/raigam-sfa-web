@@ -21,6 +21,7 @@ export type SubChannelDTO = {
   id: Id
   channelId?: Id
   channelName?: string
+  channelCode?: string
   subChannelName: string
   shortName?: string
   subChannelCode?: string
@@ -42,7 +43,24 @@ export type RegionDTO = {
   status?: string
 }
 export type DepartmentDTO = { id: Id; name: string }
-export type TerritoryDTO = { id: Id; name: string }
+export type TerritoryDTO = {
+  id: Id
+  territoryName?: string
+  territoryCode?: string
+  name?: string
+  subChannelId?: Id
+  subChannelName?: string
+  rangeId?: Id
+  rangeName?: string
+  areaId?: Id
+  areaName?: string
+  areaCode?: string
+  displayOrder?: number
+  oldTerritoryId?: Id
+  isActive?: boolean
+  active?: boolean
+  status?: string
+}
 export type AreaDTO = {
   id: Id
   areaName: string
@@ -230,6 +248,55 @@ export async function getAllDepartment() {
 export async function getAllTerritories() {
   const res = await http.get<ApiResponse<TerritoryDTO[]>>(
     `${USER_DEMARC_BASE}/territory`
+  )
+  return res.data
+}
+
+export type CreateTerritoryRequest = {
+  userId: Id
+  channelId?: Id
+  subChannelId: Id
+  rangeId: Id
+  areaId: Id
+  territoryName: string
+  territoryCode: string
+  displayOrder: number
+  oldTerritoryId: Id
+  isActive: boolean
+}
+
+export type UpdateTerritoryRequest = {
+  id: Id
+  userId: Id
+  channelId?: Id
+  subChannelId: Id
+  rangeId: Id
+  areaId: Id
+  territoryName: string
+  territoryCode: string
+  displayOrder: number
+  isActive: boolean
+}
+
+export async function createTerritory(body: CreateTerritoryRequest) {
+  const res = await http.post<ApiResponse<TerritoryDTO>>(
+    `${USER_DEMARC_BASE}/territory`,
+    body
+  )
+  return res.data
+}
+
+export async function updateTerritory(body: UpdateTerritoryRequest) {
+  const res = await http.put<ApiResponse<TerritoryDTO>>(
+    `${USER_DEMARC_BASE}/territory`,
+    body
+  )
+  return res.data
+}
+
+export async function deactivateTerritory(id: Id) {
+  const res = await http.delete<ApiResponse<TerritoryDTO>>(
+    `${USER_DEMARC_BASE}/territory/deactivateTerritory/${id}`
   )
   return res.data
 }

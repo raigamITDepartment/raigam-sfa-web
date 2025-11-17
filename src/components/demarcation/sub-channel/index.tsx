@@ -50,9 +50,10 @@ import { ConfirmDialog } from '@/components/confirm-dialog'
 import { toast } from 'sonner'
 
 type SubChannelExportRow = {
+  channelCode?: string
+  channelName?: string
   subChannelCode?: string
   subChannelName: string
-  channelName?: string
   status: string
 }
 
@@ -81,9 +82,10 @@ export default function SubChannel() {
             ? 'Active'
             : 'Inactive'
       return {
+        channelCode: subChannel.channelCode,
+        channelName: subChannel.channelName,
         subChannelCode: subChannel.subChannelCode,
         subChannelName: subChannel.subChannelName,
-        channelName: subChannel.channelName,
         status: statusLabel,
       }
     })
@@ -91,9 +93,10 @@ export default function SubChannel() {
 
   const exportColumns = useMemo<ExcelExportColumn<SubChannelExportRow>[]>(() => {
     return [
+      { header: 'Channel Code', accessor: 'channelCode' },
+      { header: 'Channel Name', accessor: 'channelName' },
       { header: 'Sub Channel Code', accessor: 'subChannelCode' },
       { header: 'Sub Channel Name', accessor: 'subChannelName' },
-      { header: 'Channel Name', accessor: 'channelName' },
       {
         header: 'Status',
         accessor: 'status',

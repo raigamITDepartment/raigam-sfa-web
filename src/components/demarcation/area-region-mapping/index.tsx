@@ -209,21 +209,21 @@ export default function AreaRegionMapping() {
   const columns = useMemo<ColumnDef<AreaRegionDTO>[]>(
     () => [
       {
-        accessorKey: 'areaName',
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title='Area' />
-        ),
-        cell: ({ row }) => (
-          <span className='pl-4 truncate'>{row.getValue('areaName')}</span>
-        ),
-      },
-      {
         accessorKey: 'regionName',
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title='Region' />
         ),
         cell: ({ row }) => (
           <span className='pl-4 truncate'>{row.getValue('regionName')}</span>
+        ),
+      },
+      {
+        accessorKey: 'areaName',
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title='Area Name' />
+        ),
+        cell: ({ row }) => (
+          <span className='pl-4 truncate'>{row.getValue('areaName')}</span>
         ),
       },
       {

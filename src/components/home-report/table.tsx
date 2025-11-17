@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { HomeReportItem } from '@/services/reports/homeReportApi'
 import {
   ChevronLeft,
@@ -276,7 +276,7 @@ function renderTable(
         <thead>
           {/* Month Row */}
           <tr
-            className={`sticky top-0 z-30 dark:bg-gray-900 border-b border-gray-300 ${isFullScreen ? 'top-0 bg-blue-100' : 'bg-blue-100'}`}
+            className={`sticky top-0 z-30 border-b border-gray-300 dark:bg-gray-900 ${isFullScreen ? 'top-0 bg-blue-100' : 'bg-blue-100'}`}
           >
             {currentMonthHeaders.length > 0 && (
               <th
@@ -289,7 +289,7 @@ function renderTable(
             {pastMonthsHeaders.length > 0 && (
               <th
                 colSpan={pastMonthsHeaders.length}
-                className='border border-gray-300 border-l border-gray-300 py-3 text-center font-bold text-blue-900 dark:text-white bg-slate-200'
+                className='border border-l border-gray-300 bg-slate-200 py-3 text-center font-bold text-blue-900 dark:bg-gray-900 dark:text-white'
               >
                 Past 6 Months Figures
               </th>
@@ -305,7 +305,7 @@ function renderTable(
           </tr>
 
           {/* Column Headers */}
-          <tr className='sticky top-[45px] z-20 bg-gray-200 border-b border-gray-300'>
+          <tr className='sticky top-[45px] z-20 border-b border-gray-300 bg-gray-200'>
             {headers.map((h, i) => {
               const isPastMonthHeader = pastMonthColumnSet.has(h)
               const headerBgClass = isPastMonthHeader
@@ -712,6 +712,13 @@ export default function HomeReportTable({ items, periodLabel }: Props) {
       Object.values(row).some((v) => String(v).toLowerCase().includes(q))
     )
   }, [processedData, search])
+
+  useEffect(() => {
+    setPage((prevPage) => {
+      const maxPage = Math.max(1, Math.ceil(filtered.length / rowsPerPage))
+      return prevPage > maxPage ? maxPage : prevPage
+    })
+  }, [filtered.length, rowsPerPage])
 
   const paginated = useMemo(() => {
     const start = (page - 1) * rowsPerPage

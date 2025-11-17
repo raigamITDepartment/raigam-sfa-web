@@ -124,9 +124,21 @@ export function RegionForm(props: RegionFormProps) {
       }
       return createRegion(payload)
     },
-    onSuccess: async (_data, variables) => {
+    onSuccess: async (data, variables) => {
       toast.success('Region created successfully')
-      await queryClient.invalidateQueries({ queryKey: ['regions'] })
+      queryClient.setQueryData<ApiResponse<any>>(['regions'], (old) => {
+        if (!old) {
+          return {
+            ...data,
+            payload: [data.payload],
+          }
+        }
+        if (!Array.isArray(old.payload)) return old
+        return {
+          ...old,
+          payload: [data.payload, ...old.payload],
+        }
+      })
       await onSubmit?.(variables)
     },
     onError: (error: unknown) => {

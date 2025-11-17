@@ -88,9 +88,21 @@ export function ChannelForm(props: ChannelFormProps) {
       }
       return createChannel(payload)
     },
-    onSuccess: async (_data, variables) => {
+    onSuccess: async (data, variables) => {
       toast.success('Channel created successfully')
-      await queryClient.invalidateQueries({ queryKey: ['channels'] })
+      queryClient.setQueryData<ApiResponse<any>>(['channels'], (old) => {
+        if (!old) {
+          return {
+            ...data,
+            payload: [data.payload],
+          }
+        }
+        if (!Array.isArray(old.payload)) return old
+        return {
+          ...old,
+          payload: [data.payload, ...old.payload],
+        }
+      })
       await onSubmit?.(variables)
     },
     onError: (error: unknown) => {

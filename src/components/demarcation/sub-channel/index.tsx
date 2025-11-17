@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type {
   ColumnDef,
@@ -50,9 +50,10 @@ import { ConfirmDialog } from '@/components/confirm-dialog'
 import { toast } from 'sonner'
 
 type SubChannelExportRow = {
+  channelCode?: string
+  channelName?: string
   subChannelCode?: string
   subChannelName: string
-  channelName?: string
   status: string
 }
 
@@ -81,9 +82,10 @@ export default function SubChannel() {
             ? 'Active'
             : 'Inactive'
       return {
+        channelCode: subChannel.channelCode,
+        channelName: subChannel.channelName,
         subChannelCode: subChannel.subChannelCode,
         subChannelName: subChannel.subChannelName,
-        channelName: subChannel.channelName,
         status: statusLabel,
       }
     })
@@ -91,9 +93,10 @@ export default function SubChannel() {
 
   const exportColumns = useMemo<ExcelExportColumn<SubChannelExportRow>[]>(() => {
     return [
+      { header: 'Channel Code', accessor: 'channelCode' },
+      { header: 'Channel Name', accessor: 'channelName' },
       { header: 'Sub Channel Code', accessor: 'subChannelCode' },
       { header: 'Sub Channel Name', accessor: 'subChannelName' },
-      { header: 'Channel Name', accessor: 'channelName' },
       {
         header: 'Status',
         accessor: 'status',
@@ -132,6 +135,14 @@ export default function SubChannel() {
     subChannelName: string
     nextActive: boolean
   } | null>(null)
+
+  useEffect(() => {
+    if (!subChannelDialogOpen) {
+      setSubChannelDialogMode('create')
+      setEditingSubChannelId(null)
+      setSubChannelInitialValues(undefined)
+    }
+  }, [subChannelDialogOpen])
 
   const toggleStatusMutation = useMutation({
     mutationFn: async (vars: { id: Id; nextActive: boolean }) => {
@@ -294,6 +305,8 @@ export default function SubChannel() {
                           : '',
                         subChannelCode:
                           (original.subChannelCode as string | undefined) ?? '',
+                        shortName:
+                          (original.shortName as string | undefined) ?? '',
                         subChannelName:
                           (original.subChannelName as string | undefined) ?? '',
                         isActive: baseActive,
@@ -468,11 +481,6 @@ export default function SubChannel() {
         open={subChannelDialogOpen}
         onOpenChange={(open) => {
           setSubChannelDialogOpen(open)
-          if (!open) {
-            setSubChannelDialogMode('create')
-            setEditingSubChannelId(null)
-            setSubChannelInitialValues(undefined)
-          }
         }}
         title={
           subChannelDialogMode === 'create'
@@ -492,15 +500,9 @@ export default function SubChannel() {
           initialValues={subChannelInitialValues}
           onSubmit={async () => {
             setSubChannelDialogOpen(false)
-            setSubChannelDialogMode('create')
-            setEditingSubChannelId(null)
-            setSubChannelInitialValues(undefined)
           }}
           onCancel={() => {
             setSubChannelDialogOpen(false)
-            setSubChannelDialogMode('create')
-            setEditingSubChannelId(null)
-            setSubChannelInitialValues(undefined)
           }}
         />
       </CommonDialog>

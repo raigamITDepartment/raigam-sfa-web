@@ -21,7 +21,9 @@ export type SubChannelDTO = {
   id: Id
   channelId?: Id
   channelName?: string
+  channelCode?: string
   subChannelName: string
+  shortName?: string
   subChannelCode?: string
   isActive?: boolean
   active?: boolean
@@ -41,7 +43,24 @@ export type RegionDTO = {
   status?: string
 }
 export type DepartmentDTO = { id: Id; name: string }
-export type TerritoryDTO = { id: Id; name: string }
+export type TerritoryDTO = {
+  id: Id
+  territoryName?: string
+  territoryCode?: string
+  name?: string
+  subChannelId?: Id
+  subChannelName?: string
+  rangeId?: Id
+  rangeName?: string
+  areaId?: Id
+  areaName?: string
+  areaCode?: string
+  displayOrder?: number
+  oldTerritoryId?: Id
+  isActive?: boolean
+  active?: boolean
+  status?: string
+}
 export type AreaDTO = {
   id: Id
   areaName: string
@@ -63,10 +82,57 @@ export type AreaRegionDTO = {
   status?: string
 }
 export type RangeDTO = { id: Id; rangeName: string }
-export type RouteDTO = { id: Id; name: string }
+export type RouteDTO = {
+  id: Id
+  routeCode?: number | string
+  routeName?: string
+  territoryName?: string
+  territoryId?: Id
+  areaId?: Id
+  areaName?: string
+  oldRouteId?: Id
+  oldRouteCode?: string
+  displayOrder?: number
+  isActive?: boolean
+  active?: boolean
+  status?: string
+}
 export type OutletCategoryDTO = { id: Id; name: string }
 export type OutletDTO = { id: Id; name: string }
-export type AgencyDTO = { id: Id; name: string }
+export type AgencyDTO = {
+  id: Id
+  userId?: Id | null
+  channelId?: Id | null
+  subChannelId?: Id | null
+  channelName?: string
+  territoryId?: Id | null
+  territoryName?: string
+  rangeId?: Id | null
+  range?: string
+  agencyName?: string
+  agencyCode?: number | string
+  oldAgencyCode?: number | string | null
+  bankGuarantee?: string | null
+  creditLimit?: number | null
+  latitude?: number | null
+  longitude?: number | null
+  isActive?: boolean
+  active?: boolean
+  status?: string
+}
+
+export type CreateAgencyRequest = {
+  userId: Id
+  channelId: Id
+  subChannelId?: Id
+  territoryId: Id
+  agencyName: string
+  agencyCode: number
+  oldAgencyCode?: string
+  isActive: boolean
+}
+
+export type UpdateAgencyRequest = CreateAgencyRequest & { id: Id }
 export type DistributorDTO = { id: Id; name: string }
 export type CountryDTO = {
   id: Id
@@ -128,6 +194,7 @@ export type CreateSubChannelRequest = {
   channelId: Id
   userId: Id
   subChannelName: string
+  shortName: string
   subChannelCode: string
   isActive: boolean
 }
@@ -136,6 +203,7 @@ export type UpdateSubChannelRequest = {
   channelId: Id
   userId: Id
   subChannelName: string
+  shortName: string
   subChannelCode: string
   isActive: boolean
 }
@@ -158,6 +226,13 @@ export async function toggleChannelActive(id: Id) {
 export async function getAllSubChannel() {
   const res = await http.get<ApiResponse<SubChannelDTO[]>>(
     `${USER_DEMARC_BASE}/subChannel`
+  )
+  return res.data
+}
+
+export async function getAllSubChannelsByChannelId(channelId: Id) {
+  const res = await http.get<ApiResponse<SubChannelDTO[]>>(
+    `${USER_DEMARC_BASE}/subChannel/byChannelId/${channelId}`
   )
   return res.data
 }
@@ -227,6 +302,62 @@ export async function getAllDepartment() {
 export async function getAllTerritories() {
   const res = await http.get<ApiResponse<TerritoryDTO[]>>(
     `${USER_DEMARC_BASE}/territory`
+  )
+  return res.data
+}
+
+export async function getTerritoriesByAreaId(areaId: Id) {
+  const res = await http.get<ApiResponse<TerritoryDTO[]>>(
+    `${USER_DEMARC_BASE}/territory/byAreaId/${areaId}`
+  )
+  return res.data
+}
+
+export type CreateTerritoryRequest = {
+  userId: Id
+  channelId?: Id
+  subChannelId: Id
+  rangeId: Id
+  areaId: Id
+  territoryName: string
+  territoryCode: string
+  displayOrder: number
+  oldTerritoryId: Id
+  isActive: boolean
+}
+
+export type UpdateTerritoryRequest = {
+  id: Id
+  userId: Id
+  channelId?: Id
+  subChannelId: Id
+  rangeId: Id
+  areaId: Id
+  territoryName: string
+  territoryCode: string
+  displayOrder: number
+  isActive: boolean
+}
+
+export async function createTerritory(body: CreateTerritoryRequest) {
+  const res = await http.post<ApiResponse<TerritoryDTO>>(
+    `${USER_DEMARC_BASE}/territory`,
+    body
+  )
+  return res.data
+}
+
+export async function updateTerritory(body: UpdateTerritoryRequest) {
+  const res = await http.put<ApiResponse<TerritoryDTO>>(
+    `${USER_DEMARC_BASE}/territory`,
+    body
+  )
+  return res.data
+}
+
+export async function deactivateTerritory(id: Id) {
+  const res = await http.delete<ApiResponse<TerritoryDTO>>(
+    `${USER_DEMARC_BASE}/territory/deactivateTerritory/${id}`
   )
   return res.data
 }
@@ -332,6 +463,48 @@ export async function getAllRoutes() {
   return res.data
 }
 
+export type CreateRouteRequest = {
+  territoryId: Id
+  userId: Id
+  routeName: string
+  routeCode: number
+  displayOrder: number
+  isActive: boolean
+  oldRouteId?: Id
+  oldRouteCode?: string
+}
+export type UpdateRouteRequest = CreateRouteRequest & { id: Id }
+
+export async function createRoute(body: CreateRouteRequest) {
+  const res = await http.post<ApiResponse<RouteDTO>>(
+    `${USER_DEMARC_BASE}/route`,
+    body
+  )
+  return res.data
+}
+
+export async function updateRoute(body: UpdateRouteRequest) {
+  const res = await http.put<ApiResponse<RouteDTO>>(
+    `${USER_DEMARC_BASE}/route`,
+    body
+  )
+  return res.data
+}
+
+export async function deactivateRoute(id: Id) {
+  const res = await http.delete<ApiResponse<RouteDTO>>(
+    `${USER_DEMARC_BASE}/route/deactivateRoute/${id}`
+  )
+  return res.data
+}
+
+export async function activateRoute(id: Id) {
+  const res = await http.put<ApiResponse<RouteDTO>>(
+    `${USER_DEMARC_BASE}/route/activateRoute/${id}`
+  )
+  return res.data
+}
+
 export async function getAllOutletCategory() {
   const res = await http.get<ApiResponse<OutletCategoryDTO[]>>(
     `${USER_DEMARC_BASE}/outlet_category`
@@ -349,6 +522,29 @@ export async function getAllOutlets() {
 export async function getAllAgency() {
   const res = await http.get<ApiResponse<AgencyDTO[]>>(
     `${USER_DEMARC_BASE}/agency`
+  )
+  return res.data
+}
+
+export async function toggleAgencyActive(id: Id) {
+  const res = await http.delete<ApiResponse<AgencyDTO>>(
+    `${USER_DEMARC_BASE}/agency/deactivateAgency/${id}`
+  )
+  return res.data
+}
+
+export async function createAgency(body: CreateAgencyRequest) {
+  const res = await http.post<ApiResponse<AgencyDTO>>(
+    `${USER_DEMARC_BASE}/agency`,
+    body
+  )
+  return res.data
+}
+
+export async function updateAgency(body: UpdateAgencyRequest) {
+  const res = await http.put<ApiResponse<AgencyDTO>>(
+    `${USER_DEMARC_BASE}/agency`,
+    body
   )
   return res.data
 }

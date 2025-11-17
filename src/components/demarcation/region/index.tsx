@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type {
   ColumnDef,
@@ -136,6 +136,14 @@ export default function Region() {
     regionName: string
     nextActive: boolean
   } | null>(null)
+
+  useEffect(() => {
+    if (!regionDialogOpen) {
+      setRegionDialogMode('create')
+      setEditingRegionId(null)
+      setRegionInitialValues(undefined)
+    }
+  }, [regionDialogOpen])
 
   const toggleStatusMutation = useMutation({
     mutationFn: async (vars: { id: Id; nextActive: boolean }) => {
@@ -481,11 +489,6 @@ export default function Region() {
         open={regionDialogOpen}
         onOpenChange={(open) => {
           setRegionDialogOpen(open)
-          if (!open) {
-            setRegionDialogMode('create')
-            setEditingRegionId(null)
-            setRegionInitialValues(undefined)
-          }
         }}
         title={
           regionDialogMode === 'create' ? 'Create Region' : 'Update Region'
@@ -503,15 +506,9 @@ export default function Region() {
           initialValues={regionInitialValues}
           onSubmit={async () => {
             setRegionDialogOpen(false)
-            setRegionDialogMode('create')
-            setEditingRegionId(null)
-            setRegionInitialValues(undefined)
           }}
           onCancel={() => {
             setRegionDialogOpen(false)
-            setRegionDialogMode('create')
-            setEditingRegionId(null)
-            setRegionInitialValues(undefined)
           }}
         />
       </CommonDialog>

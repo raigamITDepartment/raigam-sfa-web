@@ -72,9 +72,21 @@ export function AreaForm(props: AreaFormProps) {
       }
       return createArea(payload)
     },
-    onSuccess: async (_data, variables) => {
+    onSuccess: async (data, variables) => {
       toast.success('Area created successfully')
-      await queryClient.invalidateQueries({ queryKey: ['areas'] })
+      queryClient.setQueryData<ApiResponse<AreaDTO[]>>(['areas'], (old) => {
+        if (!old) {
+          return {
+            ...data,
+            payload: [data.payload],
+          }
+        }
+        if (!Array.isArray(old.payload)) return old
+        return {
+          ...old,
+          payload: [data.payload, ...old.payload],
+        }
+      })
       await onSubmit?.(variables)
     },
     onError: (error: unknown) => {

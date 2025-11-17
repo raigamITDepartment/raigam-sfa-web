@@ -294,6 +294,8 @@ export default function SubChannel() {
                           : '',
                         subChannelCode:
                           (original.subChannelCode as string | undefined) ?? '',
+                        shortName:
+                          (original.shortName as string | undefined) ?? '',
                         subChannelName:
                           (original.subChannelName as string | undefined) ?? '',
                         isActive: baseActive,

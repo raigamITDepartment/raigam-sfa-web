@@ -39,6 +39,7 @@ const subChannelFormSchema = z.object({
   channelId: z.string().min(1, 'Please select a channel'),
   subChannelCode: z.string().min(1, 'Please enter sub-channel code'),
   subChannelName: z.string().min(1, 'Please enter sub-channel name'),
+  shortName: z.string().min(1, 'Please enter sub-channel short name'),
   isActive: z.boolean().default(true),
 })
 
@@ -78,6 +79,7 @@ export function SubChannelForm(props: SubChannelFormProps) {
       channelId: '',
       subChannelCode: '',
       subChannelName: '',
+      shortName: '',
       isActive: true,
       ...initialValues,
     },
@@ -89,14 +91,27 @@ export function SubChannelForm(props: SubChannelFormProps) {
         channelId: Number(values.channelId),
         userId: user?.userId ?? 0,
         subChannelName: values.subChannelName,
+        shortName: values.shortName,
         subChannelCode: values.subChannelCode,
         isActive: values.isActive,
       }
       return createSubChannel(payload)
     },
-    onSuccess: async (_data, variables) => {
+    onSuccess: async (data, variables) => {
       toast.success('Sub channel created successfully')
-      await queryClient.invalidateQueries({ queryKey: ['sub-channels'] })
+      queryClient.setQueryData<ApiResponse<any>>(['sub-channels'], (old) => {
+        if (!old) {
+          return {
+            ...data,
+            payload: [data.payload],
+          }
+        }
+        if (!Array.isArray(old.payload)) return old
+        return {
+          ...old,
+          payload: [data.payload, ...old.payload],
+        }
+      })
       await onSubmit?.(variables)
     },
     onError: (error: unknown) => {
@@ -116,6 +131,7 @@ export function SubChannelForm(props: SubChannelFormProps) {
         channelId: Number(values.channelId),
         userId: user?.userId ?? 0,
         subChannelName: values.subChannelName,
+        shortName: values.shortName,
         subChannelCode: values.subChannelCode,
         isActive: values.isActive,
       }
@@ -223,6 +239,20 @@ export function SubChannelForm(props: SubChannelFormProps) {
               <FormLabel>Sub Channel Name</FormLabel>
               <FormControl>
                 <Input placeholder='Sub Channel Name' {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name='shortName'
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Sub Channel Short Name</FormLabel>
+              <FormControl>
+                <Input placeholder='Sub Channel Short Name' {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

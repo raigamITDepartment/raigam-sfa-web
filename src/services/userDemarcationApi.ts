@@ -22,6 +22,7 @@ export type SubChannelDTO = {
   channelId?: Id
   channelName?: string
   subChannelName: string
+  shortName?: string
   subChannelCode?: string
   isActive?: boolean
   active?: boolean
@@ -128,6 +129,7 @@ export type CreateSubChannelRequest = {
   channelId: Id
   userId: Id
   subChannelName: string
+  shortName: string
   subChannelCode: string
   isActive: boolean
 }
@@ -136,6 +138,7 @@ export type UpdateSubChannelRequest = {
   channelId: Id
   userId: Id
   subChannelName: string
+  shortName: string
   subChannelCode: string
   isActive: boolean
 }

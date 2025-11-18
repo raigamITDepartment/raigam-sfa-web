@@ -14,16 +14,10 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import { Pencil } from 'lucide-react'
-import type {
-  ApiResponse,
-  DistributorDTO,
-  Id,
-  UpdateDistributorRequest,
-} from '@/services/userDemarcationApi'
+import type { ApiResponse, DistributorDTO, Id } from '@/services/userDemarcationApi'
 import {
   deActivateDistributor,
   getAllDistributors,
-  updateDistributor,
 } from '@/services/userDemarcationApi'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
@@ -95,27 +89,7 @@ export default function DistributorCreation() {
   const rows = useMemo(() => data?.payload ?? [], [data])
 
   const toggleStatusMutation = useMutation({
-    mutationFn: async ({ id, nextActive, record }: TogglePayload) => {
-      if (nextActive) {
-        const payload: UpdateDistributorRequest = {
-          id,
-          rangeId: (record.rangeId ?? 0) as Id,
-          userId: record.userId ?? null,
-          distributorName: record.distributorName ?? '',
-          email: record.email ?? null,
-          address1: record.address1 ?? null,
-          address2: record.address2 ?? null,
-          address3: record.address3 ?? null,
-          mobileNo: record.mobileNo ?? '',
-          telNo: record.telNo ?? null,
-          vatNum: record.vatNum ?? null,
-          isActive: true,
-        }
-
-        await updateDistributor(payload)
-        return
-      }
-
+    mutationFn: async ({ id }: TogglePayload) => {
       await deActivateDistributor(id)
     },
     onSuccess: () => {

@@ -133,7 +133,21 @@ export type CreateAgencyRequest = {
 }
 
 export type UpdateAgencyRequest = CreateAgencyRequest & { id: Id }
-export type DistributorDTO = { id: Id; name: string }
+export type DistributorDTO = {
+  id: Id
+  rangeId?: number | string
+  range?: string
+  userId?: Id | null
+  distributorName?: string
+  email?: string | null
+  address1?: string | null
+  address2?: string | null
+  address3?: string | null
+  mobileNo?: string | null
+  telNo?: string | null
+  vatNum?: string | null
+  isActive?: boolean
+}
 export type CountryDTO = {
   id: Id
   continentId: Id
@@ -552,6 +566,45 @@ export async function updateAgency(body: UpdateAgencyRequest) {
 export async function getAllDistributors() {
   const res = await http.get<ApiResponse<DistributorDTO[]>>(
     `${USER_DEMARC_BASE}/distributor`
+  )
+  return res.data
+}
+
+export type CreateDistributorRequest = {
+  rangeId: Id
+  userId?: Id | null
+  distributorName: string
+  email?: string | null
+  address1?: string | null
+  address2?: string | null
+  address3?: string | null
+  mobileNo: string
+  telNo?: string | null
+  vatNum?: string | null
+  isActive: boolean
+}
+
+export type UpdateDistributorRequest = CreateDistributorRequest & { id: Id }
+
+export async function createNewDistributor(body: CreateDistributorRequest) {
+  const res = await http.post<ApiResponse<DistributorDTO>>(
+    `${USER_DEMARC_BASE}/distributor`,
+    body
+  )
+  return res.data
+}
+
+export async function updateDistributor(body: UpdateDistributorRequest) {
+  const res = await http.put<ApiResponse<DistributorDTO>>(
+    `${USER_DEMARC_BASE}/distributor`,
+    body
+  )
+  return res.data
+}
+
+export async function deActivateDistributor(id: Id) {
+  const res = await http.delete<ApiResponse<DistributorDTO>>(
+    `${USER_DEMARC_BASE}/distributor/deactivateDistributor/${id}`
   )
   return res.data
 }

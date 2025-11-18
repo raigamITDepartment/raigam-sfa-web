@@ -81,7 +81,11 @@ export type AreaRegionDTO = {
   active?: boolean
   status?: string
 }
-export type RangeDTO = { id: Id; rangeName: string }
+export type RangeDTO = {
+  id?: Id
+  rangeId?: Id
+  rangeName?: string
+}
 export type RouteDTO = {
   id: Id
   routeCode?: number | string
@@ -121,6 +125,32 @@ export type AgencyDTO = {
   status?: string
 }
 
+export type AgencyWarehouseDTO = {
+  id: Id
+  agencyId?: Id
+  agencyName?: string
+  warehouseId?: Id
+  warehouseName?: string
+  sapAgencyCode?: string
+  range?: string
+  distributorId?: Id
+  distributorName?: string
+  userId?: Id | null
+  latitude?: number
+  longitude?: number
+  isActive?: boolean
+  active?: boolean
+  status?: string
+}
+
+export type CreateAgencyWarehouseRequest = {
+  agencyId: Id
+  warehouseId: Id
+  isActive: boolean
+}
+
+export type UpdateAgencyWarehouseRequest = CreateAgencyWarehouseRequest & { id: Id }
+
 export type CreateAgencyRequest = {
   userId: Id
   channelId: Id
@@ -133,7 +163,24 @@ export type CreateAgencyRequest = {
 }
 
 export type UpdateAgencyRequest = CreateAgencyRequest & { id: Id }
-export type DistributorDTO = { id: Id; name: string }
+export type CreateAgencyMappingRequest = CreateAgencyRequest
+export type UpdateAgencyMappingRequest = UpdateAgencyRequest
+export type DistributorDTO = {
+  id: Id
+  rangeId?: number | string
+  range?: string
+  rangeName?: string
+  userId?: Id | null
+  distributorName?: string
+  email?: string | null
+  address1?: string | null
+  address2?: string | null
+  address3?: string | null
+  mobileNo?: string | null
+  telNo?: string | null
+  vatNum?: string | null
+  isActive?: boolean
+}
 export type CountryDTO = {
   id: Id
   continentId: Id
@@ -549,9 +596,90 @@ export async function updateAgency(body: UpdateAgencyRequest) {
   return res.data
 }
 
+export async function createNewAgencyMapping(body: CreateAgencyMappingRequest) {
+  return createAgency(body)
+}
+
+export async function updateAgencyMapping(body: UpdateAgencyMappingRequest) {
+  return updateAgency(body)
+}
+
+export async function deactivateAgencyMapping(id: Id) {
+  return toggleAgencyActive(id)
+}
+
 export async function getAllDistributors() {
   const res = await http.get<ApiResponse<DistributorDTO[]>>(
     `${USER_DEMARC_BASE}/distributor`
+  )
+  return res.data
+}
+
+export type CreateDistributorRequest = {
+  rangeId: Id
+  userId?: Id | null
+  distributorName: string
+  email?: string | null
+  address1?: string | null
+  address2?: string | null
+  address3?: string | null
+  mobileNo: string
+  telNo?: string | null
+  vatNum?: string | null
+  isActive: boolean
+}
+
+export type UpdateDistributorRequest = CreateDistributorRequest & { id: Id }
+
+export async function createNewDistributor(body: CreateDistributorRequest) {
+  const res = await http.post<ApiResponse<DistributorDTO>>(
+    `${USER_DEMARC_BASE}/distributor`,
+    body
+  )
+  return res.data
+}
+
+export async function updateDistributor(body: UpdateDistributorRequest) {
+  const res = await http.put<ApiResponse<DistributorDTO>>(
+    `${USER_DEMARC_BASE}/distributor`,
+    body
+  )
+  return res.data
+}
+
+export async function deActivateDistributor(id: Id) {
+  const res = await http.delete<ApiResponse<DistributorDTO>>(
+    `${USER_DEMARC_BASE}/distributor/deactivateDistributor/${id}`
+  )
+  return res.data
+}
+
+export async function getAllAgencyWarehouse() {
+  const res = await http.get<ApiResponse<AgencyWarehouseDTO[]>>(
+    `${USER_DEMARC_BASE}/agencyWarehouse`
+  )
+  return res.data
+}
+
+export async function createAgencyWarehouse(body: CreateAgencyWarehouseRequest) {
+  const res = await http.post<ApiResponse<AgencyWarehouseDTO>>(
+    `${USER_DEMARC_BASE}/agencyWarehouse`,
+    body
+  )
+  return res.data
+}
+
+export async function updateAgencyWarehouse(body: UpdateAgencyWarehouseRequest) {
+  const res = await http.put<ApiResponse<AgencyWarehouseDTO>>(
+    `${USER_DEMARC_BASE}/agencyWarehouse`,
+    body
+  )
+  return res.data
+}
+
+export async function deActivateAgencyWarehouse(id: Id) {
+  const res = await http.delete<ApiResponse<AgencyWarehouseDTO>>(
+    `${USER_DEMARC_BASE}/agencyWarehouse/deactivateAgencyWarehouse/${id}`
   )
   return res.data
 }

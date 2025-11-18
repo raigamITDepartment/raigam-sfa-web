@@ -208,7 +208,11 @@ export function TerritoryForm(props: TerritoryFormProps) {
     const allowed = map[subId]
     if (!allowed) return activeRanges
 
-    return activeRanges.filter((r) => allowed.includes(Number(r.id)))
+    return activeRanges.filter((r) => {
+      const optionId = r.id ?? r.rangeId
+      if (optionId === undefined || optionId === null) return false
+      return allowed.includes(Number(optionId))
+    })
   }, [activeRanges, subChannelValue])
 
   const createMutation = useMutation({
@@ -433,11 +437,21 @@ export function TerritoryForm(props: TerritoryFormProps) {
                     <SelectValue placeholder='Select Range' />
                   </SelectTrigger>
                   <SelectContent>
-                    {(isEditMode ? activeRanges : filteredRanges).map((item) => (
-                      <SelectItem key={item.id} value={String(item.id)}>
-                        {item.rangeName}
-                      </SelectItem>
-                    ))}
+                    {(isEditMode ? activeRanges : filteredRanges).map(
+                      (item, index) => {
+                        const optionId = item.id ?? item.rangeId
+                        if (optionId === undefined || optionId === null)
+                          return null
+                        return (
+                          <SelectItem
+                            key={`${optionId}-${index}`}
+                            value={String(optionId)}
+                          >
+                            {item.rangeName ?? `Range ${optionId}`}
+                          </SelectItem>
+                        )
+                      }
+                    )}
                   </SelectContent>
                 </Select>
               </FormControl>

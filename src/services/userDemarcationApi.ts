@@ -125,6 +125,32 @@ export type AgencyDTO = {
   status?: string
 }
 
+export type AgencyWarehouseDTO = {
+  id: Id
+  agencyId?: Id
+  agencyName?: string
+  warehouseId?: Id
+  warehouseName?: string
+  sapAgencyCode?: string
+  range?: string
+  distributorId?: Id
+  distributorName?: string
+  userId?: Id | null
+  latitude?: number
+  longitude?: number
+  isActive?: boolean
+  active?: boolean
+  status?: string
+}
+
+export type CreateAgencyWarehouseRequest = {
+  agencyId: Id
+  warehouseId: Id
+  isActive: boolean
+}
+
+export type UpdateAgencyWarehouseRequest = CreateAgencyWarehouseRequest & { id: Id }
+
 export type CreateAgencyRequest = {
   userId: Id
   channelId: Id
@@ -137,6 +163,8 @@ export type CreateAgencyRequest = {
 }
 
 export type UpdateAgencyRequest = CreateAgencyRequest & { id: Id }
+export type CreateAgencyMappingRequest = CreateAgencyRequest
+export type UpdateAgencyMappingRequest = UpdateAgencyRequest
 export type DistributorDTO = {
   id: Id
   rangeId?: number | string
@@ -568,6 +596,18 @@ export async function updateAgency(body: UpdateAgencyRequest) {
   return res.data
 }
 
+export async function createNewAgencyMapping(body: CreateAgencyMappingRequest) {
+  return createAgency(body)
+}
+
+export async function updateAgencyMapping(body: UpdateAgencyMappingRequest) {
+  return updateAgency(body)
+}
+
+export async function deactivateAgencyMapping(id: Id) {
+  return toggleAgencyActive(id)
+}
+
 export async function getAllDistributors() {
   const res = await http.get<ApiResponse<DistributorDTO[]>>(
     `${USER_DEMARC_BASE}/distributor`
@@ -610,6 +650,36 @@ export async function updateDistributor(body: UpdateDistributorRequest) {
 export async function deActivateDistributor(id: Id) {
   const res = await http.delete<ApiResponse<DistributorDTO>>(
     `${USER_DEMARC_BASE}/distributor/deactivateDistributor/${id}`
+  )
+  return res.data
+}
+
+export async function getAllAgencyWarehouse() {
+  const res = await http.get<ApiResponse<AgencyWarehouseDTO[]>>(
+    `${USER_DEMARC_BASE}/agencyWarehouse`
+  )
+  return res.data
+}
+
+export async function createAgencyWarehouse(body: CreateAgencyWarehouseRequest) {
+  const res = await http.post<ApiResponse<AgencyWarehouseDTO>>(
+    `${USER_DEMARC_BASE}/agencyWarehouse`,
+    body
+  )
+  return res.data
+}
+
+export async function updateAgencyWarehouse(body: UpdateAgencyWarehouseRequest) {
+  const res = await http.put<ApiResponse<AgencyWarehouseDTO>>(
+    `${USER_DEMARC_BASE}/agencyWarehouse`,
+    body
+  )
+  return res.data
+}
+
+export async function deActivateAgencyWarehouse(id: Id) {
+  const res = await http.delete<ApiResponse<AgencyWarehouseDTO>>(
+    `${USER_DEMARC_BASE}/agencyWarehouse/deactivateAgencyWarehouse/${id}`
   )
   return res.data
 }

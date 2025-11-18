@@ -25,6 +25,7 @@ export interface CommonTabsProps
   value?: string
   defaultValue?: string
   onValueChange?: (value: string) => void
+  storageKey?: string
   className?: string
   listClassName?: string
   triggerClassName?: string
@@ -36,6 +37,7 @@ export function CommonTabs({
   value,
   defaultValue,
   onValueChange,
+  storageKey,
   className,
   listClassName,
   triggerClassName,
@@ -44,13 +46,39 @@ export function CommonTabs({
 }: CommonTabsProps) {
   if (!items || items.length === 0) return null
 
-  const initial = defaultValue ?? items[0]?.value
+  const fallbackValue = defaultValue ?? items[0]?.value
+  const shouldPersist = Boolean(storageKey)
+
+  const [internalValue, setInternalValue] = React.useState(() => {
+    if (!shouldPersist || typeof window === 'undefined') return fallbackValue
+
+    return (
+      window.localStorage.getItem(storageKey!) ??
+      fallbackValue
+    )
+  })
+
+  const currentValue = value ?? internalValue
+
+  const handleValueChange = (newValue: string) => {
+    if (value === undefined) {
+      setInternalValue(newValue)
+    }
+    onValueChange?.(newValue)
+  }
+
+  React.useEffect(() => {
+    if (!shouldPersist || typeof window === 'undefined') return
+    if (currentValue == null) return
+
+    window.localStorage.setItem(storageKey!, currentValue)
+  }, [currentValue, shouldPersist, storageKey])
 
   return (
     <UITabs
-      value={value}
-      defaultValue={initial}
-      onValueChange={onValueChange}
+      value={currentValue}
+      defaultValue={fallbackValue}
+      onValueChange={handleValueChange}
       className={cn(className)}
       {...rootProps}
     >

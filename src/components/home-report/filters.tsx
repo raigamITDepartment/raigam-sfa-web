@@ -167,7 +167,11 @@ function Filters({ onApply }: FiltersProps) {
     if (!ranges) return [] as RangeDTO[]
     if (!subChannelId) return ranges
     const allowed = subChannelRangeMap[Number(subChannelId)] || []
-    return ranges.filter((r) => allowed.includes(Number(r.id)))
+    return ranges.filter((r) => {
+      const optionId = r.id ?? r.rangeId
+      if (optionId === undefined || optionId === null) return false
+      return allowed.includes(Number(optionId))
+    })
   }, [ranges, subChannelId])
 
   // Clear selected range when sub channel changes to avoid invalid selection
@@ -215,11 +219,15 @@ function Filters({ onApply }: FiltersProps) {
           <SelectValue placeholder='Select Range' />
         </SelectTrigger>
         <SelectContent>
-          {filteredRanges?.map((r) => (
-            <SelectItem key={r.id} value={String(r.id)}>
-              {r.rangeName}
-            </SelectItem>
-          ))}
+          {filteredRanges?.map((r, index) => {
+            const optionId = r.id ?? r.rangeId
+            if (optionId === undefined || optionId === null) return null
+            return (
+              <SelectItem key={`${optionId}-${index}`} value={String(optionId)}>
+                {r.rangeName ?? `Range ${optionId}`}
+              </SelectItem>
+            )
+          })}
         </SelectContent>
       </Select>
 

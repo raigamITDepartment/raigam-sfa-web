@@ -81,7 +81,11 @@ export type AreaRegionDTO = {
   active?: boolean
   status?: string
 }
-export type RangeDTO = { id: Id; rangeName: string }
+export type RangeDTO = {
+  id?: Id
+  rangeId?: Id
+  rangeName?: string
+}
 export type RouteDTO = {
   id: Id
   routeCode?: number | string
@@ -137,6 +141,7 @@ export type DistributorDTO = {
   id: Id
   rangeId?: number | string
   range?: string
+  rangeName?: string
   userId?: Id | null
   distributorName?: string
   email?: string | null

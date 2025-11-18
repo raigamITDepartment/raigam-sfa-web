@@ -13,12 +13,18 @@ import {
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table'
-import { Pencil } from 'lucide-react'
-import type { ApiResponse, DistributorDTO, Id } from '@/services/userDemarcationApi'
+import type {
+  ApiResponse,
+  DistributorDTO,
+  Id,
+  RangeDTO,
+} from '@/services/userDemarcationApi'
 import {
   deActivateDistributor,
   getAllDistributors,
+  getAllRange,
 } from '@/services/userDemarcationApi'
+import { Pencil, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -32,6 +38,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { CommonDialog } from '@/components/common-dialog'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import {
   DataTableColumnHeader,
@@ -42,6 +49,8 @@ import {
   ExcelExportButton,
   type ExcelExportColumn,
 } from '@/components/excel-export-button'
+import { CreateDistributorForm } from './create-distributor-form'
+import { UpdateDistributorForm } from './update-distributor-form'
 
 type DistributorExportRow = {
   distributorName: string
@@ -77,6 +86,10 @@ export default function DistributorCreation() {
   const queryClient = useQueryClient()
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [pendingToggle, setPendingToggle] = useState<TogglePayload | null>(null)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [modalMode, setModalMode] = useState<'create' | 'update'>('create')
+  const [activeDistributor, setActiveDistributor] =
+    useState<DistributorDTO | null>(null)
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['distributors'],
@@ -86,7 +99,100 @@ export default function DistributorCreation() {
     },
   })
 
-  const rows = useMemo(() => data?.payload ?? [], [data])
+  const rangesQuery = useQuery({
+    queryKey: ['user-demarcation', 'ranges'],
+    queryFn: async () => {
+      const res = (await getAllRange()) as ApiResponse<RangeDTO[]>
+      return res.payload
+    },
+  })
+
+  const ranges = rangesQuery.data ?? []
+
+  const rangeLookup = useMemo(() => {
+    const lookup = new Map<string, Id>()
+    ranges.forEach((range) => {
+      const normalized = range.rangeName?.trim().toLowerCase()
+      const optionId = range.id ?? range.rangeId
+      if (!normalized || optionId === undefined || optionId === null) return
+      lookup.set(normalized, optionId)
+    })
+    return lookup
+  }, [ranges])
+
+  const rows = useMemo(() => {
+    if (!data?.payload) return []
+    return data.payload.map((record) => {
+      const displayRange = record.range ?? record.rangeName ?? ''
+      const normalizedRange = displayRange.trim().toLowerCase()
+      const resolvedRangeId =
+        record.rangeId ??
+        (normalizedRange ? rangeLookup.get(normalizedRange) : undefined)
+
+      return {
+        ...record,
+        range: displayRange,
+        rangeName: record.rangeName ?? displayRange,
+        rangeId: resolvedRangeId ?? record.rangeId,
+      }
+    })
+  }, [data, rangeLookup])
+
+  const formInitialValues = useMemo(() => {
+    if (!activeDistributor) return undefined
+    const rangeLabel = (
+      activeDistributor.range ??
+      activeDistributor.rangeName ??
+      ''
+    ).trim()
+    const normalizedLabel = rangeLabel.toLowerCase()
+    const resolvedRangeId =
+      activeDistributor.rangeId ??
+      (normalizedLabel ? rangeLookup.get(normalizedLabel) : undefined)
+
+    return {
+      rangeId: resolvedRangeId !== undefined ? String(resolvedRangeId) : '',
+      rangeName: rangeLabel,
+      range: rangeLabel,
+      distributorName: activeDistributor.distributorName ?? '',
+      email: activeDistributor.email ?? '',
+      address1: activeDistributor.address1 ?? '',
+      address2: activeDistributor.address2 ?? '',
+      address3: activeDistributor.address3 ?? '',
+      mobileNo: activeDistributor.mobileNo ?? '',
+      vatNum: activeDistributor.vatNum ?? '',
+      isActive: activeDistributor.isActive ?? true,
+    }
+  }, [activeDistributor, rangeLookup])
+
+  const openCreateModal = () => {
+    setModalMode('create')
+    setActiveDistributor(null)
+    setIsDialogOpen(true)
+  }
+
+  const openEditModal = (distributor: DistributorDTO) => {
+    setModalMode('update')
+    console.log('Distributor edit selection:', distributor)
+    setActiveDistributor(distributor)
+    setIsDialogOpen(true)
+  }
+
+  const handleDialogToggle = (open: boolean) => {
+    setIsDialogOpen(open)
+    if (!open) {
+      setActiveDistributor(null)
+    }
+  }
+
+  const closeDialog = () => handleDialogToggle(false)
+
+  const dialogTitle =
+    modalMode === 'create' ? 'Create Distributor' : 'Update Distributor'
+  const dialogDescription =
+    modalMode === 'create'
+      ? 'Add a new distributor to the selected range.'
+      : 'Update the existing distributor details.'
 
   const toggleStatusMutation = useMutation({
     mutationFn: async ({ id }: TogglePayload) => {
@@ -94,11 +200,13 @@ export default function DistributorCreation() {
     },
     onSuccess: () => {
       toast.success('Distributor status updated')
-      queryClient.invalidateQueries(['distributors'])
+      queryClient.invalidateQueries({ queryKey: ['distributors'] })
       setPendingToggle(null)
     },
     onError: (err) => {
-      toast.error((err as Error)?.message ?? 'Failed to update distributor status')
+      toast.error(
+        (err as Error)?.message ?? 'Failed to update distributor status'
+      )
     },
   })
 
@@ -111,9 +219,10 @@ export default function DistributorCreation() {
       )
       const statusLabel = distributor.isActive ? 'Active' : 'Inactive'
 
+      const rangeValue = distributor.range ?? distributor.rangeName ?? ''
       return {
         distributorName: distributor.distributorName ?? '',
-        range: distributor.range ?? '',
+        range: rangeValue,
         address,
         mobileNo: distributor.mobileNo ?? '',
         email: distributor.email ?? '',
@@ -122,7 +231,9 @@ export default function DistributorCreation() {
     })
   }, [rows])
 
-  const exportColumns = useMemo<ExcelExportColumn<DistributorExportRow>[]>(() => {
+  const exportColumns = useMemo<
+    ExcelExportColumn<DistributorExportRow>[]
+  >(() => {
     return [
       { header: 'Distributor Name', accessor: 'distributorName' },
       { header: 'Range', accessor: 'range' },
@@ -177,7 +288,7 @@ export default function DistributorCreation() {
         accessorFn: (row) =>
           formatAddress(row.address1, row.address2, row.address3),
         cell: ({ getValue }) => (
-          <span className='pl-4 truncate'>{(getValue() as string) ?? '-'}</span>
+          <span className='truncate pl-4'>{(getValue() as string) ?? '-'}</span>
         ),
       },
       {
@@ -196,7 +307,7 @@ export default function DistributorCreation() {
           <DataTableColumnHeader column={column} title='Email' />
         ),
         cell: ({ row }) => (
-          <span className='pl-4 truncate'>{row.getValue('email') ?? '-'}</span>
+          <span className='truncate pl-4'>{row.getValue('email') ?? '-'}</span>
         ),
       },
       {
@@ -245,7 +356,8 @@ export default function DistributorCreation() {
                 variant='ghost'
                 size='icon'
                 className='size-8'
-                aria-label='View distributor'
+                aria-label='Edit distributor'
+                onClick={() => openEditModal(original)}
               >
                 <Pencil className='size-4' />
               </Button>
@@ -301,10 +413,22 @@ export default function DistributorCreation() {
             worksheetName='Distributors'
             customStyles={exportStatusStyles}
           />
+          <Button
+            size='sm'
+            variant='default'
+            className='flex items-center gap-1'
+            onClick={openCreateModal}
+          >
+            <Plus className='size-4 opacity-80' />
+            Create Distributor
+          </Button>
         </div>
       </CardHeader>
       <CardContent className='space-y-2'>
-        <DataTableToolbar table={table} searchPlaceholder='Search all columns...' />
+        <DataTableToolbar
+          table={table}
+          searchPlaceholder='Search all columns...'
+        />
         <div className='rounded-md border'>
           <Table className='text-xs'>
             <TableHeader>
@@ -376,6 +500,33 @@ export default function DistributorCreation() {
         </div>
         <DataTablePagination table={table} />
       </CardContent>
+      <CommonDialog
+        open={isDialogOpen}
+        onOpenChange={handleDialogToggle}
+        title={dialogTitle}
+        description={dialogDescription}
+        hideFooter
+        contentClassName='max-w-3xl'
+      >
+        {modalMode === 'create' ? (
+          <CreateDistributorForm
+            key='create-distributor-form'
+            initialValues={formInitialValues}
+            onCancel={closeDialog}
+            onSuccess={closeDialog}
+            ranges={ranges}
+          />
+        ) : (
+          <UpdateDistributorForm
+            key={`update-distributor-form-${activeDistributor?.id ?? 'unknown'}`}
+            distributorId={activeDistributor?.id}
+            initialValues={formInitialValues}
+            onCancel={closeDialog}
+            onSuccess={closeDialog}
+            ranges={ranges}
+          />
+        )}
+      </CommonDialog>
       <ConfirmDialog
         destructive
         open={confirmOpen}

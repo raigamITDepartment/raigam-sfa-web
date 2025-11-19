@@ -20,8 +20,10 @@ type AuthenticatedLayoutProps = {
 }
 
 export function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
-  // Default to closed when no cookie is set; open only if cookie is explicitly 'true'
-  const defaultOpen = getCookie('sidebar_state') === 'true'
+  const sidebarCookie = getCookie('sidebar_state')
+  // Default to open when no cookie is set; respect explicit false otherwise.
+  const defaultOpen =
+    sidebarCookie === undefined ? true : sidebarCookie === 'true'
   return (
     <SearchProvider>
       <LayoutProvider>

@@ -70,6 +70,22 @@ type AgencyExportRow = {
   status: string
 }
 
+const getAgencyRawStatus = (agency: AgencyDTO) =>
+  (agency.status as string | boolean | undefined) ??
+  (agency.isActive as boolean | undefined) ??
+  (agency.active as boolean | undefined)
+
+const isAgencyActive = (agency: AgencyDTO) => {
+  const rawStatus = getAgencyRawStatus(agency)
+  if (typeof rawStatus === 'string') {
+    return rawStatus.toLowerCase() === 'active'
+  }
+  return Boolean(rawStatus)
+}
+
+const getAgencyStatusValue = (agency: AgencyDTO) =>
+  isAgencyActive(agency) ? 'Active' : 'Inactive'
+
 export default function Agency() {
   const queryClient = useQueryClient()
   const { data, isLoading, isError, error } = useQuery({
@@ -102,6 +118,59 @@ export default function Agency() {
   >(undefined)
 
   const rows = useMemo(() => data?.payload ?? [], [data])
+
+  const channelFilterOptions = useMemo(() => {
+    const seen = new Set<string>()
+    rows.forEach((agency) => {
+      const channel = agency.channelName?.trim()
+      if (channel) seen.add(channel)
+    })
+    return Array.from(seen)
+      .sort((a, b) => a.localeCompare(b))
+      .map((value) => ({ label: value, value }))
+  }, [rows])
+
+  const rangeFilterOptions = useMemo(() => {
+    const seen = new Set<string>()
+    rows.forEach((agency) => {
+      const range = agency.range?.trim()
+      if (range) seen.add(range)
+    })
+    return Array.from(seen)
+      .sort((a, b) => a.localeCompare(b))
+      .map((value) => ({ label: value, value }))
+  }, [rows])
+
+  const statusFilterOptions = useMemo(() => {
+    const seen = new Set<string>()
+    rows.forEach((agency) => {
+      seen.add(getAgencyStatusValue(agency))
+    })
+    return Array.from(seen)
+      .sort((a, b) => a.localeCompare(b))
+      .map((value) => ({ label: value, value }))
+  }, [rows])
+
+  const toolbarFilters = useMemo(
+    () => [
+      {
+        columnId: 'channelName',
+        title: 'Channel',
+        options: channelFilterOptions,
+      },
+      {
+        columnId: 'range',
+        title: 'Range',
+        options: rangeFilterOptions,
+      },
+      {
+        columnId: 'status',
+        title: 'Status',
+        options: statusFilterOptions,
+      },
+    ],
+    [channelFilterOptions, rangeFilterOptions, statusFilterOptions]
+  )
 
   useEffect(() => {
     if (!agencyDialogOpen) {
@@ -163,27 +232,14 @@ export default function Agency() {
   })
 
   const exportRows = useMemo<AgencyExportRow[]>(() => {
-    return rows.map((agency) => {
-      const rawStatus =
-        (agency.status as string | boolean | undefined) ??
-        (agency.isActive as boolean | undefined) ??
-        (agency.active as boolean | undefined)
-      const statusLabel =
-        typeof rawStatus === 'string'
-          ? rawStatus
-          : rawStatus
-            ? 'Active'
-            : 'Inactive'
-
-      return {
-        agencyCode: agency.agencyCode,
-        agencyName: agency.agencyName,
-        channelName: agency.channelName,
-        range: agency.range,
-        territoryName: agency.territoryName,
-        status: statusLabel,
-      }
-    })
+    return rows.map((agency) => ({
+      agencyCode: agency.agencyCode,
+      agencyName: agency.agencyName,
+      channelName: agency.channelName,
+      range: agency.range,
+      territoryName: agency.territoryName,
+      status: getAgencyStatusValue(agency),
+    }))
   }, [rows])
 
   const exportColumns = useMemo<ExcelExportColumn<AgencyExportRow>[]>(() => {
@@ -261,21 +317,15 @@ export default function Agency() {
       },
       {
         id: 'status',
+        accessorFn: getAgencyStatusValue,
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title='Status' />
         ),
         enableSorting: false,
         cell: ({ row }) => {
           const agency = row.original
-          const rawStatus =
-            (agency.status as string | boolean | undefined) ??
-            (agency.isActive as boolean | undefined) ??
-            (agency.active as boolean | undefined)
-          const isActive =
-            typeof rawStatus === 'string'
-              ? rawStatus.toLowerCase() === 'active'
-              : Boolean(rawStatus)
-          const label = isActive ? 'Active' : 'Inactive'
+          const isActive = isAgencyActive(agency)
+          const label = getAgencyStatusValue(agency)
           const variant = isActive ? 'secondary' : 'destructive'
           return (
             <Badge
@@ -297,14 +347,7 @@ export default function Agency() {
         header: () => <div className='pr-4 text-end'>Actions</div>,
         cell: ({ row }) => {
           const agency = row.original
-          const rawStatus =
-            (agency.status as string | boolean | undefined) ??
-            (agency.isActive as boolean | undefined) ??
-            (agency.active as boolean | undefined)
-          const isActive =
-            typeof rawStatus === 'string'
-              ? rawStatus.toLowerCase() === 'active'
-              : Boolean(rawStatus)
+          const isActive = isAgencyActive(agency)
           const label =
             agency.agencyName ??
             (agency.agencyCode ? String(agency.agencyCode) : 'Agency record')
@@ -394,9 +437,14 @@ export default function Agency() {
 `
 
   return (
-  <Card>
+    <Card>
       <CardHeader className='flex flex-row items-center justify-between gap-2'>
-        <CardTitle>Agency List</CardTitle>
+        <CardTitle className='flex items-center gap-2'>
+          Agency List
+          <Badge variant='secondary' className='text-xs font-medium uppercase'>
+            {rows.length}
+          </Badge>
+        </CardTitle>
         <div className='flex items-center gap-2'>
           <ExcelExportButton
             size='sm'
@@ -428,6 +476,7 @@ export default function Agency() {
           table={table}
           searchPlaceholder='Search agencies...'
           searchKey='agencyName'
+          filters={toolbarFilters}
         />
         <div className='rounded-md border'>
           <Table>

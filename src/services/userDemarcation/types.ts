@@ -11,6 +11,8 @@ export type ChannelDTO = {
   id: Id
   channelCode: string
   channelName: string
+  countryId?: Id
+  enabled?: boolean
   isActive?: boolean
   active?: boolean
   status?: string

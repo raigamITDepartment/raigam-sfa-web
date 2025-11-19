@@ -57,6 +57,22 @@ type RegionExportRow = {
   status: string
 }
 
+const getRegionRawStatus = (region: RegionDTO) =>
+  (region.status as string | boolean | undefined) ??
+  (region.isActive as boolean | undefined) ??
+  (region.active as boolean | undefined)
+
+const isRegionActive = (region: RegionDTO) => {
+  const raw = getRegionRawStatus(region)
+  if (typeof raw === 'string') {
+    return raw.toLowerCase() === 'active'
+  }
+  return Boolean(raw)
+}
+
+const getRegionStatusValue = (region: RegionDTO) =>
+  isRegionActive(region) ? 'Active' : 'Inactive'
+
 export default function Region() {
   const queryClient = useQueryClient()
   const { data, isLoading, isError, error } = useQuery({
@@ -68,6 +84,59 @@ export default function Region() {
   })
 
   const rows = useMemo(() => data?.payload ?? [], [data])
+
+  const channelFilterOptions = useMemo(() => {
+    const seen = new Set<string>()
+    rows.forEach((region) => {
+      const channel = region.channelName?.trim()
+      if (channel) seen.add(channel)
+    })
+    return Array.from(seen)
+      .sort((a, b) => a.localeCompare(b))
+      .map((value) => ({ label: value, value }))
+  }, [rows])
+
+  const subChannelFilterOptions = useMemo(() => {
+    const seen = new Set<string>()
+    rows.forEach((region) => {
+      const subChannel = region.subChannelName?.trim()
+      if (subChannel) seen.add(subChannel)
+    })
+    return Array.from(seen)
+      .sort((a, b) => a.localeCompare(b))
+      .map((value) => ({ label: value, value }))
+  }, [rows])
+
+  const statusFilterOptions = useMemo(() => {
+    const seen = new Set<string>()
+    rows.forEach((region) => {
+      seen.add(getRegionStatusValue(region))
+    })
+    return Array.from(seen)
+      .sort((a, b) => a.localeCompare(b))
+      .map((value) => ({ label: value, value }))
+  }, [rows])
+
+  const toolbarFilters = useMemo(
+    () => [
+      {
+        columnId: 'channelName',
+        title: 'Channel',
+        options: channelFilterOptions,
+      },
+      {
+        columnId: 'subChannelName',
+        title: 'Sub Channel',
+        options: subChannelFilterOptions,
+      },
+      {
+        columnId: 'status',
+        title: 'Status',
+        options: statusFilterOptions,
+      },
+    ],
+    [channelFilterOptions, statusFilterOptions, subChannelFilterOptions]
+  )
 
   const exportRows = useMemo<RegionExportRow[]>(() => {
     return rows.map((region) => {
@@ -248,21 +317,15 @@ export default function Region() {
       },
       {
         id: 'status',
+        accessorFn: getRegionStatusValue,
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title='Status' />
         ),
         enableSorting: false,
         cell: ({ row }) => {
-          const original = row.original as UnknownRecord
-          const raw =
-            (original.status as string | boolean | undefined) ??
-            (original.isActive as boolean | undefined) ??
-            (original.active as boolean | undefined)
-          const baseActive =
-            typeof raw === 'string'
-              ? raw.toLowerCase() === 'active'
-              : Boolean(raw)
-          const label = baseActive ? 'Active' : 'Inactive'
+          const original = row.original as RegionDTO
+          const label = getRegionStatusValue(original)
+          const baseActive = isRegionActive(original)
           const variant = baseActive ? 'secondary' : 'destructive'
           return (
             <Badge
@@ -283,16 +346,9 @@ export default function Region() {
         id: 'actions',
         header: () => <div className='pr-4 text-end'>Actions</div>,
         cell: ({ row }) => {
-          const original = row.original as UnknownRecord
-          const rawStatus =
-            (original.status as string | boolean | undefined) ??
-            (original.isActive as boolean | undefined) ??
-            (original.active as boolean | undefined)
+          const original = row.original as RegionDTO
           const recordId = original.id as Id | undefined
-          const baseActive =
-            typeof rawStatus === 'string'
-              ? rawStatus.toLowerCase() === 'active'
-              : Boolean(rawStatus)
+          const baseActive = isRegionActive(original)
 
           return (
             <div className='flex items-center justify-end gap-1 pr-4'>
@@ -378,7 +434,12 @@ export default function Region() {
   return (
     <Card>
       <CardHeader className='flex flex-row items-center justify-between gap-2'>
-        <CardTitle>Region List</CardTitle>
+        <CardTitle className='flex items-center gap-2'>
+          Region List
+          <Badge variant='secondary' className='text-xs font-medium uppercase'>
+            {rows.length}
+          </Badge>
+        </CardTitle>
         <div className='flex items-center gap-2'>
           <ExcelExportButton
             size='sm'
@@ -409,6 +470,7 @@ export default function Region() {
         <DataTableToolbar
           table={table}
           searchPlaceholder='Search all columns...'
+          filters={toolbarFilters}
         />
         <div className='rounded-md border'>
           <Table className='text-xs'>
@@ -552,4 +614,3 @@ export default function Region() {
   )
 }
 
-type UnknownRecord = Record<string, unknown>

@@ -58,6 +58,22 @@ type TerritoryExportRow = {
   status: string
 }
 
+const getTerritoryRawStatus = (territory: TerritoryDTO) =>
+  (territory.status as string | boolean | undefined) ??
+  (territory.isActive as boolean | undefined) ??
+  (territory.active as boolean | undefined)
+
+const isTerritoryActive = (territory: TerritoryDTO) => {
+  const rawStatus = getTerritoryRawStatus(territory)
+  if (typeof rawStatus === 'string') {
+    return rawStatus.toLowerCase() === 'active'
+  }
+  return Boolean(rawStatus)
+}
+
+const getTerritoryStatusValue = (territory: TerritoryDTO) =>
+  isTerritoryActive(territory) ? 'Active' : 'Inactive'
+
 export default function Territory() {
   const queryClient = useQueryClient()
   const { data, isLoading, isError, error } = useQuery({
@@ -71,28 +87,68 @@ export default function Territory() {
   const rows = useMemo(() => data?.payload ?? [], [data])
 
   const exportRows = useMemo<TerritoryExportRow[]>(() => {
-    return rows.map((territory) => {
-      const rawStatus =
-        (territory.status as string | boolean | undefined) ??
-        (territory.isActive as boolean | undefined) ??
-        (territory.active as boolean | undefined)
-      const statusLabel =
-        typeof rawStatus === 'string'
-          ? rawStatus
-          : rawStatus
-            ? 'Active'
-            : 'Inactive'
-
-      return {
-        areaName: territory.areaName,
-        rangeName: territory.rangeName,
-        displayOrder: territory.displayOrder,
-        territoryCode: territory.territoryCode,
-        territoryName: territory.territoryName ?? territory.name,
-        status: statusLabel,
-      }
-    })
+    return rows.map((territory) => ({
+      areaName: territory.areaName,
+      rangeName: territory.rangeName,
+      displayOrder: territory.displayOrder,
+      territoryCode: territory.territoryCode,
+      territoryName: territory.territoryName ?? territory.name,
+      status: getTerritoryStatusValue(territory),
+    }))
   }, [rows])
+
+  const areaFilterOptions = useMemo(() => {
+    const seen = new Set<string>()
+    rows.forEach((territory) => {
+      const area = territory.areaName?.trim()
+      if (area) seen.add(area)
+    })
+    return Array.from(seen)
+      .sort((a, b) => a.localeCompare(b))
+      .map((value) => ({ label: value, value }))
+  }, [rows])
+
+  const rangeFilterOptions = useMemo(() => {
+    const seen = new Set<string>()
+    rows.forEach((territory) => {
+      const range = territory.rangeName?.trim()
+      if (range) seen.add(range)
+    })
+    return Array.from(seen)
+      .sort((a, b) => a.localeCompare(b))
+      .map((value) => ({ label: value, value }))
+  }, [rows])
+
+  const statusFilterOptions = useMemo(() => {
+    const seen = new Set<string>()
+    rows.forEach((territory) => {
+      seen.add(getTerritoryStatusValue(territory))
+    })
+    return Array.from(seen)
+      .sort((a, b) => a.localeCompare(b))
+      .map((value) => ({ label: value, value }))
+  }, [rows])
+
+  const toolbarFilters = useMemo(
+    () => [
+      {
+        columnId: 'areaName',
+        title: 'Area',
+        options: areaFilterOptions,
+      },
+      {
+        columnId: 'rangeName',
+        title: 'Range',
+        options: rangeFilterOptions,
+      },
+      {
+        columnId: 'status',
+        title: 'Status',
+        options: statusFilterOptions,
+      },
+    ],
+    [areaFilterOptions, rangeFilterOptions, statusFilterOptions]
+  )
 
   const exportColumns = useMemo<ExcelExportColumn<TerritoryExportRow>[]>(() => {
     return [
@@ -232,22 +288,15 @@ export default function Territory() {
       },
       {
         id: 'status',
+        accessorFn: getTerritoryStatusValue,
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title='Status' />
         ),
         enableSorting: false,
         cell: ({ row }) => {
-          const original = row.original as UnknownRecord
-          const raw =
-            (original.status as string | boolean | undefined) ??
-            (original.isActive as boolean | undefined) ??
-            (original.active as boolean | undefined)
-          const baseActive =
-            typeof raw === 'string'
-              ? raw.toLowerCase() === 'active'
-              : Boolean(raw)
-
-          const label = baseActive ? 'Active' : 'Inactive'
+          const original = row.original as TerritoryDTO
+          const label = getTerritoryStatusValue(original)
+          const baseActive = isTerritoryActive(original)
           const variant = baseActive ? 'secondary' : 'destructive'
 
           return (
@@ -269,17 +318,9 @@ export default function Territory() {
         id: 'actions',
         header: () => <div className='pr-4 text-end'>Actions</div>,
         cell: ({ row }) => {
-          const original = row.original as UnknownRecord
-          const rawStatus =
-            (original.status as string | boolean | undefined) ??
-            (original.isActive as boolean | undefined) ??
-            (original.active as boolean | undefined)
-
+          const original = row.original as TerritoryDTO
           const recordId = original.id as Id | undefined
-          const baseActive =
-            typeof rawStatus === 'string'
-              ? rawStatus.toLowerCase() === 'active'
-              : Boolean(rawStatus)
+          const baseActive = isTerritoryActive(original)
 
           return (
             <div className='flex items-center justify-end gap-1 pr-4'>
@@ -420,22 +461,15 @@ export default function Territory() {
       },
       {
         id: 'status',
+        accessorFn: getTerritoryStatusValue,
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title='Status' />
         ),
         enableSorting: false,
         cell: ({ row }) => {
-          const original = row.original as UnknownRecord
-          const raw =
-            (original.status as string | boolean | undefined) ??
-            (original.isActive as boolean | undefined) ??
-            (original.active as boolean | undefined)
-          const baseActive =
-            typeof raw === 'string'
-              ? raw.toLowerCase() === 'active'
-              : Boolean(raw)
-
-          const label = baseActive ? 'Active' : 'Inactive'
+          const original = row.original as TerritoryDTO
+          const label = getTerritoryStatusValue(original)
+          const baseActive = isTerritoryActive(original)
           const variant = baseActive ? 'secondary' : 'destructive'
 
           return (
@@ -457,17 +491,9 @@ export default function Territory() {
         id: 'actions',
         header: () => <div className='pr-4 text-end'>Actions</div>,
         cell: ({ row }) => {
-          const original = row.original as UnknownRecord
-          const rawStatus =
-            (original.status as string | boolean | undefined) ??
-            (original.isActive as boolean | undefined) ??
-            (original.active as boolean | undefined)
-
+          const original = row.original as TerritoryDTO
           const recordId = original.id as Id | undefined
-          const baseActive =
-            typeof rawStatus === 'string'
-              ? rawStatus.toLowerCase() === 'active'
-              : Boolean(rawStatus)
+          const baseActive = isTerritoryActive(original)
 
           return (
             <div className='flex items-center justify-end gap-1 pr-4'>
@@ -560,7 +586,12 @@ export default function Territory() {
   return (
     <Card>
       <CardHeader className='flex flex-row items-center justify-between gap-2'>
-        <CardTitle>Territory List</CardTitle>
+        <CardTitle className='flex items-center gap-2'>
+          Territory List
+          <Badge variant='secondary' className='text-xs font-medium uppercase'>
+            {rows.length}
+          </Badge>
+        </CardTitle>
         <div className='flex items-center gap-2'>
           <ExcelExportButton
             size='sm'
@@ -591,6 +622,7 @@ export default function Territory() {
         <DataTableToolbar
           table={table}
           searchPlaceholder='Search all columns...'
+          filters={toolbarFilters}
         />
 
         <div className='rounded-md border'>
@@ -736,5 +768,3 @@ export default function Territory() {
     </Card>
   )
 }
-
-type UnknownRecord = Record<string, unknown>

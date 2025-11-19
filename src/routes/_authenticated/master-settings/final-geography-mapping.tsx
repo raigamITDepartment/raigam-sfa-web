@@ -1,8 +1,11 @@
 import { createFileRoute } from '@tanstack/react-router'
+import FinalGeographyMapping from '@/components/final-geography-mapping'
 import { Main } from '@/components/layout/main'
 import { PageHeader } from '@/components/layout/page-header'
 
-export const Route = createFileRoute('/_authenticated/master-settings/final-geography-mapping')({
+export const Route = createFileRoute(
+  '/_authenticated/master-settings/final-geography-mapping'
+)({
   component: () => (
     <Main>
       <PageHeader
@@ -13,7 +16,7 @@ export const Route = createFileRoute('/_authenticated/master-settings/final-geog
           { label: 'Final Geography Mapping' },
         ]}
       />
-      <div>Final Geography Mapping</div>
+      <FinalGeographyMapping />
     </Main>
   ),
 })

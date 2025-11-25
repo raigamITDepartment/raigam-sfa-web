@@ -9,7 +9,7 @@ type TableSkeletonProps = {
 // A lightweight table-like skeleton to match the home report table look
 export default function TableSkeleton({
   headerCols = 12,
-  rows = 8,
+  rows = 10,
   minTableWidthClass = 'min-w-[2400px]',
 }: TableSkeletonProps) {
   const cols = Array.from({ length: headerCols })

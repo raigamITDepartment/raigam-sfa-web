@@ -4,6 +4,7 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import {
   getHomeReportData,
   type HomeReportParams,
+  type HomeReportResponse,
 } from '@/services/reports/homeReportApi'
 import { Card } from '@/components/ui/card'
 import { CommonAlert } from '@/components/common-alert'
@@ -12,6 +13,8 @@ import HomeReportTable from '@/components/home-report/table'
 import TableSkeleton from '@/components/home-report/table-skeleton'
 import { Main } from '@/components/layout/main'
 import { PageHeader } from '@/components/layout/page-header'
+
+const DEFAULT_ROWS_PER_PAGE = 10
 
 const formatMonthYear = (month: number, year: number) => {
   const date = new Date(Date.UTC(year, month - 1, 1))
@@ -85,7 +88,8 @@ function HomeReportPage() {
       if (!parsed || !parsed.subChannelId || !parsed.rangeId || !parsed.month || !parsed.year)
         return
       navigate({
-        search: () => ({
+        search: (prev) => ({
+          ...prev,
           subChannelId: parsed.subChannelId,
           rangeId: parsed.rangeId,
           areaId: parsed.areaId ?? 0,
@@ -99,7 +103,7 @@ function HomeReportPage() {
     }
   }, [navigate, readyToFetch])
 
-  const { data, isFetching, isError } = useQuery({
+  const { data, isFetching, isError } = useQuery<HomeReportResponse>({
     queryKey: [
       'home-report',
       params.subChannelId ?? null,
@@ -116,7 +120,7 @@ function HomeReportPage() {
     staleTime: 1000 * 60 * 5, // 5 minutes fresh
     gcTime: 1000 * 60 * 30, // keep cached for 30 minutes after unmount
     refetchOnWindowFocus: false,
-    keepPreviousData: true,
+    placeholderData: (prev) => prev,
   })
 
   const handleApply = (payload: FiltersPayload) => {
@@ -137,7 +141,8 @@ function HomeReportPage() {
     }
 
     navigate({
-      search: () => ({
+      search: (prev) => ({
+        ...prev,
         subChannelId: payload.subChannelId,
         rangeId: payload.rangeId,
         areaId: payload.areaId ?? 0,
@@ -169,13 +174,16 @@ function HomeReportPage() {
           className='mb-3'
         />
       )}
-      {(isFetching || isError || data) && (
+      {(isFetching || isError || Boolean(data)) && (
         <Card className='round-md overflow-auto p-2'>
           {isFetching && (
             <div className='p-2'>
               <TableSkeleton
                 headerCols={16}
-                rows={data?.payload?.length ?? 10}
+                rows={Math.min(
+                  data?.payload?.length ?? DEFAULT_ROWS_PER_PAGE,
+                  DEFAULT_ROWS_PER_PAGE
+                )}
               />
             </div>
           )}

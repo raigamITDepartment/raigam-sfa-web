@@ -232,19 +232,15 @@ export default function Channel() {
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title='Channel Code' />
         ),
-        cell: ({ row }) => (
-          <span className='pl-4'>{row.getValue('channelCode')}</span>
-        ),
-        meta: { thClassName: 'w-[180px]' },
+        cell: ({ row }) => <span className='block'>{row.getValue('channelCode')}</span>,
+        meta: { thClassName: 'w-[180px] text-left' },
       },
       {
         accessorKey: 'channelName',
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title='Channel Name' />
         ),
-        cell: ({ row }) => (
-          <span className='pl-4 truncate'>{row.getValue('channelName')}</span>
-        ),
+        cell: ({ row }) => <span className='block truncate'>{row.getValue('channelName')}</span>,
       },
       {
         id: 'status',
@@ -285,7 +281,7 @@ export default function Channel() {
       },
       {
         id: 'actions',
-        header: () => <div className='pr-4 text-end'>Actions</div>,
+        header: () => <div className='text-right'>Actions</div>,
         cell: ({ row }) => {
           const original = row.original as ChannelDTO
           const { isActive } = resolveChannelStatus(original)
@@ -296,7 +292,7 @@ export default function Channel() {
             (row.id as Id)
 
           return (
-            <div className='flex items-center justify-end gap-1 pr-4'>
+            <div className='flex items-center justify-end gap-1'>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -434,7 +430,7 @@ export default function Channel() {
                     <TableHead
                       key={header.id}
                       className={
-                        'h-10 bg-gray-100 px-2 dark:bg-gray-900 ' +
+                        'h-10 bg-gray-100 px-3 text-left dark:bg-gray-900 ' +
                         (header.column.columnDef.meta?.thClassName ?? '')
                       }
                     >
@@ -475,7 +471,7 @@ export default function Channel() {
                     data-state={row.getIsSelected() && 'selected'}
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className='p-1'>
+                      <TableCell key={cell.id} className='px-3 py-2 align-middle'>
                         {flexRender(
                           cell.column.columnDef.cell,
                           cell.getContext()

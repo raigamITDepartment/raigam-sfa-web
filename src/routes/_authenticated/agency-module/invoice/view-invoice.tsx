@@ -1,10 +1,18 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { ensureRoleAccess, RoleId } from '@/lib/authz'
+import ActualInvoice from '@/components/agency-module/actual-invoice'
+import AgencyHeader from '@/components/agency-module/agency-header'
+import BookingInvoice from '@/components/agency-module/booking-invoice'
+import ManualInvoice from '@/components/agency-module/manual-invoice'
+import CommonTabs from '@/components/common-tabs'
 import { Main } from '@/components/layout/main'
 import { PageHeader } from '@/components/layout/page-header'
 
-export const Route = createFileRoute('/_authenticated/agency-module/invoice/view-invoice')({
-  beforeLoad: () => ensureRoleAccess([RoleId.SystemAdmin, RoleId.OperationSales]),
+export const Route = createFileRoute(
+  '/_authenticated/agency-module/invoice/view-invoice'
+)({
+  beforeLoad: () =>
+    ensureRoleAccess([RoleId.SystemAdmin, RoleId.OperationSales]),
   component: () => (
     <Main>
       <PageHeader
@@ -16,8 +24,37 @@ export const Route = createFileRoute('/_authenticated/agency-module/invoice/view
           { label: 'View Invoice' },
         ]}
       />
-      <div>Agency Module - Invoice - View Invoice</div>
+      <AgencyHeader />
+      <div className='mt-4'>
+        <div className='space-y-4'>
+          <CommonTabs
+            storageKey='view-invoice-tab'
+            defaultValue='booking'
+            items={[
+              {
+                value: 'booking',
+                label: 'Booking Invoice',
+                content: <BookingInvoice />,
+              },
+              {
+                value: 'actual',
+                label: 'Actual Invoice',
+                content: <ActualInvoice />,
+              },
+              {
+                value: 'late-delivery',
+                label: 'Late Delivery Invoice',
+                content: <ManualInvoice />,
+              },
+              {
+                value: 'canceled',
+                label: 'Canceled Invoice',
+                content: <div>Canceled Invoice</div>,
+              },
+            ]}
+          />
+        </div>
+      </div>
     </Main>
   ),
 })
-

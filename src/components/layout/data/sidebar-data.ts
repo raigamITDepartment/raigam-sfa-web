@@ -220,13 +220,6 @@ export const sidebarData: SidebarData = {
     {
       title: 'Agency Module',
       items: [
-        /* {
-          title: 'Dashboard',
-          icon: LayoutDashboard,
-          items: [
-            { title: 'Monthly Target', url: '/agency-module/dashboard/monthly-target' },
-          ],
-        }, */
         {
           title: 'Invoice',
           icon: ReceiptText,

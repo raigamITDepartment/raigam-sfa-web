@@ -1,4 +1,3 @@
-import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/toolkit'
 import type { LoginRequest } from '@/services/authApi'
 import * as authApi from '@/services/authApi'
 import {
@@ -11,6 +10,12 @@ import {
   clearRememberPreference,
   getRememberPreference,
 } from '@/services/tokenService'
+import {
+  createAsyncThunk,
+  createSlice,
+  type PayloadAction,
+} from '@reduxjs/toolkit'
+
 // Role-based mapping removed
 
 export type AuthUser = {
@@ -19,6 +24,9 @@ export type AuthUser = {
   personalName: string
   roleId?: number
   role?: string
+  territoryId?: number
+  territoryName?: string
+  distributorName?: string
 }
 
 type AuthState = {
@@ -86,8 +94,10 @@ export const loginThunk = createAsyncThunk(
       personalName: p.personalName,
       roleId: p.roleId,
       role: p.role,
+      territoryId: p.territoryId,
+      territoryName: p.territoryName,
+      distributorName: p.distributorName,
     }
-    // Compute permissions via role policy (or switch to server-provided perms later)
     setStoredUser(user)
     return { user }
   }
@@ -129,7 +139,7 @@ export const hydrateOnLoadThunk = createAsyncThunk(
     if (stored) {
       return { user: stored }
     }
-    
+
     // Fallback: try to derive username from JWT 'sub'
     // Note: This is best-effort and for UI only
     const token = getAccessToken()

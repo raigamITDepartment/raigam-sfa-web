@@ -183,10 +183,6 @@ export const RoleAccess: Record<string, RoleIdValue[]> = {
   '/admin-module/operation/manual-bill-quota': [RoleId.SystemAdmin],
 
   // Agency Module
-  '/agency-module/dashboard/monthly-target': [
-    RoleId.SystemAdmin,
-    RoleId.OperationSales,
-  ],
   '/agency-module/invoice/actual-invoice': [
     RoleId.SystemAdmin,
     RoleId.OperationSales,

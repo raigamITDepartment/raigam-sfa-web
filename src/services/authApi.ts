@@ -41,6 +41,7 @@ export type LoginResponse = {
 
 export async function login(data: LoginRequest) {
   const res = await http.post<LoginResponse>('/api/v1/auth/login', data)
+  console.log('user data:', res.data)
   return res.data
 }
 

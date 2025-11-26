@@ -12,8 +12,8 @@ export const RoleId = {
   ManagerCompany: 6,
   ExecutiveSales: 7,
   ExecutiveCompany: 8,
-  OperationSales: 9,
-  OperationCompany: 10,
+  OperationSales: 12,
+  OperationCompany: 9,
 } as const
 
 export type RoleIdValue = number

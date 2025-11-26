@@ -4,6 +4,28 @@ import { Button } from '@/components/ui/button'
 export function NotFoundError() {
   const navigate = useNavigate()
   const { history } = useRouter()
+
+  const goHome = () =>
+    navigate({
+      to: '/dashboard/home-report',
+      replace: true,
+      search: {
+        subChannelId: undefined,
+        rangeId: undefined,
+        areaId: 0,
+        year: undefined,
+        month: undefined,
+      },
+    })
+
+  const handleGoBack = () => {
+    if (history.canGoBack()) {
+      history.back()
+      return
+    }
+    goHome()
+  }
+
   return (
     <div className='h-svh'>
       <div className='m-auto flex h-full w-full flex-col items-center justify-center gap-2'>
@@ -14,10 +36,10 @@ export function NotFoundError() {
           does not exist or might have been removed.
         </p>
         <div className='mt-6 flex gap-4'>
-          <Button variant='outline' onClick={() => history.go(-1)}>
+          <Button variant='outline' onClick={handleGoBack}>
             Go Back
           </Button>
-          <Button onClick={() => navigate({ to: '/' })}>Back to Home</Button>
+          <Button onClick={goHome}>Back to Home</Button>
         </div>
       </div>
     </div>

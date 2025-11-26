@@ -49,6 +49,7 @@ export type DepartmentDTO = { id: Id; name: string }
 
 export type TerritoryDTO = {
   id: Id
+  channelId?: Id
   territoryName?: string
   territoryCode?: string
   name?: string

@@ -88,14 +88,14 @@ function HomeReportPage() {
       if (!parsed || !parsed.subChannelId || !parsed.rangeId || !parsed.month || !parsed.year)
         return
       navigate({
-        search: (prev) => ({
-          ...prev,
+        to: '/dashboard/home-report',
+        search: {
           subChannelId: parsed.subChannelId,
           rangeId: parsed.rangeId,
           areaId: parsed.areaId ?? 0,
           year: parsed.year,
           month: parsed.month,
-        }),
+        },
         replace: true,
       })
     } catch {
@@ -141,14 +141,14 @@ function HomeReportPage() {
     }
 
     navigate({
-      search: (prev) => ({
-        ...prev,
+      to: '/dashboard/home-report',
+      search: {
         subChannelId: payload.subChannelId,
         rangeId: payload.rangeId,
         areaId: payload.areaId ?? 0,
         year: payload.year,
         month: payload.month,
-      }),
+      },
     })
   }
 

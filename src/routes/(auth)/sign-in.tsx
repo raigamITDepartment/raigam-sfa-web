@@ -15,7 +15,13 @@ export const Route = createFileRoute('/(auth)/sign-in')({
       throw redirect({
         to: '/dashboard/home-report',
         replace: true,
-        search: true, // keep existing search or fall back to defaults
+        search: {
+          subChannelId: undefined,
+          rangeId: undefined,
+          areaId: 0,
+          year: undefined,
+          month: undefined,
+        },
       })
     }
   },

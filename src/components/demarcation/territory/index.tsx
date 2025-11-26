@@ -19,6 +19,10 @@ import {
   type ApiResponse,
   type TerritoryDTO,
   type Id,
+  type AreaDTO,
+  type RangeDTO,
+  getAllArea,
+  getAllRange,
 } from '@/services/userDemarcationApi'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -84,7 +88,63 @@ export default function Territory() {
     },
   })
 
-  const rows = useMemo(() => data?.payload ?? [], [data])
+  const { data: areasData } = useQuery({
+    queryKey: ['areas', 'lookup'],
+    queryFn: async () => {
+      const res = await getAllArea()
+      return res as ApiResponse<AreaDTO[]>
+    },
+  })
+
+  const { data: rangesData } = useQuery({
+    queryKey: ['ranges', 'lookup'],
+    queryFn: async () => {
+      const res = await getAllRange()
+      return res as ApiResponse<RangeDTO[]>
+    },
+  })
+
+  const baseRows = useMemo(() => data?.payload ?? [], [data])
+
+  const areaLookup = useMemo(() => {
+    const map: Record<string, string> = {}
+    ;(areasData?.payload ?? []).forEach((area) => {
+      const id = area.id ?? (area as any).areaId
+      if (id === undefined || id === null) return
+      const name = area.areaName ?? (area as any).name
+      if (name) map[String(id)] = name
+    })
+    return map
+  }, [areasData])
+
+  const rangeLookup = useMemo(() => {
+    const map: Record<string, string> = {}
+    ;(rangesData?.payload ?? []).forEach((range) => {
+      const id = range.id ?? (range as any).rangeId
+      if (id === undefined || id === null) return
+      const name = range.rangeName ?? (range as any).name
+      if (name) map[String(id)] = name
+    })
+    return map
+  }, [rangesData])
+
+  const rows = useMemo(() => {
+    return baseRows.map((territory) => {
+      const areaName =
+        territory.areaName ??
+        areaLookup[String(territory.areaId ?? '')] ??
+        territory.areaName
+      const rangeName =
+        territory.rangeName ??
+        rangeLookup[String(territory.rangeId ?? '')] ??
+        territory.rangeName
+      return {
+        ...territory,
+        areaName,
+        rangeName,
+      }
+    })
+  }, [areaLookup, baseRows, rangeLookup])
 
   const exportRows = useMemo<TerritoryExportRow[]>(() => {
     return rows.map((territory) => ({
@@ -262,7 +322,7 @@ export default function Territory() {
     },
   })
 
-  const columns = useMemo<ColumnDef<TerritoryDTO>[]>(
+  const _columns = useMemo<ColumnDef<TerritoryDTO>[]>(
     () => [
       {
         accessorKey: 'territoryCode',
@@ -335,8 +395,8 @@ export default function Territory() {
                       setTerritoryDialogMode('edit')
                       setEditingTerritoryId(recordId ?? null)
                       setTerritoryInitialValues({
-                        channelId: original.subChannelId
-                          ? String(original.subChannelId)
+                        channelId: original.channelId
+                          ? String(original.channelId)
                           : '',
                         subChannelId: original.subChannelId
                           ? String(original.subChannelId)
@@ -396,6 +456,7 @@ export default function Territory() {
     ],
     []
   )
+  void _columns
 
   const territoryColumns = useMemo<ColumnDef<TerritoryDTO>[]>(
     () => [
@@ -508,6 +569,9 @@ export default function Territory() {
                       setTerritoryDialogMode('edit')
                       setEditingTerritoryId(recordId ?? null)
                       setTerritoryInitialValues({
+                        channelId: original.channelId
+                          ? String(original.channelId)
+                          : '',
                         subChannelId: original.subChannelId
                           ? String(original.subChannelId)
                           : '',
@@ -653,7 +717,7 @@ export default function Territory() {
               {isLoading ? (
                 <TableRow>
                   <TableCell
-                    colSpan={columns.length}
+                    colSpan={territoryColumns.length}
                     className='h-20 text-center'
                   >
                     Loading territories...
@@ -662,7 +726,7 @@ export default function Territory() {
               ) : isError ? (
                 <TableRow>
                   <TableCell
-                    colSpan={columns.length}
+                    colSpan={territoryColumns.length}
                     className='text-destructive h-20 text-center'
                   >
                     {(error as Error)?.message ?? 'Failed to load territories'}
@@ -687,7 +751,7 @@ export default function Territory() {
               ) : (
                 <TableRow>
                   <TableCell
-                    colSpan={columns.length}
+                    colSpan={territoryColumns.length}
                     className='h-20 text-center'
                   >
                     No territories found

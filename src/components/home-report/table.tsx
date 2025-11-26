@@ -758,7 +758,7 @@ export default function HomeReportTable({
 
       {/* Fullscreen Overlay */}
       {isFullScreen && (
-        <div className='bg-opacity-95 fixed inset-0 z-[2000] flex flex-col bg-white p-6 dark:bg-gray-900'>
+        <div className='bg-opacity-95 fixed inset-0 z-2000 flex flex-col bg-white p-6 dark:bg-gray-900'>
           <div className='mb-3 flex items-center justify-between'>
             <div className='text-xl font-semibold text-gray-900'>
               Home Report

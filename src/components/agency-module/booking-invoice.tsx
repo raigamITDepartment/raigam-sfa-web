@@ -10,9 +10,9 @@ import {
   type ColumnDef,
 } from '@tanstack/react-table'
 import { getAllAvailableBookingInvoices } from '@/services/reports/invoiceReports'
-import type { BookingInvoiceReportItem } from '@/services/reports/invoiceReports'
+import type { BookingInvoiceReportItem } from '@/types/invoice'
 import { cancelInvoice } from '@/services/sales/invoice/invoiceApi'
-import { useAppSelector } from '@/store/hooks'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { Pencil, XCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -46,6 +46,8 @@ import {
   DataTablePagination,
   DataTableToolbar,
 } from '@/components/data-table'
+import { CommonAlert } from '@/components/common-alert'
+import { setFilters as setStoredFilters } from '@/store/bookingInvoiceSlice'
 
 const formatDate = (value?: string) => {
   if (!value || value === '0001-01-01') return '-'
@@ -64,6 +66,8 @@ const deriveStatus = (row: BookingInvoiceReportItem) => {
 
 const BookingInvoice = () => {
   const user = useAppSelector((s) => s.auth.user)
+  const savedFilters = useAppSelector((s) => s.bookingInvoice.filters)
+  const dispatch = useAppDispatch()
   const queryClient = useQueryClient()
 
   const toIso = (d: Date) => d.toISOString().slice(0, 10)
@@ -76,10 +80,14 @@ const BookingInvoice = () => {
     }
   }, [])
 
-  const [filters, setFilters] = useState<BookingInvoiceFilters>({
-    startDate: defaultDates.startDate,
-    endDate: defaultDates.endDate,
-    invoiceType: 'ALL',
+  const [filters, setFilters] = useState<BookingInvoiceFilters>(() => {
+    return (
+      savedFilters ?? {
+        startDate: defaultDates.startDate,
+        endDate: defaultDates.endDate,
+        invoiceType: 'ALL',
+      }
+    )
   })
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false)
   const [cancelRemark, setCancelRemark] = useState('')
@@ -121,6 +129,10 @@ const BookingInvoice = () => {
       filters.invoiceType,
     ],
     enabled: Boolean(user?.territoryId),
+    staleTime: 1000 * 60 * 5, // cache for 5 minutes to avoid unnecessary reloads
+    gcTime: 1000 * 60 * 10, // retain data for 10 minutes between navigations
+    refetchOnMount: (query) => query.state.data === undefined,
+    refetchOnWindowFocus: false,
     queryFn: () => {
       const invoiceTypeParam =
         filters.invoiceType === 'ALL' ? '' : filters.invoiceType
@@ -321,17 +333,18 @@ const BookingInvoice = () => {
     []
   )
 
-  const rows = useMemo(() => data?.payload ?? [], [data])
-  const statusFilterOptions = useMemo(
-    () =>
-      Array.from(new Set(rows.map((row) => deriveStatus(row)))).map(
-        (status) => ({
-          label: status,
-          value: status,
-        })
-      ),
-    [rows]
+  const rows = useMemo(
+    () => (data && 'payload' in data ? data.payload ?? [] : []),
+    [data]
   )
+  const statusFilterOptions = useMemo(() => {
+    const set = new Set<string>()
+    rows.forEach((row) => set.add(deriveStatus(row)))
+    return Array.from(set).map((status) => ({
+      label: status,
+      value: status,
+    }))
+  }, [rows])
 
   const table = useReactTable({
     data: rows,
@@ -347,6 +360,11 @@ const BookingInvoice = () => {
     },
   })
 
+  const tableRows = table.getRowModel().rows
+  const hasRows = tableRows.length > 0
+  const hasPayload = rows.length > 0
+  const showNoData = !isLoading && !isError && !hasPayload
+
   return (
     <Card className='space-y-4'>
       <CardContent>
@@ -354,105 +372,151 @@ const BookingInvoice = () => {
           initialStartDate={defaultDates.startDate}
           initialEndDate={defaultDates.endDate}
           initialInvoiceType='ALL'
-          onApply={(next) => setFilters(next)}
-          onReset={() =>
-            setFilters({
+          onApply={(next) => {
+            setFilters(next)
+            dispatch(setStoredFilters(next))
+          }}
+          onReset={() => {
+            const defaults: BookingInvoiceFilters = {
               startDate: defaultDates.startDate,
               endDate: defaultDates.endDate,
               invoiceType: 'ALL',
-            })
-          }
+            }
+            setFilters(defaults)
+            dispatch(setStoredFilters(defaults))
+          }}
         />
-        <DataTableToolbar
-          table={table}
-          searchPlaceholder='Search invoice id...'
-          searchKey='invoiceNo'
-          filters={[
-            {
-              columnId: 'status',
-              title: 'Status',
-              options: statusFilterOptions,
-            },
-          ]}
-        />
-        <div className='mt-4 mb-4 rounded-md border'>
-          <Table className='text-xs'>
-            <TableHeader>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <TableHead
-                      key={header.id}
-                      className={
-                        'h-10 bg-gray-100 px-3 text-left dark:bg-gray-900 ' +
-                        (header.column.columnDef.meta?.thClassName ?? '')
-                      }
-                    >
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={columns.length}
-                    className='h-20 text-center'
-                  >
-                    Loading...
-                  </TableCell>
-                </TableRow>
-              ) : isError ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={columns.length}
-                    className='text-destructive h-20 text-center'
-                  >
-                    {error instanceof Error
-                      ? error.message
-                      : 'Failed to load invoices'}
-                  </TableCell>
-                </TableRow>
-              ) : table.getRowModel().rows?.length ? (
-                table.getRowModel().rows.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    data-state={row.getIsSelected() && 'selected'}
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell
-                        key={cell.id}
-                        className='px-3 py-2 align-middle'
+        {isLoading ? (
+          <div className='mt-4 mb-4 rounded-md border'>
+            <Table className='text-xs'>
+              <TableHeader>
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <TableRow key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => (
+                      <TableHead
+                        key={header.id}
+                        className={
+                          'h-10 bg-gray-100 px-3 text-left dark:bg-gray-900 ' +
+                          (header.column.columnDef.meta?.thClassName ?? '')
+                        }
                       >
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
-                      </TableCell>
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
+                      </TableHead>
                     ))}
                   </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell
-                    colSpan={columns.length}
-                    className='h-20 text-center'
-                  >
-                    No results.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-        <DataTablePagination table={table} />
+                ))}
+              </TableHeader>
+              <TableBody>
+                {Array.from({ length: table.getState().pagination.pageSize }).map(
+                  (_, idx) => (
+                    <TableRow key={`skeleton-${idx}`}>
+                      {columns.map((_, colIdx) => (
+                        <TableCell key={`${idx}-${colIdx}`} className='px-3 py-2'>
+                          <div className='h-4 w-full animate-pulse rounded bg-slate-200 dark:bg-slate-800' />
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  )
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        ) : null}
+        {!isLoading && !isError && hasPayload ? (
+          <>
+            <DataTableToolbar
+              table={table}
+              searchPlaceholder='Search invoice id...'
+              searchKey='invoiceNo'
+              filters={[
+                {
+                  columnId: 'status',
+                  title: 'Status',
+                  options: statusFilterOptions,
+                },
+              ]}
+            />
+            <div className='mt-4 mb-4 rounded-md border'>
+              <Table className='text-xs'>
+                <TableHeader>
+                  {table.getHeaderGroups().map((headerGroup) => (
+                    <TableRow key={headerGroup.id}>
+                      {headerGroup.headers.map((header) => (
+                        <TableHead
+                          key={header.id}
+                          className={
+                            'h-10 bg-gray-100 px-3 text-left dark:bg-gray-900 ' +
+                            (header.column.columnDef.meta?.thClassName ?? '')
+                          }
+                        >
+                          {header.isPlaceholder
+                            ? null
+                            : flexRender(
+                                header.column.columnDef.header,
+                                header.getContext()
+                              )}
+                        </TableHead>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableHeader>
+                <TableBody>
+                  {hasRows ? (
+                    tableRows.map((row) => (
+                      <TableRow
+                        key={row.id}
+                        data-state={row.getIsSelected() && 'selected'}
+                      >
+                        {row.getVisibleCells().map((cell) => (
+                          <TableCell
+                            key={cell.id}
+                            className='px-3 py-2 align-middle'
+                          >
+                            {flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext()
+                            )}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell
+                        colSpan={columns.length}
+                        className='h-20 text-center'
+                      >
+                        No invoices match your search or filters.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+            <DataTablePagination table={table} />
+          </>
+        ) : null}
+        {isError ? (
+          <CommonAlert
+            variant='error'
+            title='Failed to load invoices'
+            description={
+              error instanceof Error ? error.message : 'Unknown error occurred'
+            }
+          />
+        ) : null}
+        {showNoData ? (
+          <CommonAlert
+            variant='info'
+            title='No invoices found'
+            description='No data for the selected date range and invoice type. Try adjusting filters.'
+          />
+        ) : null}
         <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>

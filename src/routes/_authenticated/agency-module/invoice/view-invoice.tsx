@@ -1,7 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { ensureRoleAccess, RoleId } from '@/lib/authz'
 import ActualInvoice from '@/components/agency-module/actual-invoice'
-import AgencyHeader from '@/components/agency-module/agency-header'
 import BookingInvoice from '@/components/agency-module/booking-invoice'
 import ManualInvoice from '@/components/agency-module/manual-invoice'
 import CommonTabs from '@/components/common-tabs'
@@ -24,7 +23,6 @@ export const Route = createFileRoute(
           { label: 'View Invoice' },
         ]}
       />
-      <AgencyHeader />
       <div className='mt-4'>
         <div className='space-y-4'>
           <CommonTabs

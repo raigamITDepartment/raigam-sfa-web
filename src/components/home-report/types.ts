@@ -1,4 +1,4 @@
-import type { HomeReportItem } from '@/services/reports/homeReportApi'
+import type { HomeReportItem } from '@/types/home-report'
 
 export type RowRecord = {
   [key: string]: string | number

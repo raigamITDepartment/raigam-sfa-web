@@ -1,11 +1,8 @@
 import { useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import {
-  getHomeReportData,
-  type HomeReportParams,
-  type HomeReportResponse,
-} from '@/services/reports/homeReportApi'
+import { getHomeReportData } from '@/services/reports/homeReportApi'
+import type { HomeReportParams, HomeReportResponse } from '@/types/home-report'
 import { Card } from '@/components/ui/card'
 import { CommonAlert } from '@/components/common-alert'
 import Filters, { type FiltersPayload } from '@/components/home-report/filters'

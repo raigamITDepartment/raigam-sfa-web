@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import type { InvoiceType } from '@/services/reports/invoiceReports'
+import type { BookingInvoiceFilters, InvoiceType } from '@/types/invoice'
 import { CalendarIcon } from 'lucide-react'
 import type { DateRange } from 'react-day-picker'
 import { Button } from '@/components/ui/button'
@@ -17,12 +17,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-
-export type BookingInvoiceFilters = {
-  startDate?: string
-  endDate?: string
-  invoiceType: InvoiceType
-}
 
 type FilterProps = {
   initialStartDate?: string
@@ -165,3 +159,5 @@ export default function BookingInvoiceFilter({
     </div>
   )
 }
+
+export type { BookingInvoiceFilters } from '@/types/invoice'

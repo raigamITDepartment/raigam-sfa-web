@@ -121,13 +121,16 @@ const BookingInvoice = () => {
       filters.invoiceType,
     ],
     enabled: Boolean(user?.territoryId),
-    queryFn: () =>
-      getAllAvailableBookingInvoices({
+    queryFn: () => {
+      const invoiceTypeParam =
+        filters.invoiceType === 'ALL' ? '' : filters.invoiceType
+      return getAllAvailableBookingInvoices({
         territoryId: user?.territoryId ?? 0,
         startDate: filters.startDate ?? defaultDates.startDate,
         endDate: filters.endDate ?? defaultDates.endDate,
-        invoiceType: filters.invoiceType ?? 'ALL',
-      }),
+        invoiceType: invoiceTypeParam,
+      })
+    },
   })
 
   const columns = useMemo<ColumnDef<BookingInvoiceReportItem>[]>(
@@ -399,7 +402,10 @@ const BookingInvoice = () => {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={columns.length} className='h-20 text-center'>
+                  <TableCell
+                    colSpan={columns.length}
+                    className='h-20 text-center'
+                  >
                     Loading...
                   </TableCell>
                 </TableRow>
@@ -421,7 +427,10 @@ const BookingInvoice = () => {
                     data-state={row.getIsSelected() && 'selected'}
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className='px-3 py-2 align-middle'>
+                      <TableCell
+                        key={cell.id}
+                        className='px-3 py-2 align-middle'
+                      >
                         {flexRender(
                           cell.column.columnDef.cell,
                           cell.getContext()
@@ -432,7 +441,10 @@ const BookingInvoice = () => {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={columns.length} className='h-20 text-center'>
+                  <TableCell
+                    colSpan={columns.length}
+                    className='h-20 text-center'
+                  >
                     No results.
                   </TableCell>
                 </TableRow>
@@ -472,6 +484,7 @@ const BookingInvoice = () => {
             </div>
             <AlertDialogFooter>
               <AlertDialogCancel
+                className='border border-slate-300 bg-white text-slate-900 hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-slate-200 focus-visible:ring-offset-2 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50 dark:hover:bg-slate-800'
                 onClick={() => {
                   setCancelDialogOpen(false)
                   setCancelRemark('')
@@ -499,7 +512,7 @@ const BookingInvoice = () => {
                 disabled={
                   !cancelRemark.trim() || cancelInvoiceMutation.isPending
                 }
-                className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
+                className='bg-red-600 text-white hover:bg-red-700 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 disabled:opacity-70'
               >
                 {cancelInvoiceMutation.isPending
                   ? 'Canceling...'

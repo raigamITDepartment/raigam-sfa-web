@@ -8,7 +8,7 @@ export type BookingInvoiceParams = {
   territoryId: number
   startDate: string
   endDate: string
-  invoiceType: InvoiceType
+  invoiceType: InvoiceType | ''
 }
 
 export type ApiResponse<T> = {

@@ -22,7 +22,6 @@ import { Route as authSignInRouteImport } from './routes/(auth)/sign-in'
 import { Route as AuthenticatedOutletModuleRouteRouteImport } from './routes/_authenticated/outlet-module/route'
 import { Route as AuthenticatedReportsTerritoryWiseSalesReportRouteImport } from './routes/_authenticated/reports/territory-wise-sales-report'
 import { Route as AuthenticatedReportsTerritoryWiseItemsReportRouteImport } from './routes/_authenticated/reports/territory-wise-items-report'
-import { Route as AuthenticatedReportsItemSummaryReportRouteImport } from './routes/_authenticated/reports/item-summary-report'
 import { Route as AuthenticatedReportsAreaWiseSalesReportRouteImport } from './routes/_authenticated/reports/area-wise-sales-report'
 import { Route as AuthenticatedReportsAchievementCategoryWiseRouteImport } from './routes/_authenticated/reports/achievement-category-wise'
 import { Route as AuthenticatedOutletModuleCustomerRouteImport } from './routes/_authenticated/outlet-module/customer'
@@ -125,12 +124,6 @@ const AuthenticatedReportsTerritoryWiseItemsReportRoute =
   AuthenticatedReportsTerritoryWiseItemsReportRouteImport.update({
     id: '/reports/territory-wise-items-report',
     path: '/reports/territory-wise-items-report',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedReportsItemSummaryReportRoute =
-  AuthenticatedReportsItemSummaryReportRouteImport.update({
-    id: '/reports/item-summary-report',
-    path: '/reports/item-summary-report',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedReportsAreaWiseSalesReportRoute =
@@ -382,7 +375,6 @@ export interface FileRoutesByFullPath {
   '/outlet-module/customer': typeof AuthenticatedOutletModuleCustomerRoute
   '/reports/achievement-category-wise': typeof AuthenticatedReportsAchievementCategoryWiseRoute
   '/reports/area-wise-sales-report': typeof AuthenticatedReportsAreaWiseSalesReportRoute
-  '/reports/item-summary-report': typeof AuthenticatedReportsItemSummaryReportRoute
   '/reports/territory-wise-items-report': typeof AuthenticatedReportsTerritoryWiseItemsReportRoute
   '/reports/territory-wise-sales-report': typeof AuthenticatedReportsTerritoryWiseSalesReportRoute
   '/admin-module/operation/manual-bill-quota': typeof AuthenticatedAdminModuleOperationManualBillQuotaRoute
@@ -433,7 +425,6 @@ export interface FileRoutesByTo {
   '/outlet-module/customer': typeof AuthenticatedOutletModuleCustomerRoute
   '/reports/achievement-category-wise': typeof AuthenticatedReportsAchievementCategoryWiseRoute
   '/reports/area-wise-sales-report': typeof AuthenticatedReportsAreaWiseSalesReportRoute
-  '/reports/item-summary-report': typeof AuthenticatedReportsItemSummaryReportRoute
   '/reports/territory-wise-items-report': typeof AuthenticatedReportsTerritoryWiseItemsReportRoute
   '/reports/territory-wise-sales-report': typeof AuthenticatedReportsTerritoryWiseSalesReportRoute
   '/admin-module/operation/manual-bill-quota': typeof AuthenticatedAdminModuleOperationManualBillQuotaRoute
@@ -487,7 +478,6 @@ export interface FileRoutesById {
   '/_authenticated/outlet-module/customer': typeof AuthenticatedOutletModuleCustomerRoute
   '/_authenticated/reports/achievement-category-wise': typeof AuthenticatedReportsAchievementCategoryWiseRoute
   '/_authenticated/reports/area-wise-sales-report': typeof AuthenticatedReportsAreaWiseSalesReportRoute
-  '/_authenticated/reports/item-summary-report': typeof AuthenticatedReportsItemSummaryReportRoute
   '/_authenticated/reports/territory-wise-items-report': typeof AuthenticatedReportsTerritoryWiseItemsReportRoute
   '/_authenticated/reports/territory-wise-sales-report': typeof AuthenticatedReportsTerritoryWiseSalesReportRoute
   '/_authenticated/admin-module/operation/manual-bill-quota': typeof AuthenticatedAdminModuleOperationManualBillQuotaRoute
@@ -540,7 +530,6 @@ export interface FileRouteTypes {
     | '/outlet-module/customer'
     | '/reports/achievement-category-wise'
     | '/reports/area-wise-sales-report'
-    | '/reports/item-summary-report'
     | '/reports/territory-wise-items-report'
     | '/reports/territory-wise-sales-report'
     | '/admin-module/operation/manual-bill-quota'
@@ -591,7 +580,6 @@ export interface FileRouteTypes {
     | '/outlet-module/customer'
     | '/reports/achievement-category-wise'
     | '/reports/area-wise-sales-report'
-    | '/reports/item-summary-report'
     | '/reports/territory-wise-items-report'
     | '/reports/territory-wise-sales-report'
     | '/admin-module/operation/manual-bill-quota'
@@ -644,7 +632,6 @@ export interface FileRouteTypes {
     | '/_authenticated/outlet-module/customer'
     | '/_authenticated/reports/achievement-category-wise'
     | '/_authenticated/reports/area-wise-sales-report'
-    | '/_authenticated/reports/item-summary-report'
     | '/_authenticated/reports/territory-wise-items-report'
     | '/_authenticated/reports/territory-wise-sales-report'
     | '/_authenticated/admin-module/operation/manual-bill-quota'
@@ -771,13 +758,6 @@ declare module '@tanstack/react-router' {
       path: '/reports/territory-wise-items-report'
       fullPath: '/reports/territory-wise-items-report'
       preLoaderRoute: typeof AuthenticatedReportsTerritoryWiseItemsReportRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/reports/item-summary-report': {
-      id: '/_authenticated/reports/item-summary-report'
-      path: '/reports/item-summary-report'
-      fullPath: '/reports/item-summary-report'
-      preLoaderRoute: typeof AuthenticatedReportsItemSummaryReportRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/reports/area-wise-sales-report': {
@@ -1088,7 +1068,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedMasterSettingsFinalGeographyMappingRoute: typeof AuthenticatedMasterSettingsFinalGeographyMappingRoute
   AuthenticatedReportsAchievementCategoryWiseRoute: typeof AuthenticatedReportsAchievementCategoryWiseRoute
   AuthenticatedReportsAreaWiseSalesReportRoute: typeof AuthenticatedReportsAreaWiseSalesReportRoute
-  AuthenticatedReportsItemSummaryReportRoute: typeof AuthenticatedReportsItemSummaryReportRoute
   AuthenticatedReportsTerritoryWiseItemsReportRoute: typeof AuthenticatedReportsTerritoryWiseItemsReportRoute
   AuthenticatedReportsTerritoryWiseSalesReportRoute: typeof AuthenticatedReportsTerritoryWiseSalesReportRoute
   AuthenticatedAdminModuleOperationManualBillQuotaRoute: typeof AuthenticatedAdminModuleOperationManualBillQuotaRoute
@@ -1143,8 +1122,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedReportsAchievementCategoryWiseRoute,
   AuthenticatedReportsAreaWiseSalesReportRoute:
     AuthenticatedReportsAreaWiseSalesReportRoute,
-  AuthenticatedReportsItemSummaryReportRoute:
-    AuthenticatedReportsItemSummaryReportRoute,
   AuthenticatedReportsTerritoryWiseItemsReportRoute:
     AuthenticatedReportsTerritoryWiseItemsReportRoute,
   AuthenticatedReportsTerritoryWiseSalesReportRoute:

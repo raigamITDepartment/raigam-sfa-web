@@ -157,11 +157,6 @@ export const sidebarData: SidebarData = {
           icon: ChartArea,
         },
         {
-          title: 'Item Summary Report',
-          url: '/reports/item-summary-report',
-          icon: FileCheck2,
-        },
-        {
           title: 'Territory Wise Sales Report',
           url: '/reports/territory-wise-sales-report',
           icon: ChartLine,

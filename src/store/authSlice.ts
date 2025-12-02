@@ -67,6 +67,14 @@ function clearStoredUser() {
   }
 }
 
+function clearLocalStorage() {
+  try {
+    localStorage.clear()
+  } catch {
+    /* noop */
+  }
+}
+
 function decodeJwt(token: string): unknown | null {
   try {
     const [, payload] = token.split('.')
@@ -169,6 +177,7 @@ const authSlice = createSlice({
       clearAllTokens()
       clearRememberPreference()
       clearStoredUser()
+      clearLocalStorage()
       state.user = null
       state.status = 'idle'
       state.effectivePermissions = []

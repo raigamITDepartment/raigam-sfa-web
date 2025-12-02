@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
-  flexRender,
   getCoreRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
@@ -28,26 +27,18 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
 import InvoiceNumber from '@/components/InvoiceNumber'
 import BookingInvoiceFilter, {
   type BookingInvoiceFilters,
 } from '@/components/agency-module/filter'
-import {
-  DataTableColumnHeader,
-  DataTablePagination,
-  DataTableToolbar,
-} from '@/components/data-table'
-import { CommonAlert } from '@/components/common-alert'
+import BookingInvoiceDetailsHeader from '@/components/agency-module/booking-invoice-details-header'
+import BookingInvoiceItemsTable from '@/components/agency-module/booking-invoice-items-table'
+import BookingInvoiceTableSection from '@/components/agency-module/booking-invoice-table-section'
+import { DataTableColumnHeader } from '@/components/data-table'
 import { setFilters as setStoredFilters } from '@/store/bookingInvoiceSlice'
+import FullWidthDialog from '@/components/FullWidthDialog'
+import { formatPrice } from '@/lib/format-price'
 
 const formatDate = (value?: string) => {
   if (!value || value === '0001-01-01') return '-'
@@ -92,6 +83,9 @@ const BookingInvoice = () => {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false)
   const [cancelRemark, setCancelRemark] = useState('')
   const [cancelTarget, setCancelTarget] =
+    useState<BookingInvoiceReportItem | null>(null)
+  const [invoicePreviewOpen, setInvoicePreviewOpen] = useState(false)
+  const [selectedInvoice, setSelectedInvoice] =
     useState<BookingInvoiceReportItem | null>(null)
   const cancelInvoiceMutation = useMutation({
     mutationFn: async (vars: {
@@ -177,7 +171,7 @@ const BookingInvoice = () => {
         meta: { thClassName: 'text-center' },
       },
       {
-        accessorKey: 'totalBookValue',
+        accessorKey: 'totalBookFinalValue',
         header: ({ column }) => (
           <DataTableColumnHeader
             column={column}
@@ -186,9 +180,9 @@ const BookingInvoice = () => {
           />
         ),
         cell: ({ row }) => (
-          <span className='block text-right tabular-nums'>
-            {Math.trunc(row.original.totalBookValue)}
-          </span>
+            <span className='block text-right tabular-nums'>
+              {formatPrice(row.original.totalBookFinalValue)}
+            </span>
         ),
         meta: { thClassName: 'text-right' },
       },
@@ -218,9 +212,9 @@ const BookingInvoice = () => {
           />
         ),
         cell: ({ row }) => (
-          <span className='block text-right tabular-nums'>
-            {Math.trunc(row.original.totalDiscountValue)}
-          </span>
+            <span className='block text-right tabular-nums'>
+              {formatPrice(row.original.totalDiscountValue)}
+            </span>
         ),
         meta: { thClassName: 'text-right' },
       },
@@ -307,7 +301,15 @@ const BookingInvoice = () => {
         enableSorting: false,
         cell: ({ row }) => (
           <div className='flex items-center justify-center gap-1'>
-            <Button variant='ghost' size='icon' className='size-8'>
+            <Button
+              variant='ghost'
+              size='icon'
+              className='size-8'
+              onClick={() => {
+                setSelectedInvoice(row.original)
+                setInvoicePreviewOpen(true)
+              }}
+            >
               <Pencil className='h-4 w-4' />
               <span className='sr-only'>Edit</span>
             </Button>
@@ -360,11 +362,6 @@ const BookingInvoice = () => {
     },
   })
 
-  const tableRows = table.getRowModel().rows
-  const hasRows = tableRows.length > 0
-  const hasPayload = rows.length > 0
-  const showNoData = !isLoading && !isError && !hasPayload
-
   return (
     <Card className='space-y-4'>
       <CardContent>
@@ -386,137 +383,15 @@ const BookingInvoice = () => {
             dispatch(setStoredFilters(defaults))
           }}
         />
-        {isLoading ? (
-          <div className='mt-4 mb-4 rounded-md border'>
-            <Table className='text-xs'>
-              <TableHeader>
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => (
-                      <TableHead
-                        key={header.id}
-                        className={
-                          'h-10 bg-gray-100 px-3 text-left dark:bg-gray-900 ' +
-                          (header.column.columnDef.meta?.thClassName ?? '')
-                        }
-                      >
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody>
-                {Array.from({ length: table.getState().pagination.pageSize }).map(
-                  (_, idx) => (
-                    <TableRow key={`skeleton-${idx}`}>
-                      {columns.map((_, colIdx) => (
-                        <TableCell key={`${idx}-${colIdx}`} className='px-3 py-2'>
-                          <div className='h-4 w-full animate-pulse rounded bg-slate-200 dark:bg-slate-800' />
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  )
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        ) : null}
-        {!isLoading && !isError && hasPayload ? (
-          <>
-            <DataTableToolbar
-              table={table}
-              searchPlaceholder='Search invoice id...'
-              searchKey='invoiceNo'
-              filters={[
-                {
-                  columnId: 'status',
-                  title: 'Status',
-                  options: statusFilterOptions,
-                },
-              ]}
-            />
-            <div className='mt-4 mb-4 rounded-md border'>
-              <Table className='text-xs'>
-                <TableHeader>
-                  {table.getHeaderGroups().map((headerGroup) => (
-                    <TableRow key={headerGroup.id}>
-                      {headerGroup.headers.map((header) => (
-                        <TableHead
-                          key={header.id}
-                          className={
-                            'h-10 bg-gray-100 px-3 text-left dark:bg-gray-900 ' +
-                            (header.column.columnDef.meta?.thClassName ?? '')
-                          }
-                        >
-                          {header.isPlaceholder
-                            ? null
-                            : flexRender(
-                                header.column.columnDef.header,
-                                header.getContext()
-                              )}
-                        </TableHead>
-                      ))}
-                    </TableRow>
-                  ))}
-                </TableHeader>
-                <TableBody>
-                  {hasRows ? (
-                    tableRows.map((row) => (
-                      <TableRow
-                        key={row.id}
-                        data-state={row.getIsSelected() && 'selected'}
-                      >
-                        {row.getVisibleCells().map((cell) => (
-                          <TableCell
-                            key={cell.id}
-                            className='px-3 py-2 align-middle'
-                          >
-                            {flexRender(
-                              cell.column.columnDef.cell,
-                              cell.getContext()
-                            )}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell
-                        colSpan={columns.length}
-                        className='h-20 text-center'
-                      >
-                        No invoices match your search or filters.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-            <DataTablePagination table={table} />
-          </>
-        ) : null}
-        {isError ? (
-          <CommonAlert
-            variant='error'
-            title='Failed to load invoices'
-            description={
-              error instanceof Error ? error.message : 'Unknown error occurred'
-            }
-          />
-        ) : null}
-        {showNoData ? (
-          <CommonAlert
-            variant='info'
-            title='No invoices found'
-            description='No data for the selected date range and invoice type. Try adjusting filters.'
-          />
-        ) : null}
+        <BookingInvoiceTableSection
+          table={table}
+          columns={columns}
+          isLoading={isLoading}
+          isError={isError}
+          error={error}
+          rows={rows}
+          statusFilterOptions={statusFilterOptions}
+        />
         <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
@@ -585,6 +460,49 @@ const BookingInvoice = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+        <FullWidthDialog
+          title='Invoice Details'
+          open={invoicePreviewOpen}
+          onOpenChange={(open) => {
+            setInvoicePreviewOpen(open)
+            if (!open) {
+              setSelectedInvoice(null)
+            }
+          }}
+          width='full'
+        >
+          {selectedInvoice ? (
+            <div className='space-y-3'>
+              <BookingInvoiceDetailsHeader
+                invoice={selectedInvoice}
+                status={deriveStatus(selectedInvoice)}
+                formatDate={formatDate}
+              />
+              <BookingInvoiceItemsTable
+                invoice={selectedInvoice}
+                items={selectedInvoice.invoiceDetailDTOList ?? []}
+                onUpdated={() => {
+                  queryClient.invalidateQueries({
+                    queryKey: [
+                      'booking-invoices',
+                      user?.territoryId,
+                      filters.startDate,
+                      filters.endDate,
+                      filters.invoiceType,
+                    ],
+                  })
+                  setInvoicePreviewOpen(false)
+                  setSelectedInvoice(null)
+                }}
+                userId={user?.userId ?? null}
+                onCancel={() => {
+                  setInvoicePreviewOpen(false)
+                  setSelectedInvoice(null)
+                }}
+              />
+            </div>
+          ) : null}
+        </FullWidthDialog>
       </CardContent>
     </Card>
   )

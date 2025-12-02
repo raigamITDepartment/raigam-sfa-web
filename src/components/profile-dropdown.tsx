@@ -20,7 +20,7 @@ export function ProfileDropdown() {
   const subText = user?.role || user?.userName || 'Not signed in'
   const initials = (displayName || 'U')
     .split(' ')
-    .map((p) => p[0])
+    .map((p) => (p[0] ?? '').toUpperCase())
     .join('')
     .slice(0, 2)
 
@@ -31,7 +31,9 @@ export function ProfileDropdown() {
           <Button variant='ghost' className='relative h-8 w-8 rounded-full'>
             <Avatar className='h-8 w-8'>
               <AvatarImage src='/avatars/01.png' alt={displayName} />
-              <AvatarFallback>{initials}</AvatarFallback>
+              <AvatarFallback className='bg-slate-200 text-slate-900 dark:bg-slate-800 dark:text-slate-100'>
+                {initials}
+              </AvatarFallback>
             </Avatar>
           </Button>
         </DropdownMenuTrigger>

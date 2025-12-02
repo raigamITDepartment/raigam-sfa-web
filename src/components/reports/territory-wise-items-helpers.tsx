@@ -81,7 +81,7 @@ export const createColumns = (): ColumnDef<Row>[] => [
   },
   {
     id: 'subSubCategory',
-    header: headerWithBreaks('Sub Sub Category'),
+    header: () => headerWithBreaks('Sub Sub Category'),
     accessorFn: (row) => pickValue(row, SUB_SUB_CATEGORY_KEYS),
     cell: ({ getValue }) => (
       <span className='block whitespace-nowrap text-sm'>{renderText(getValue())}</span>
@@ -91,7 +91,7 @@ export const createColumns = (): ColumnDef<Row>[] => [
   },
   {
     id: 'subCategory',
-    header: headerWithBreaks('Sub Category'),
+    header: () => headerWithBreaks('Sub Category'),
     accessorFn: (row) => pickValue(row, SUB_CATEGORY_KEYS),
     cell: ({ getValue }) => (
       <span className='block whitespace-nowrap text-sm'>{renderText(getValue())}</span>
@@ -182,7 +182,7 @@ export const createColumns = (): ColumnDef<Row>[] => [
   },
   {
     id: 'goodReturnQty',
-    header: headerWithBreaks('Good Return Qty'),
+    header: () => headerWithBreaks('Good Return Qty'),
     accessorFn: (row) =>
       pickValue(row, ['goodReturnQty', 'goodReturnQuantity', 'totalGoodReturnQty']),
     cell: ({ getValue }) => (
@@ -194,7 +194,7 @@ export const createColumns = (): ColumnDef<Row>[] => [
   },
   {
     id: 'goodReturnFree',
-    header: headerWithBreaks('Good Return Free'),
+    header: () => headerWithBreaks('Good Return Free'),
     accessorFn: (row) =>
       pickValue(row, ['goodReturnFree', 'goodReturnFreeQty', 'totalGoodReturnFreeQty']),
     cell: ({ getValue }) => (
@@ -206,7 +206,7 @@ export const createColumns = (): ColumnDef<Row>[] => [
   },
   {
     id: 'marketReturnQty',
-    header: headerWithBreaks('Market Return Qty'),
+    header: () => headerWithBreaks('Market Return Qty'),
     accessorFn: (row) =>
       pickValue(row, [
         'marketReturnQty',
@@ -222,7 +222,7 @@ export const createColumns = (): ColumnDef<Row>[] => [
   },
   {
     id: 'marketReturnFree',
-    header: headerWithBreaks('Market Return Free'),
+    header: () => headerWithBreaks('Market Return Free'),
     accessorFn: (row) =>
       pickValue(row, [
         'marketReturnFree',

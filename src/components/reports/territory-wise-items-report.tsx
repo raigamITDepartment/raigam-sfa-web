@@ -15,7 +15,6 @@ import {
 import {
   Card,
   CardContent,
-  CardHeader,
 } from '@/components/ui/card'
 import {
   Table,
@@ -36,7 +35,7 @@ import {
   createColumns,
   createExportColumns,
   globalFilterFn,
-} from './territory-wise-items-helpers.tsx'
+} from './territory-wise-items-helpers'
 import TerritoryWiseItemsFilter, {
   type TerritoryWiseItemsFilters,
 } from './Filter'
@@ -106,7 +105,7 @@ const TerritoryWiseItemsReport = () => {
     filterFns: {
       global: globalFilterFn,
     },
-    globalFilterFn: 'global',
+    globalFilterFn,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -164,7 +163,14 @@ const TerritoryWiseItemsReport = () => {
                   </TableHeader>
                   <TableBody>
                     {Array.from({ length: skeletonRowCount }).map((_, idx) => (
-                      <TableRow key={idx}>
+                      <TableRow
+                        key={idx}
+                        className={
+                          idx % 2 === 0
+                            ? 'bg-white dark:bg-slate-900/20'
+                            : 'bg-gray-50 dark:bg-slate-900/40'
+                        }
+                      >
                         {(columns.length ? columns : [{ id: 'loading' }]).map(
                           (_col, colIdx) => (
                             <TableCell
@@ -255,6 +261,11 @@ const TerritoryWiseItemsReport = () => {
                           <TableRow
                             key={row.id}
                             data-state={row.getIsSelected()}
+                            className={
+                              Number(row.id) % 2 === 0
+                                ? 'bg-white dark:bg-slate-900/20'
+                                : 'bg-gray-50 dark:bg-slate-900/40'
+                            }
                           >
                             {row.getVisibleCells().map((cell) => (
                               <TableCell

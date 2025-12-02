@@ -11,7 +11,6 @@ import {
   BriefcaseBusiness,
   Route as RouteIcon,
   Trophy,
-  FileCheck2,
   ChartArea,
   ChartLine,
   ChartNoAxesCombined,

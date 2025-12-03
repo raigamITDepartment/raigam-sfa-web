@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
@@ -8,6 +8,7 @@ import type {
   BookingInvoiceReportItem,
 } from '@/types/invoice'
 import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 import {
   Table,
   TableBody,
@@ -17,15 +18,6 @@ import {
   TableRow,
   TableFooter,
 } from '@/components/ui/table'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
 import { updateBookingInvoiceWithDetails } from '@/services/sales/invoice/invoiceApi'
 import { formatPrice } from '@/lib/format-price'
 
@@ -55,15 +47,17 @@ const safeNumber = (value?: number | null) =>
 
 const recalcDerivedValues = (item: BookingInvoiceDetailDTO) => {
   const bookQty = safeNumber(item.totalBookQty)
-  const cancelQty = safeNumber(item.totalCancelQty)
-  const netBookQty = Math.max(bookQty - cancelQty, 0)
+  const actualQty = safeNumber(item.totalActualQty)
   const unitPrice = safeNumber(item.sellUnitPrice)
   const discountPct =
     item.discountPercentage ?? item.bookDiscountPercentage ?? 0
 
-  const grossTotal = netBookQty * unitPrice
-  const discountValue = (grossTotal * discountPct) / 100
-  const discountAfterValue = grossTotal - discountValue
+  const totalBookValue = bookQty * unitPrice
+  const totalBookDiscountValue = (totalBookValue * discountPct) / 100
+  const totalBookSellValue = totalBookValue - totalBookDiscountValue
+  const actualGrossValue = actualQty * unitPrice
+  const totalActualDiscountValue = (actualGrossValue * discountPct) / 100
+  const sellTotalPrice = actualGrossValue - totalActualDiscountValue
 
   const goodReturnQty = safeNumber(item.goodReturnTotalQty)
   const goodReturnFreeQty = safeNumber(item.goodReturnFreeQty)
@@ -82,14 +76,18 @@ const recalcDerivedValues = (item: BookingInvoiceDetailDTO) => {
     effectiveMarketReturnQty * marketReturnUnitPrice
 
   const finalTotalValue =
-    discountAfterValue - goodReturnTotalVal - marketReturnTotalVal
+    sellTotalPrice - goodReturnTotalVal - marketReturnTotalVal
+
   return {
     ...item,
-    totalBookValue: grossTotal,
-    totalBookDiscountValue: discountValue,
-    totalBookSellValue: discountAfterValue,
-    sellTotalPrice: discountAfterValue,
-    totalDiscountValue: discountValue,
+    totalBookSellValue,
+    totalBookDiscountValue,
+    sellTotalPrice,
+    totalBookValue,
+    totalBookFinalValue: totalBookSellValue,
+    totalDiscountValue: totalActualDiscountValue,
+    totalActualQty: actualQty,
+    totalActualValue: finalTotalValue,
     goodReturnTotalVal,
     marketReturnTotalVal,
     finalTotalValue,
@@ -106,12 +104,8 @@ export function BookingInvoiceItemsTable({
   const [summaryDiscount, setSummaryDiscount] = useState(
     invoice.discountPercentage ?? 0
   )
-  const [bookQtyAlertOpen, setBookQtyAlertOpen] = useState(false)
   const [editableItems, setEditableItems] = useState<BookingInvoiceDetailDTO[]>(
     () => items.map((item) => recalcDerivedValues(item))
-  )
-  const originalBookQtyByIndexRef = useRef<number[]>(
-    items.map((item) => safeNumber(item.totalBookQty))
   )
   const originalActualQtyById = useMemo(() => {
     const map = new Map<number, number>()
@@ -123,9 +117,6 @@ export function BookingInvoiceItemsTable({
     return map
   }, [items])
   useEffect(() => {
-    originalBookQtyByIndexRef.current = items.map((item) =>
-      safeNumber(item.totalBookQty)
-    )
     setEditableItems(items.map((item) => recalcDerivedValues(item)))
   }, [items])
 
@@ -143,7 +134,7 @@ export function BookingInvoiceItemsTable({
   }
 
   const handleValueChange = (
-    rowIndex: number,
+    itemId: number,
     field: EditableField,
     rawValue: string
   ) => {
@@ -151,23 +142,13 @@ export function BookingInvoiceItemsTable({
     const parsedNumber = Number(trimmed)
     const parsed =
       trimmed === '' || Number.isNaN(parsedNumber) ? null : parsedNumber
-    const sanitized = parsed === null ? null : Math.max(parsed, 0)
-    const nextValue = sanitized ?? 0
-
-    if (field === 'totalBookQty') {
-      const originalQty = originalBookQtyByIndexRef.current[rowIndex] ?? 0
-      if (nextValue < originalQty) {
-        setBookQtyAlertOpen(true)
-        return
-      }
-    }
 
     setEditableItems((prev) =>
-      prev.map((item, idx) => {
-        if (idx !== rowIndex) return item
+      prev.map((item) => {
+        if (item.id !== itemId) return item
         const baseUpdated = {
           ...item,
-          [field]: nextValue,
+          [field]: parsed,
         }
         return recalcDerivedValues(baseUpdated)
       })
@@ -180,37 +161,27 @@ export function BookingInvoiceItemsTable({
   const aggregatedTotals = useMemo(() => {
     return editableItems.reduce(
       (acc, item) => {
-        const unitPrice = safeNumber(item.sellUnitPrice)
-        const bookQty = safeNumber(item.totalBookQty)
-        const cancelQty = safeNumber(item.totalCancelQty)
-        const netBookQty = Math.max(bookQty - cancelQty, 0)
-        const gross = safeNumber(
-          item.totalBookValue ?? netBookQty * unitPrice
-        )
-        const discountValue = safeNumber(
+        const gross = safeNumber(item.totalBookValue ?? 0)
+        const sellValue = safeNumber(item.totalBookSellValue ?? 0)
+        const bookFinalValue = safeNumber(item.totalBookFinalValue ?? 0)
+        const finalValue = safeNumber(item.finalTotalValue ?? 0)
+        const actualGrossValue =
+          safeNumber(item.totalActualQty) * safeNumber(item.sellUnitPrice)
+        const actualDiscountValue = safeNumber(
           item.totalDiscountValue ?? item.totalBookDiscountValue
         )
-        const discountAfterValue =
-          item.totalBookSellValue ?? gross - discountValue
-        const bookFinalValue = discountAfterValue
-        const goodReturnVal = safeNumber(item.goodReturnTotalVal)
-        const marketReturnVal = safeNumber(item.marketReturnTotalVal)
-        const finalValue = safeNumber(
-          item.finalTotalValue ??
-            discountAfterValue -
-              goodReturnVal -
-              marketReturnVal
-        )
         acc.totalBookValue += gross
-        acc.totalBookSellValue += discountAfterValue
+        acc.totalBookSellValue += sellValue
         acc.totalBookFinalValue += bookFinalValue
-        acc.totalCancelValue += cancelQty * unitPrice
-        acc.totalMarketReturnValue += marketReturnVal
-        acc.totalGoodReturnValue += goodReturnVal
-        acc.totalFreeValue += safeNumber(item.totalFreeQty) * unitPrice
-        acc.totalActualGrossValue += gross
+        acc.totalCancelValue +=
+          safeNumber(item.totalCancelQty) * safeNumber(item.sellUnitPrice)
+        acc.totalMarketReturnValue += safeNumber(item.marketReturnTotalVal)
+        acc.totalGoodReturnValue += safeNumber(item.goodReturnTotalVal)
+        acc.totalFreeValue +=
+          safeNumber(item.totalFreeQty) * safeNumber(item.sellUnitPrice)
+        acc.totalActualGrossValue += actualGrossValue
         acc.totalActualValue += finalValue
-        acc.totalDiscountValue += discountValue
+        acc.totalDiscountValue += actualDiscountValue
         acc.totalFinalValue += finalValue
         return acc
       },
@@ -267,6 +238,7 @@ export function BookingInvoiceItemsTable({
     'Item Name',
     'Book Qty',
     'Cancel Qty',
+    'Actual Qty',
     'Item Price',
     'Gross Total',
     'Discount (%)',
@@ -305,7 +277,7 @@ export function BookingInvoiceItemsTable({
       totalMarketReturnValue: totals.totalMarketReturnValue,
       totalGoodReturnValue: totals.totalGoodReturnValue,
       totalFreeValue: totals.totalFreeValue,
-      totalActualValue: safeNumber(invoice.totalActualValue),
+      totalActualValue: totals.totalActualValue,
       totalDiscountValue: totals.totalDiscountValue,
       discountPercentage: summaryDiscount,
       invoiceType: invoice.invoiceType,
@@ -324,21 +296,6 @@ export function BookingInvoiceItemsTable({
       invoiceDetailDTOList: editableItems.map((item) => {
         const discountPct =
           item.discountPercentage ?? item.bookDiscountPercentage ?? 0
-        const bookQty = safeNumber(item.totalBookQty)
-        const cancelQty = safeNumber(item.totalCancelQty)
-        const netBookQty = Math.max(bookQty - cancelQty, 0)
-        const unitPrice = safeNumber(item.sellUnitPrice)
-        const gross = safeNumber(
-          item.totalBookValue ?? netBookQty * unitPrice
-        )
-        const discountValue = safeNumber(
-          item.totalBookDiscountValue ??
-            (gross * discountPct) / 100
-        )
-        const discountAfterValue = safeNumber(
-          item.totalBookSellValue ?? gross - discountValue
-        )
-        const bookFinalValue = discountAfterValue
         return {
           id: item.id || undefined,
           itemId: item.itemId,
@@ -346,10 +303,10 @@ export function BookingInvoiceItemsTable({
           sellUnitPrice: safeNumber(item.sellUnitPrice),
           totalBookQty: safeNumber(item.totalBookQty),
           bookDiscountPercentage: discountPct,
-          totalBookDiscountValue: discountValue,
-          totalBookValue: gross,
-          totalBookSellValue: discountAfterValue,
-          totalBookFinalValue: bookFinalValue,
+          totalBookDiscountValue: safeNumber(item.totalBookDiscountValue),
+          totalBookValue: safeNumber(item.totalBookValue),
+          totalBookSellValue: safeNumber(item.totalBookSellValue),
+          totalBookFinalValue: safeNumber(item.totalBookFinalValue),
           totalCancelQty: safeNumber(item.totalCancelQty),
           totalFreeQty: safeNumber(item.totalFreeQty),
           totalActualQty: safeNumber(
@@ -439,11 +396,10 @@ export function BookingInvoiceItemsTable({
                       <TableCell className='px-3 py-2 text-right'>
                         <Input
                           type='number'
-                          min={0}
                           value={item.totalBookQty ?? ''}
                           onChange={(e) =>
                             handleValueChange(
-                              idx,
+                              item.id,
                               'totalBookQty',
                               e.target.value
                             )
@@ -454,11 +410,10 @@ export function BookingInvoiceItemsTable({
                       <TableCell className='px-3 py-2 text-right'>
                         <Input
                           type='number'
-                          min={0}
                           value={item.totalCancelQty ?? ''}
                           onChange={(e) =>
                             handleValueChange(
-                              idx,
+                              item.id,
                               'totalCancelQty',
                               e.target.value
                             )
@@ -466,14 +421,16 @@ export function BookingInvoiceItemsTable({
                           className='h-8 w-24 rounded-sm text-right'
                         />
                       </TableCell>
+                      <TableCell className='px-3 py-2 text-center'>
+                        {formatPrice(item.totalActualQty)}
+                      </TableCell>
                       <TableCell className='px-3 py-2 text-right'>
                         <Input
                           type='number'
-                          min={0}
                           value={item.sellUnitPrice ?? ''}
                           onChange={(e) =>
                             handleValueChange(
-                              idx,
+                              item.id,
                               'sellUnitPrice',
                               e.target.value
                             )
@@ -482,12 +439,14 @@ export function BookingInvoiceItemsTable({
                         />
                       </TableCell>
                       <TableCell className='px-3 py-2 text-right'>
-                        {formatPrice(safeNumber(item.totalBookValue))}
+                        {formatPrice(
+                          safeNumber(item.totalActualQty) *
+                            safeNumber(item.sellUnitPrice)
+                        )}
                       </TableCell>
                       <TableCell className='px-3 py-2 text-right'>
                         <Input
                           type='number'
-                          min={0}
                           value={
                             item.discountPercentage ??
                             item.bookDiscountPercentage ??
@@ -495,7 +454,7 @@ export function BookingInvoiceItemsTable({
                           }
                           onChange={(e) =>
                             handleValueChange(
-                              idx,
+                              item.id,
                               'discountPercentage',
                               e.target.value
                             )
@@ -512,11 +471,10 @@ export function BookingInvoiceItemsTable({
                       <TableCell className='px-3 py-2 text-right'>
                         <Input
                           type='number'
-                          min={0}
                           value={item.goodReturnTotalQty ?? ''}
                           onChange={(e) =>
                             handleValueChange(
-                              idx,
+                              item.id,
                               'goodReturnTotalQty',
                               e.target.value
                             )
@@ -527,11 +485,10 @@ export function BookingInvoiceItemsTable({
                       <TableCell className='px-3 py-2 text-right'>
                         <Input
                           type='number'
-                          min={0}
                           value={item.goodReturnUnitPrice ?? ''}
                           onChange={(e) =>
                             handleValueChange(
-                              idx,
+                              item.id,
                               'goodReturnUnitPrice',
                               e.target.value
                             )
@@ -542,11 +499,10 @@ export function BookingInvoiceItemsTable({
                       <TableCell className='px-3 py-2 text-right'>
                         <Input
                           type='number'
-                          min={0}
                           value={item.goodReturnFreeQty ?? ''}
                           onChange={(e) =>
                             handleValueChange(
-                              idx,
+                              item.id,
                               'goodReturnFreeQty',
                               e.target.value
                             )
@@ -560,11 +516,10 @@ export function BookingInvoiceItemsTable({
                       <TableCell className='px-3 py-2 text-right'>
                         <Input
                           type='number'
-                          min={0}
                           value={item.marketReturnTotalQty ?? ''}
                           onChange={(e) =>
                             handleValueChange(
-                              idx,
+                              item.id,
                               'marketReturnTotalQty',
                               e.target.value
                             )
@@ -575,11 +530,10 @@ export function BookingInvoiceItemsTable({
                       <TableCell className='px-3 py-2 text-right'>
                         <Input
                           type='number'
-                          min={0}
                           value={item.marketReturnUnitPrice ?? ''}
                           onChange={(e) =>
                             handleValueChange(
-                              idx,
+                              item.id,
                               'marketReturnUnitPrice',
                               e.target.value
                             )
@@ -590,11 +544,10 @@ export function BookingInvoiceItemsTable({
                       <TableCell className='px-3 py-2 text-right'>
                         <Input
                           type='number'
-                          min={0}
                           value={item.marketReturnFreeQty ?? ''}
                           onChange={(e) =>
                             handleValueChange(
-                              idx,
+                              item.id,
                               'marketReturnFreeQty',
                               e.target.value
                             )
@@ -673,23 +626,6 @@ export function BookingInvoiceItemsTable({
           </div>
         </div>
       </div>
-      <AlertDialog open={bookQtyAlertOpen} onOpenChange={setBookQtyAlertOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Cannot reduce booking quantity</AlertDialogTitle>
-            <AlertDialogDescription>
-              You cannot reduce the booking quantity directly. If you need to
-              reduce the booking quantity, add the quantity you wish to reduce
-              to the Cancel Quantity.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction onClick={() => setBookQtyAlertOpen(false)}>
-              OK
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   )
 }

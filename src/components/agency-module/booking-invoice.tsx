@@ -39,6 +39,7 @@ import { DataTableColumnHeader } from '@/components/data-table'
 import { setFilters as setStoredFilters } from '@/store/bookingInvoiceSlice'
 import FullWidthDialog from '@/components/FullWidthDialog'
 import { formatPrice } from '@/lib/format-price'
+import type { InvoiceTypeParam } from '@/types/invoice'
 
 const formatDate = (value?: string) => {
   if (!value || value === '0001-01-01') return '-'
@@ -128,8 +129,8 @@ const BookingInvoice = () => {
     refetchOnMount: (query) => query.state.data === undefined,
     refetchOnWindowFocus: false,
     queryFn: () => {
-      const invoiceTypeParam =
-        filters.invoiceType === 'ALL' ? '' : filters.invoiceType
+      const invoiceTypeParam: InvoiceTypeParam =
+        filters.invoiceType === 'ALL' ? '' : (filters.invoiceType as InvoiceTypeParam)
       const payload = {
         territoryId: user?.territoryId ?? 0,
         startDate: filters.startDate ?? defaultDates.startDate,
@@ -487,6 +488,7 @@ const BookingInvoice = () => {
                 status={deriveStatus(selectedInvoiceFresh)}
                 formatDate={formatDate}
               />
+              
               <BookingInvoiceItemsTable
                 invoice={selectedInvoiceFresh}
                 items={selectedInvoiceFresh.invoiceDetailDTOList ?? []}

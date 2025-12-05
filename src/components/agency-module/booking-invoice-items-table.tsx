@@ -1,4 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogDescription,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import type {
   BookingInvoice,
   BookingInvoiceDetailDTO,
@@ -12,8 +20,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { Badge } from "@/components/ui/badge"
 import { formatPrice } from '@/lib/format-price'
 import { findItemPriceById } from '@/services/sales/itemPriceApi'
+import { Plus } from 'lucide-react'
+import { toast } from 'sonner'
+import { updateBookingInvoiceWithDetails } from '@/services/sales/invoice/invoiceApi'
+import ItemForm, { type ItemFormValues } from './ItemForm'
 
 type BookingInvoiceItemsTableProps = {
   invoice: BookingInvoiceReportItem
@@ -105,20 +118,56 @@ export function BookingInvoiceItemsTable({
   userId: _userId,
   onCancel: _onCancel,
 }: BookingInvoiceItemsTableProps) {
+  const emptyDraft: ItemFormValues = {
+    mainCatId: null,
+    itemId: null,
+    itemName: '',
+    sellUnitPrice: null,
+    sellPriceId: null,
+    adjustedUnitPrice: null,
+    totalBookQty: null,
+    totalCancelQty: null,
+    totalBookValue: null,
+    totalFreeQty: null,
+    bookDiscountPercentage: null,
+    totalBookDiscountValue: null,
+    totalBookSellValue: null,
+    goodReturnUnitPrice: null,
+    goodReturnPriceId: null,
+    goodReturnAdjustedUnitPrice: null,
+    goodReturnTotalQty: null,
+    goodReturnFreeQty: null,
+    goodReturnTotalVal: null,
+    marketReturnUnitPrice: null,
+    marketReturnPriceId: null,
+    marketReturnAdjustedUnitPrice: null,
+    marketReturnTotalQty: null,
+    marketReturnFreeQty: null,
+    marketReturnTotalVal: null,
+    finalTotalValue: null,
+  }
+  const [addItemOpen, setAddItemOpen] = useState(false)
+  const [draftItem, setDraftItem] = useState<ItemFormValues>(emptyDraft)
+  const [localItems, setLocalItems] =
+    useState<BookingInvoiceDetailDTO[]>(items)
+  const [isUpdating, setIsUpdating] = useState(false)
+  useEffect(() => {
+    setLocalItems(items)
+  }, [items])
   const [priceMap, setPriceMap] = useState<Record<number, number>>({})
   const derivedItems = useMemo(
-    () => items.map((item) => recalcDerivedValues(item)),
-    [items]
+    () => localItems.map((item) => recalcDerivedValues(item)),
+    [localItems]
   )
   const priceIds = useMemo(() => {
     const ids = new Set<number>()
-    items.forEach((item) => {
+    localItems.forEach((item) => {
       if (typeof item.sellPriceId === 'number') ids.add(item.sellPriceId)
       if (typeof item.goodReturnPriceId === 'number') ids.add(item.goodReturnPriceId)
       if (typeof item.marketReturnPriceId === 'number') ids.add(item.marketReturnPriceId)
     })
     return Array.from(ids)
-  }, [items])
+  }, [localItems])
 
   useEffect(() => {
     if (!priceIds.length) return
@@ -154,6 +203,176 @@ export function BookingInvoiceItemsTable({
       cancelled = true
     }
   }, [priceIds])
+
+  const handleAddItem = (next: ItemFormValues) => {
+    if (!next.itemId) {
+      setAddItemOpen(false)
+      return
+    }
+    const bookQty = safeNumber(next.totalBookQty)
+    const cancelQty = safeNumber(next.totalCancelQty)
+    const netQty = Math.max(bookQty - cancelQty, 0)
+    const unitPrice = safeNumber(
+      next.adjustedUnitPrice ?? next.sellUnitPrice
+    )
+    const totalBookValue = Number((netQty * unitPrice).toFixed(2))
+    const discountPct = safeNumber(next.bookDiscountPercentage)
+    const totalBookDiscountValue = Number(
+      ((totalBookValue * discountPct) / 100).toFixed(2)
+    )
+    const totalBookSellValue = Number(
+      (totalBookValue - totalBookDiscountValue).toFixed(2)
+    )
+    const goodReturnTotalVal = safeNumber(next.goodReturnTotalVal)
+    const marketReturnTotalVal = safeNumber(next.marketReturnTotalVal)
+    const finalTotalValue = Number(
+      ((totalBookSellValue - goodReturnTotalVal) +
+        (totalBookSellValue - marketReturnTotalVal)).toFixed(2)
+    )
+
+    const newItem: BookingInvoiceDetailDTO = {
+      id: Date.now(),
+      invoiceId: invoice.id,
+      itemId: next.itemId ?? 0,
+      itemName: next.itemName ?? '',
+      sellPriceId: next.sellPriceId ?? null,
+      sellUnitPrice: unitPrice,
+      totalBookQty: bookQty,
+      bookDiscountPercentage: discountPct,
+      totalBookDiscountValue,
+      totalBookValue,
+      totalBookSellValue,
+      totalCancelQty: cancelQty,
+      totalFreeQty: safeNumber(next.totalFreeQty),
+      totalActualQty: 0,
+      totalDiscountValue: totalBookDiscountValue,
+      discountPercentage: discountPct,
+      sellTotalPrice: totalBookSellValue,
+      goodReturnUnitPrice: safeNumber(next.goodReturnUnitPrice),
+      goodReturnPriceId: next.goodReturnPriceId ?? null,
+      goodReturnFreeQty: safeNumber(next.goodReturnFreeQty),
+      goodReturnTotalQty: safeNumber(next.goodReturnTotalQty),
+      goodReturnTotalVal,
+      marketReturnPriceId: next.marketReturnPriceId ?? null,
+      marketReturnUnitPrice: safeNumber(next.marketReturnUnitPrice),
+      marketReturnFreeQty: safeNumber(next.marketReturnFreeQty),
+      marketReturnTotalQty: safeNumber(next.marketReturnTotalQty),
+      marketReturnTotalVal,
+      finalTotalValue,
+      isActive: true,
+    }
+    setLocalItems((prev) => [...prev, newItem])
+    setAddItemOpen(false)
+    setDraftItem(emptyDraft)
+  }
+
+  const handleUpdate = async () => {
+    try {
+      setIsUpdating(true)
+      const storedUserId =
+        typeof window !== 'undefined'
+          ? Number(localStorage.getItem('userId'))
+          : NaN
+      const effectiveUserId = Number.isFinite(storedUserId)
+        ? storedUserId
+        : (_userId ?? invoice.userId ?? 0)
+      const details = localItems.map((item) => {
+        const sellUnitPrice = safeNumber(item.sellUnitPrice)
+        const discountPct = safeNumber(item.bookDiscountPercentage ?? item.discountPercentage)
+        const totalBookValue = safeNumber(item.totalBookValue)
+        const totalBookDiscountValue = safeNumber(item.totalBookDiscountValue ?? item.totalDiscountValue)
+        const totalBookSellValue = safeNumber(item.totalBookSellValue ?? item.sellTotalPrice)
+        const finalTotalValue = safeNumber(
+          item.finalTotalValue ??
+            totalBookSellValue -
+              safeNumber(item.goodReturnTotalVal) -
+              safeNumber(item.marketReturnTotalVal)
+        )
+        return {
+          id: item.id,
+          itemId: item.itemId,
+          sellPriceId: item.sellPriceId ?? null,
+          sellUnitPrice,
+          totalBookQty: safeNumber(item.totalBookQty),
+          bookDiscountPercentage: discountPct,
+          totalBookDiscountValue,
+          totalBookValue,
+          totalBookSellValue,
+          totalBookFinalValue: totalBookSellValue,
+          totalCancelQty: safeNumber(item.totalCancelQty),
+          totalFreeQty: safeNumber(item.totalFreeQty),
+          totalActualQty: safeNumber(item.totalActualQty),
+          totalDiscountValue: totalBookDiscountValue,
+          discountPercentage: discountPct,
+          sellTotalPrice: totalBookSellValue,
+          goodReturnPriceId: item.goodReturnPriceId ?? null,
+          goodReturnUnitPrice: safeNumber(item.goodReturnUnitPrice),
+          goodReturnFreeQty: safeNumber(item.goodReturnFreeQty),
+          goodReturnTotalQty: safeNumber(item.goodReturnTotalQty),
+          goodReturnTotalVal: safeNumber(item.goodReturnTotalVal),
+          marketReturnPriceId: item.marketReturnPriceId ?? null,
+          marketReturnUnitPrice: safeNumber(item.marketReturnUnitPrice),
+          marketReturnFreeQty: safeNumber(item.marketReturnFreeQty),
+          marketReturnTotalQty: safeNumber(item.marketReturnTotalQty),
+          marketReturnTotalVal: safeNumber(item.marketReturnTotalVal),
+          finalTotalValue,
+          isActive: item.isActive ?? true,
+        }
+      })
+
+      const invoiceFinalValue = aggregatedTotals.totalFinalValue
+      const invoiceDiscountValue = totals.totalDiscountValue
+      const invoiceActualValue =
+        invoice.totalActualValue ?? aggregatedTotals.totalActualValue
+
+      const payload = {
+        id: invoice.id,
+        userId: effectiveUserId as number,
+        territoryId: invoice.territoryId,
+        agencyWarehouseId: invoice.agencyWarehouseId,
+        routeId: invoice.routeId,
+        rangeId: invoice.rangeId,
+        outletId: invoice.outletId,
+        totalBookValue: aggregatedTotals.totalBookValue,
+        totalBookSellValue: aggregatedTotals.totalBookSellValue,
+        totalBookFinalValue: invoiceFinalValue,
+        totalCancelValue: aggregatedTotals.totalCancelValue,
+        totalMarketReturnValue: aggregatedTotals.totalMarketReturnValue,
+        totalGoodReturnValue: aggregatedTotals.totalGoodReturnValue,
+        totalFreeValue: aggregatedTotals.totalFreeValue,
+        totalActualValue: invoiceActualValue,
+        totalDiscountValue: invoiceDiscountValue,
+        discountPercentage: invoice.discountPercentage ?? 0,
+        invoiceType: invoice.invoiceType ?? 'NORMAL',
+        sourceApp: invoice.sourceApp ?? 'WEB',
+        longitude: invoice.longitude ?? 0,
+        latitude: invoice.latitude ?? 0,
+        isReversed: invoice.isReversed ?? false,
+        isPrinted: invoice.isPrinted ?? false,
+        isBook: invoice.isBook ?? true,
+        isActual: invoice.isActual ?? false,
+        isLateDelivery: invoice.isLateDelivery ?? false,
+        invActualBy: (invoice.invActualBy as number) ?? 0,
+        invReversedBy: (invoice.invReversedBy as number) ?? 0,
+        invUpdatedBy: (invoice.invUpdatedBy as number) ?? 0,
+        isActive: invoice.isActive ?? true,
+        invoiceDetailDTOList: details,
+      }
+
+      const res = await updateBookingInvoiceWithDetails(payload as any)
+      if (res?.message) {
+        toast.success(res.message)
+      } else {
+        toast.success('Invoice updated successfully')
+      }
+      _onUpdated?.((res as any)?.payload ?? null)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to update invoice'
+      toast.error(message)
+    } finally {
+      setIsUpdating(false)
+    }
+  }
 
   const tableRows = useMemo<InvoiceItemRow[]>(() => {
     return derivedItems.map((item) => {
@@ -301,17 +520,17 @@ export function BookingInvoiceItemsTable({
     'bg-amber-50/60 dark:bg-amber-900/20'
 
   const topHeaders = [
-    { label: 'Item No', rowSpan: 2, className: `${headerTopClass} min-w-[90px]` },
+    { label: 'Item No', rowSpan: 2, className: `${headerTopClass} min-w-[50px]` },
     { label: 'Item Name', rowSpan: 2, className: `${headerTopClass} min-w-[200px]` },
-    { label: 'Unit Price', rowSpan: 2, className: headerTopClass },
-    { label: 'Adjusted Unit Price', rowSpan: 2, className: headerTopClass },
+    { label: 'Unit Price(Rs.)', rowSpan: 2, className: headerTopClass },
+    { label: 'Adjusted Unit Price(Rs.)', rowSpan: 2, className: headerTopClass },
     { label: 'Qty', rowSpan: 2, className: headerTopClass },
     { label: 'Cancel Qty', rowSpan: 2, className: headerTopClass },
-    { label: 'Total Book Value', rowSpan: 2, className: headerTopClass },
+    { label: 'Total Book Value(Rs.)', rowSpan: 2, className: headerTopClass },
     { label: 'Free Issue Qty', rowSpan: 2, className: headerTopClass },
     { label: 'Discount (%)', rowSpan: 2, className: headerTopClass },
     { label: 'Item Discount Value (Rs.)', rowSpan: 2, className: headerTopClass },
-    { label: 'Total Book Sell Value', rowSpan: 2, className: headerTopClass },
+    { label: 'Total Book Sell Value(Rs.)', rowSpan: 2, className: headerTopClass },
     {
       label: 'Good Return Details',
       colSpan: 5,
@@ -322,7 +541,7 @@ export function BookingInvoiceItemsTable({
       colSpan: 5,
       className: `${headerTopClass} bg-gray-200 dark:bg-gray-900`,
     },
-    { label: 'Total', rowSpan: 2, className: `${headerTopClass} min-w-[110px]` },
+    { label: 'Total(Rs.)', rowSpan: 2, className: `${headerTopClass} min-w-[110px]` },
   ]
 
   const subHeaders = [
@@ -340,14 +559,24 @@ export function BookingInvoiceItemsTable({
 
   return (
     <div className='space-y-2'>
-      <div className='flex items-center justify-between'>
-        <p className='text-sm font-semibold text-slate-900 dark:text-slate-100'>
-          Invoice Items
-        </p>
-        <span className='text-muted-foreground text-xs'>
-          {tableRows.length} item{tableRows.length > 1 ? 's' : ''}
-        </span>
-      </div>
+        <div className='flex items-center justify-between'>
+          <p className='text-sm font-semibold text-slate-900 dark:text-slate-100'>
+            Invoice Items{' '}
+            <Badge variant='secondary'>
+              {tableRows.length} item{tableRows.length > 1 ? 's' : ''}
+            </Badge>
+          </p>
+          <div className='text-muted-foreground text-xs'>
+            <Button
+              size='sm'
+              className='inline-flex items-center gap-2'
+              onClick={() => setAddItemOpen(true)}
+            >
+              <Plus className='h-4 w-4' />
+              Add Item
+            </Button>
+          </div>
+        </div>
       <div className='space-y-4'>
         <div className='rounded-md border border-slate-200 p-1 dark:border-slate-800'>
           <div className='rounded-md border border-slate-200 dark:border-slate-800'>
@@ -503,6 +732,44 @@ export function BookingInvoiceItemsTable({
           </div>
         </div>
       </div>
+
+      <div className='flex justify-end gap-3 pt-2'>
+        <Button
+          variant='outline'
+          onClick={() => {
+            if (_onCancel) _onCancel()
+          }}
+        >
+          Cancel
+        </Button>
+        <Button
+          onClick={handleUpdate}
+          disabled={isUpdating}
+        >
+          {isUpdating ? 'Updating...' : 'Update'}
+        </Button>
+      </div>
+
+      <Dialog open={addItemOpen} onOpenChange={setAddItemOpen}>
+        <DialogContent className='max-w-4xl max-h-[85vh] overflow-y-auto'>
+          <DialogHeader>
+            <DialogTitle>Add Item</DialogTitle>
+            <DialogDescription className='sr-only'>
+              Add or edit invoice item details
+            </DialogDescription>
+          </DialogHeader>
+          <ItemForm
+            value={draftItem}
+            onChange={setDraftItem}
+            onSubmit={handleAddItem}
+            submitLabel='Save Item'
+            onCancel={() => {
+              setAddItemOpen(false)
+              setDraftItem(emptyDraft)
+            }}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

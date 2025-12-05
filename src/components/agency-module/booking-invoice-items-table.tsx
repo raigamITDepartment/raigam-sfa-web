@@ -151,9 +151,13 @@ export function BookingInvoiceItemsTable({
   const [localItems, setLocalItems] =
     useState<BookingInvoiceDetailDTO[]>(items)
   const [isUpdating, setIsUpdating] = useState(false)
+  const [summaryDiscountPct, setSummaryDiscountPct] = useState<number>(invoice.discountPercentage ?? 0)
   useEffect(() => {
     setLocalItems(items)
   }, [items])
+  useEffect(() => {
+    setSummaryDiscountPct(invoice.discountPercentage ?? 0)
+  }, [invoice.discountPercentage])
   const [priceMap, setPriceMap] = useState<Record<number, number>>({})
   const derivedItems = useMemo(
     () => localItems.map((item) => recalcDerivedValues(item)),
@@ -342,7 +346,7 @@ export function BookingInvoiceItemsTable({
         totalFreeValue: aggregatedTotals.totalFreeValue,
         totalActualValue: invoiceActualValue,
         totalDiscountValue: invoiceDiscountValue,
-        discountPercentage: invoice.discountPercentage ?? 0,
+        discountPercentage: summaryDiscountPct ?? 0,
         invoiceType: invoice.invoiceType ?? 'NORMAL',
         sourceApp: invoice.sourceApp ?? 'WEB',
         longitude: invoice.longitude ?? 0,
@@ -494,14 +498,14 @@ export function BookingInvoiceItemsTable({
 
   const totals = useMemo(() => {
     const discountValue =
-      (aggregatedTotals.totalFinalValue * summaryDiscount) / 100
+      (aggregatedTotals.totalFinalValue * summaryDiscountPct) / 100
     const actualValue = aggregatedTotals.totalFinalValue - discountValue
     return {
       ...aggregatedTotals,
       totalDiscountValue: discountValue,
       totalActualValue: actualValue,
     }
-  }, [aggregatedTotals, summaryDiscount])
+  }, [aggregatedTotals, summaryDiscountPct])
 
   if (!tableRows.length) {
     return (
@@ -714,9 +718,16 @@ export function BookingInvoiceItemsTable({
               <span>Total</span>
               <span>Rs. {formatPrice(aggregatedTotals.totalFinalValue)}</span>
             </div>
-            <div className='flex items-center justify-between'>
+            <div className='flex items-center justify-between gap-2'>
               <span>Discount (%)</span>
-              <span>{summaryDiscount}</span>
+              <input
+                type='number'
+                min='0'
+                step='0.01'
+                value={summaryDiscountPct}
+                onChange={(e) => setSummaryDiscountPct(Number(e.target.value) || 0)}
+                className='h-8 w-20 rounded border border-slate-300 bg-white px-2 text-right text-sm tabular-nums dark:border-slate-700 dark:bg-slate-800'
+              />
             </div>
             <div className='flex items-center justify-between'>
               <span>Discount Value</span>

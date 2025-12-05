@@ -522,6 +522,9 @@ export const ItemForm = ({
         <label className='space-y-1 text-sm text-slate-700 dark:text-slate-200'>
           <span className='block font-medium'>Adjusted Unit Price (Rs)</span>
           <Input
+            type='number'
+            min='0'
+            step='0.01'
             className={controlClass}
             placeholder='Adjusted Unit Price (Rs)'
             value={value.adjustedUnitPrice ?? ''}
@@ -544,6 +547,9 @@ export const ItemForm = ({
         <label className='space-y-1 text-sm text-slate-700 dark:text-slate-200'>
           <span className='block font-medium'>Quantity</span>
           <Input
+            type='number'
+            min='0'
+            step='1'
             className={controlClass}
             placeholder='Quantity'
             value={value.totalBookQty ?? ''}
@@ -566,6 +572,9 @@ export const ItemForm = ({
         <label className='space-y-1 text-sm text-slate-700 dark:text-slate-200'>
           <span className='block font-medium'>Cancel Quantity</span>
           <Input
+            type='number'
+            min='0'
+            step='1'
             className={controlClass}
             placeholder='Cancel Quantity'
             value={value.totalCancelQty ?? ''}
@@ -586,6 +595,9 @@ export const ItemForm = ({
         <label className='space-y-1 text-sm text-slate-700 dark:text-slate-200'>
           <span className='block font-medium'>Discount (%)</span>
           <Input
+            type='number'
+            min='0'
+            step='0.01'
             className={controlClass}
             placeholder='Discount (%)'
             value={value.bookDiscountPercentage ?? ''}
@@ -617,6 +629,9 @@ export const ItemForm = ({
         <label className='space-y-1 text-sm text-slate-700 dark:text-slate-200'>
           <span className='block font-medium'>Free Issue</span>
           <Input
+            type='number'
+            min='0'
+            step='1'
             className={controlClass}
             placeholder='Free Issue'
             value={value.totalFreeQty ?? ''}
@@ -712,6 +727,9 @@ export const ItemForm = ({
           <label className='space-y-1 text-sm text-slate-700 dark:text-slate-200'>
             <span className='block font-medium'>Adjusted Unit Price</span>
             <Input
+              type='number'
+              min='0'
+              step='0.01'
               className={controlClass}
               placeholder='Adjusted Unit Price'
               value={value.goodReturnAdjustedUnitPrice ?? ''}
@@ -730,10 +748,13 @@ export const ItemForm = ({
             />
           </label>
           <label className='space-y-1 text-sm text-slate-700 dark:text-slate-200'>
-            <span className='block font-medium'>Qty</span>
+            <span className='block font-medium'>Quantity</span>
             <Input
+              type='number'
+              min='0'
+              step='1'
               className={controlClass}
-              placeholder='Qty'
+              placeholder='Quantity'
               value={value.goodReturnTotalQty ?? ''}
               disabled={!useGoodReturn}
               onChange={(e) =>
@@ -753,10 +774,13 @@ export const ItemForm = ({
             ) : null}
           </label>
           <label className='space-y-1 text-sm text-slate-700 dark:text-slate-200'>
-            <span className='block font-medium'>Free Qty</span>
+            <span className='block font-medium'>Free Quantity</span>
             <Input
+              type='number'
+              min='0'
+              step='1'
               className={controlClass}
-              placeholder='Free Qty'
+              placeholder='Free Quantity'
               value={value.goodReturnFreeQty ?? ''}
               disabled={!useGoodReturn}
               onChange={(e) =>
@@ -861,6 +885,9 @@ export const ItemForm = ({
           <label className='space-y-1 text-sm text-slate-700 dark:text-slate-200'>
             <span className='block font-medium'>Adjusted Unit Price</span>
             <Input
+              type='number'
+              min='0'
+              step='0.01'
               className={controlClass}
               placeholder='Adjusted Unit Price'
               value={value.marketReturnAdjustedUnitPrice ?? ''}
@@ -879,10 +906,13 @@ export const ItemForm = ({
             />
           </label>
           <label className='space-y-1 text-sm text-slate-700 dark:text-slate-200'>
-            <span className='block font-medium'>Qty</span>
+            <span className='block font-medium'>Quantity</span>
             <Input
+              type='number'
+              min='0'
+              step='1'
               className={controlClass}
-              placeholder='Qty'
+              placeholder='Quantity'
               value={value.marketReturnTotalQty ?? ''}
               disabled={!useMarketReturn}
               onChange={(e) =>
@@ -902,10 +932,13 @@ export const ItemForm = ({
             ) : null}
           </label>
           <label className='space-y-1 text-sm text-slate-700 dark:text-slate-200'>
-            <span className='block font-medium'>Free Qty</span>
+            <span className='block font-medium'>Free Quantity</span>
             <Input
+              type='number'
+              min='0'
+              step='1'
               className={controlClass}
-              placeholder='Free Qty'
+              placeholder='Free Quantity'
               value={value.marketReturnFreeQty ?? ''}
               disabled={!useMarketReturn}
               onChange={(e) =>

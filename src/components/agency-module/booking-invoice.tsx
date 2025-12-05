@@ -130,11 +130,15 @@ const BookingInvoice = () => {
     queryFn: () => {
       const invoiceTypeParam =
         filters.invoiceType === 'ALL' ? '' : filters.invoiceType
-      return getAllAvailableBookingInvoices({
+      const payload = {
         territoryId: user?.territoryId ?? 0,
         startDate: filters.startDate ?? defaultDates.startDate,
         endDate: filters.endDate ?? defaultDates.endDate,
         invoiceType: invoiceTypeParam,
+      }
+      return getAllAvailableBookingInvoices(payload).then((res) => {
+        console.log('[booking-invoice] getAllAvailableBookingInvoices response', res)
+        return res
       })
     },
   })
@@ -339,6 +343,11 @@ const BookingInvoice = () => {
     () => (data && 'payload' in data ? data.payload ?? [] : []),
     [data]
   )
+  const selectedInvoiceFresh = useMemo(() => {
+    if (!selectedInvoice) return null
+    const refreshed = rows.find((row) => row.id === selectedInvoice.id)
+    return refreshed ?? selectedInvoice
+  }, [rows, selectedInvoice])
   const statusFilterOptions = useMemo(() => {
     const set = new Set<string>()
     rows.forEach((row) => set.add(deriveStatus(row)))
@@ -470,18 +479,17 @@ const BookingInvoice = () => {
             }
           }}
           width='full'
-          hideScrollbars
         >
-          {selectedInvoice ? (
+          {selectedInvoiceFresh ? (
             <div className='space-y-3'>
               <BookingInvoiceDetailsHeader
-                invoice={selectedInvoice}
-                status={deriveStatus(selectedInvoice)}
+                invoice={selectedInvoiceFresh}
+                status={deriveStatus(selectedInvoiceFresh)}
                 formatDate={formatDate}
               />
               <BookingInvoiceItemsTable
-                invoice={selectedInvoice}
-                items={selectedInvoice.invoiceDetailDTOList ?? []}
+                invoice={selectedInvoiceFresh}
+                items={selectedInvoiceFresh.invoiceDetailDTOList ?? []}
                 onUpdated={() => {
                   queryClient.invalidateQueries({
                     queryKey: [

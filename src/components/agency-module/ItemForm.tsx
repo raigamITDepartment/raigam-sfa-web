@@ -669,7 +669,7 @@ export const ItemForm = ({
           checked={useGoodReturn}
           onChange={(e) => toggleGoodReturn(e.target.checked)}
         />
-        I want add Good Returns
+        Add Good Returns
       </div>
 
       {useGoodReturn ? (
@@ -827,7 +827,7 @@ export const ItemForm = ({
           checked={useMarketReturn}
           onChange={(e) => toggleMarketReturn(e.target.checked)}
         />
-        I want Add Market Returns
+        Add Market Returns
       </div>
 
       {useMarketReturn ? (

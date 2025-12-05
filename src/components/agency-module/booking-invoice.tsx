@@ -470,6 +470,7 @@ const BookingInvoice = () => {
             }
           }}
           width='full'
+          hideScrollbars
         >
           {selectedInvoice ? (
             <div className='space-y-3'>

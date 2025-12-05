@@ -268,7 +268,7 @@ export function BookingInvoiceItemsTable({
     'Book Qty',
     'Cancel Qty',
     'Item Price',
-    'Gross Total',
+    'Booking Total',
     'Discount (%)',
     'Discount Value',
     'Discount After Total',
@@ -280,7 +280,7 @@ export function BookingInvoiceItemsTable({
     'Market Return Price',
     'Market Return Free Qty',
     'MR Total Value',
-    'Grand Total',
+    'Total',
   ]
 
   const handleSave = () => {
@@ -392,7 +392,7 @@ export function BookingInvoiceItemsTable({
       </div>
       <div className='space-y-4'>
         <div className='rounded-md border border-slate-200 p-4 dark:border-slate-800'>
-          <div className='max-h-[65vh] overflow-auto rounded-md border border-slate-200 dark:border-slate-800'>
+          <div className='rounded-md border border-slate-200 dark:border-slate-800'>
             <Table className='min-w-[1200px] text-xs [&_[data-slot=table-row]]:hover:bg-transparent'>
               <TableHeader>
                 <TableRow className='bg-slate-50 text-[11px] uppercase tracking-wide text-slate-500 dark:bg-slate-900/60 dark:text-slate-400'>
@@ -605,7 +605,7 @@ export function BookingInvoiceItemsTable({
                       <TableCell className='px-3 py-2 text-right text-rose-600 dark:text-rose-300'>
                         -{formatPrice(item.marketReturnTotalVal)}
                       </TableCell>
-                      <TableCell className='px-3 py-2 text-right'>
+                      <TableCell className='px-3 py-2 text-right font-semibold'>
                         {formatPrice(item.finalTotalValue)}
                       </TableCell>
                     </TableRow>

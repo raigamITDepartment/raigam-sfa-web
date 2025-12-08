@@ -306,8 +306,7 @@ export const ItemForm = ({
     const goodReturnTotalVal = value.goodReturnTotalVal ?? 0
     const marketReturnTotalVal = value.marketReturnTotalVal ?? 0
     const computedFinal =
-      (afterDiscount - goodReturnTotalVal) +
-      (afterDiscount - marketReturnTotalVal)
+      afterDiscount - goodReturnTotalVal - marketReturnTotalVal
     const next = Number(computedFinal.toFixed(2))
     const current = value.finalTotalValue ?? null
     if (!Number.isFinite(current) || Math.abs((current as number) - next) > epsilon) {

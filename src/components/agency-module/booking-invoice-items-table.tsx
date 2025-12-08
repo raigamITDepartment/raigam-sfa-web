@@ -44,6 +44,13 @@ const formatNegativeValue = (value?: number | null) => {
   return formatted === '-' ? formatted : `-${formatted}`
 }
 
+const computeFinalTotal = (
+  totalBookSellValue: number,
+  goodReturnTotalVal: number,
+  marketReturnTotalVal: number
+) =>
+  Number((totalBookSellValue - goodReturnTotalVal - marketReturnTotalVal).toFixed(2))
+
 const recalcDerivedValues = (item: BookingInvoiceDetailDTO) => {
   const bookQty = safeNumber(item.totalBookQty)
   const cancelQty = safeNumber(item.totalCancelQty)
@@ -79,9 +86,10 @@ const recalcDerivedValues = (item: BookingInvoiceDetailDTO) => {
     item.marketReturnTotalVal ?? effectiveMarketReturnQty * marketReturnUnitPrice
   )
 
-  const finalTotalValue = safeNumber(
-    item.finalTotalValue ??
-      discountAfterValue - goodReturnTotalVal - marketReturnTotalVal
+  const finalTotalValue = computeFinalTotal(
+    discountAfterValue,
+    goodReturnTotalVal,
+    marketReturnTotalVal
   )
   return {
     ...item,
@@ -229,9 +237,10 @@ export function BookingInvoiceItemsTable({
     )
     const goodReturnTotalVal = safeNumber(next.goodReturnTotalVal)
     const marketReturnTotalVal = safeNumber(next.marketReturnTotalVal)
-    const finalTotalValue = Number(
-      ((totalBookSellValue - goodReturnTotalVal) +
-        (totalBookSellValue - marketReturnTotalVal)).toFixed(2)
+    const finalTotalValue = computeFinalTotal(
+      totalBookSellValue,
+      goodReturnTotalVal,
+      marketReturnTotalVal
     )
 
     const newItem: BookingInvoiceDetailDTO = {
@@ -286,11 +295,10 @@ export function BookingInvoiceItemsTable({
         const totalBookValue = safeNumber(item.totalBookValue)
         const totalBookDiscountValue = safeNumber(item.totalBookDiscountValue ?? item.totalDiscountValue)
         const totalBookSellValue = safeNumber(item.totalBookSellValue ?? item.sellTotalPrice)
-        const finalTotalValue = safeNumber(
-          item.finalTotalValue ??
-            totalBookSellValue -
-              safeNumber(item.goodReturnTotalVal) -
-              safeNumber(item.marketReturnTotalVal)
+        const finalTotalValue = computeFinalTotal(
+          totalBookSellValue,
+          safeNumber(item.goodReturnTotalVal),
+          safeNumber(item.marketReturnTotalVal)
         )
         return {
           id: item.id,
@@ -324,10 +332,12 @@ export function BookingInvoiceItemsTable({
         }
       })
 
-      const invoiceFinalValue = aggregatedTotals.totalFinalValue
       const invoiceDiscountValue = totals.totalDiscountValue
+      const invoiceBookFinalValue = totals.totalActualValue
       const invoiceActualValue =
-        invoice.totalActualValue ?? aggregatedTotals.totalActualValue
+        typeof invoice.totalActualValue === 'number'
+          ? invoice.totalActualValue
+          : totals.totalActualValue
 
       const payload = {
         id: invoice.id,
@@ -339,7 +349,7 @@ export function BookingInvoiceItemsTable({
         outletId: invoice.outletId,
         totalBookValue: aggregatedTotals.totalBookValue,
         totalBookSellValue: aggregatedTotals.totalBookSellValue,
-        totalBookFinalValue: invoiceFinalValue,
+        totalBookFinalValue: invoiceBookFinalValue,
         totalCancelValue: aggregatedTotals.totalCancelValue,
         totalMarketReturnValue: aggregatedTotals.totalMarketReturnValue,
         totalGoodReturnValue: aggregatedTotals.totalGoodReturnValue,
@@ -398,7 +408,9 @@ export function BookingInvoiceItemsTable({
       const discountAfterValue = safeNumber(
         item.totalBookSellValue ?? grossValue - discountValue
       )
-      const adjustedUnitPrice = rawSellUnitPrice
+      const adjustedUnitPrice = safeNumber(
+        (item as Record<string, unknown>)?.adjustedUnitPrice ?? rawSellUnitPrice
+      )
       const freeIssueQty = safeNumber(item.totalFreeQty)
 
       const goodReturnQty = safeNumber(item.goodReturnTotalQty)
@@ -444,7 +456,6 @@ export function BookingInvoiceItemsTable({
       }
     })
   }, [derivedItems, priceMap])
-  const summaryDiscount = invoice.discountPercentage ?? 0
 
   const aggregatedTotals = useMemo(() => {
     return tableRows.reduce(
@@ -459,34 +470,41 @@ export function BookingInvoiceItemsTable({
           item.discountAfterValue ?? gross - discountValue
         )
         const bookFinalValue = discountAfterValue
-        const goodReturnVal = safeNumber(item.goodReturnTotalVal)
-        const marketReturnVal = safeNumber(item.marketReturnTotalVal)
-        const finalValue = safeNumber(
-          item.finalTotalValue ??
-            discountAfterValue -
-              goodReturnVal -
-              marketReturnVal
+        const adjustedUnitPrice = safeNumber(
+          (item as Record<string, unknown>)?.adjustedUnitPrice ?? unitPrice
         )
-        acc.totalBookValue += gross
-        acc.totalBookSellValue += discountAfterValue
-        acc.totalBookFinalValue += bookFinalValue
-        acc.totalCancelValue += cancelQty * unitPrice
-        acc.totalMarketReturnValue += marketReturnVal
-        acc.totalGoodReturnValue += goodReturnVal
-        acc.totalFreeValue += safeNumber(item.totalFreeQty) * unitPrice
-        acc.totalActualGrossValue += gross
-        acc.totalActualValue += finalValue
-        acc.totalDiscountValue += discountValue
-        acc.totalFinalValue += finalValue
-        return acc
+      const goodReturnVal = safeNumber(item.goodReturnTotalVal)
+      const marketReturnVal = safeNumber(item.marketReturnTotalVal)
+      const finalValue = computeFinalTotal(
+        discountAfterValue,
+        goodReturnVal,
+        marketReturnVal
+      )
+      acc.totalBookValue += gross
+      acc.totalBookSellValue += discountAfterValue
+      acc.totalBookFinalValue += bookFinalValue
+      acc.totalCancelQty += cancelQty
+      acc.totalCancelValue += cancelQty * adjustedUnitPrice
+      acc.totalMarketReturnValue += marketReturnVal
+      acc.totalGoodReturnValue += goodReturnVal
+      const freeQty = safeNumber(item.totalFreeQty)
+      acc.totalFreeQty += freeQty
+      acc.totalFreeValue += freeQty * adjustedUnitPrice
+      acc.totalActualGrossValue += gross
+      acc.totalActualValue += finalValue
+      acc.totalDiscountValue += discountValue
+      acc.totalFinalValue += finalValue
+      return acc
       },
       {
         totalBookValue: 0,
         totalBookSellValue: 0,
         totalBookFinalValue: 0,
+        totalCancelQty: 0,
         totalCancelValue: 0,
         totalMarketReturnValue: 0,
         totalGoodReturnValue: 0,
+        totalFreeQty: 0,
         totalFreeValue: 0,
         totalActualValue: 0,
         totalActualGrossValue: 0,
@@ -708,6 +726,45 @@ export function BookingInvoiceItemsTable({
                     </TableCell>
                   </TableRow>
                 ))}
+                <TableRow className='bg-blue-100 font-semibold text-blue-900 dark:bg-blue-900/50 dark:text-blue-100 [&>td]:border [&>td]:border-blue-200 dark:[&>td]:border-blue-800/60'>
+                  <TableCell colSpan={2} className='pl-3'>
+                    Totals
+                  </TableCell>
+                  <TableCell />
+                  <TableCell />
+                  <TableCell />
+                  <TableCell className='text-right tabular-nums'>
+                    {safeNumber(aggregatedTotals.totalCancelQty)}
+                  </TableCell>
+                  <TableCell className='text-right tabular-nums bg-blue-50 dark:bg-blue-900/30'>
+                    {formatPrice(aggregatedTotals.totalBookValue)}
+                  </TableCell>
+                  <TableCell className='text-right tabular-nums'>
+                    {safeNumber(aggregatedTotals.totalFreeQty)}
+                  </TableCell>
+                  <TableCell />
+                  <TableCell />
+                  <TableCell className='text-right tabular-nums bg-blue-50 dark:bg-blue-900/30'>
+                    {formatPrice(aggregatedTotals.totalBookSellValue)}
+                  </TableCell>
+                  <TableCell className={goodReturnCellClass} />
+                  <TableCell className={goodReturnCellClass} />
+                  <TableCell className={goodReturnCellClass} />
+                  <TableCell className={goodReturnCellClass} />
+                  <TableCell className={`${goodReturnCellClass} text-right text-rose-600 dark:text-rose-300`}>
+                    {formatNegativeValue(aggregatedTotals.totalGoodReturnValue)}
+                  </TableCell>
+                  <TableCell className={marketReturnCellClass} />
+                  <TableCell className={marketReturnCellClass} />
+                  <TableCell className={marketReturnCellClass} />
+                  <TableCell className={marketReturnCellClass} />
+                  <TableCell className={`${marketReturnCellClass} text-right text-rose-600 dark:text-rose-300`}>
+                    {formatNegativeValue(aggregatedTotals.totalMarketReturnValue)}
+                  </TableCell>
+                  <TableCell className='text-right font-semibold bg-blue-50 dark:bg-blue-900/30'>
+                    {formatPrice(aggregatedTotals.totalFinalValue)}
+                  </TableCell>
+                </TableRow>
               </TableBody>
             </Table>
           </div>

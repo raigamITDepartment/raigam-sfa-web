@@ -192,38 +192,6 @@ const BookingInvoice = () => {
         meta: { thClassName: 'text-right' },
       },
       {
-        accessorKey: 'discountPercentage',
-        header: ({ column }) => (
-          <DataTableColumnHeader
-            column={column}
-            title='Discount %'
-            className='w-full justify-end'
-          />
-        ),
-        cell: ({ row }) => (
-          <span className='block text-right tabular-nums'>
-            {row.original.discountPercentage.toFixed(2)}
-          </span>
-        ),
-        meta: { thClassName: 'text-right' },
-      },
-      {
-        accessorKey: 'totalDiscountValue',
-        header: ({ column }) => (
-          <DataTableColumnHeader
-            column={column}
-            title='Discount Value'
-            className='w-full justify-end'
-          />
-        ),
-        cell: ({ row }) => (
-            <span className='block text-right tabular-nums'>
-              {formatPrice(row.original.totalDiscountValue)}
-            </span>
-        ),
-        meta: { thClassName: 'text-right' },
-      },
-      {
         accessorKey: 'dateBook',
         header: ({ column }) => (
           <DataTableColumnHeader

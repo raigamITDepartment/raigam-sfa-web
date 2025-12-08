@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   getCoreRowModel,
   getFilteredRowModel,
@@ -10,24 +10,11 @@ import {
 } from '@tanstack/react-table'
 import { getAllAvailableBookingInvoices } from '@/services/reports/invoiceReports'
 import type { BookingInvoiceReportItem } from '@/types/invoice'
-import { cancelInvoice } from '@/services/sales/invoice/invoiceApi'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
-import { Pencil, XCircle } from 'lucide-react'
-import { toast } from 'sonner'
+import { Pencil } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogDescription,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Textarea } from '@/components/ui/textarea'
 import InvoiceNumber from '@/components/InvoiceNumber'
 import BookingInvoiceFilter, {
   type BookingInvoiceFilters,
@@ -81,39 +68,9 @@ const BookingInvoice = () => {
       }
     )
   })
-  const [cancelDialogOpen, setCancelDialogOpen] = useState(false)
-  const [cancelRemark, setCancelRemark] = useState('')
-  const [cancelTarget, setCancelTarget] =
-    useState<BookingInvoiceReportItem | null>(null)
   const [invoicePreviewOpen, setInvoicePreviewOpen] = useState(false)
   const [selectedInvoice, setSelectedInvoice] =
     useState<BookingInvoiceReportItem | null>(null)
-  const cancelInvoiceMutation = useMutation({
-    mutationFn: async (vars: {
-      invoiceId: number | string
-      userId: number | string
-    }) => cancelInvoice(vars.invoiceId, vars.userId),
-    onSuccess: (res, vars) => {
-      const invoiceLabel = cancelTarget?.invoiceNo ?? vars.invoiceId
-      const message =
-        res?.message ||
-        `Invoice ${invoiceLabel} canceled successfully${
-          cancelRemark ? ` (Remark: ${cancelRemark})` : ''
-        }`
-      toast.success(message)
-      queryClient.invalidateQueries({
-        queryKey: ['booking-invoices', user?.territoryId],
-      })
-      setCancelDialogOpen(false)
-      setCancelRemark('')
-      setCancelTarget(null)
-    },
-    onError: (err) => {
-      const message =
-        err instanceof Error ? err.message : 'Failed to cancel invoice'
-      toast.error(message)
-    },
-  })
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: [
@@ -286,20 +243,6 @@ const BookingInvoice = () => {
               <Pencil className='h-4 w-4' />
               <span className='sr-only'>Edit</span>
             </Button>
-            <Button
-              variant='ghost'
-              size='icon'
-              className='size-8 text-rose-600 hover:text-rose-700'
-              onClick={() => {
-                setCancelTarget(row.original)
-                setCancelRemark('')
-                setCancelDialogOpen(true)
-              }}
-              disabled={cancelInvoiceMutation.isPending}
-            >
-              <XCircle className='h-4 w-4' />
-              <span className='sr-only'>Cancel invoice</span>
-            </Button>
           </div>
         ),
         meta: { thClassName: 'text-center' },
@@ -370,74 +313,6 @@ const BookingInvoice = () => {
           rows={rows}
           statusFilterOptions={statusFilterOptions}
         />
-        <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Cancel invoice?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Canceling will mark this invoice as canceled and may not be
-                reversible. Please provide a remark before confirming.
-              </AlertDialogDescription>
-              {cancelTarget?.invoiceNo ? (
-                <p className='text-sm text-slate-600 dark:text-slate-300'>
-                  Invoice:{' '}
-                  <InvoiceNumber
-                    invoiceId={cancelTarget.invoiceNo}
-                    className='font-semibold text-slate-900 dark:text-slate-100'
-                  />
-                </p>
-              ) : null}
-            </AlertDialogHeader>
-            <div className='space-y-2'>
-              <p className='text-sm text-slate-600 dark:text-slate-300'>
-                Please enter a cancel remark.
-              </p>
-              <Textarea
-                value={cancelRemark}
-                onChange={(e) => setCancelRemark(e.target.value)}
-                placeholder='Enter cancel remark'
-                rows={3}
-              />
-            </div>
-            <AlertDialogFooter>
-              <AlertDialogCancel
-                className='border border-slate-300 bg-white text-slate-900 hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-slate-200 focus-visible:ring-offset-2 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50 dark:hover:bg-slate-800'
-                onClick={() => {
-                  setCancelDialogOpen(false)
-                  setCancelRemark('')
-                  setCancelTarget(null)
-                }}
-                disabled={cancelInvoiceMutation.isPending}
-              >
-                Close
-              </AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => {
-                  if (!cancelTarget?.id) {
-                    toast.error('Missing invoice id')
-                    return
-                  }
-                  if (!user?.userId) {
-                    toast.error('Missing user id')
-                    return
-                  }
-                  cancelInvoiceMutation.mutate({
-                    invoiceId: cancelTarget.id,
-                    userId: user.userId,
-                  })
-                }}
-                disabled={
-                  !cancelRemark.trim() || cancelInvoiceMutation.isPending
-                }
-                className='bg-red-600 text-white hover:bg-red-700 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 disabled:opacity-70'
-              >
-                {cancelInvoiceMutation.isPending
-                  ? 'Canceling...'
-                  : 'Confirm Cancel'}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
         <FullWidthDialog
           title='Invoice Details'
           open={invoicePreviewOpen}

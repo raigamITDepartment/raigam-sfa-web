@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
 import { Button } from '@/components/ui/button'
 import { formatPrice } from '@/lib/format-price'
 import type { BookingInvoiceReportItem } from '@/types/invoice'
@@ -73,21 +74,7 @@ export default InvoicePdfButton
 
 // --------------------- PDF LIB LOADER ---------------------
 const loadPdfLib = async () => {
-  try {
-    return await import('pdf-lib')
-  } catch {
-    try {
-      const directPath = new URL(
-        '../../node_modules/pdf-lib/dist/pdf-lib.esm.js',
-        import.meta.url
-      ).href
-      return await import(/* @vite-ignore */ directPath)
-    } catch {
-      return await import(
-        /* @vite-ignore */ 'https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.esm.min.js'
-      )
-    }
-  }
+  return { PDFDocument, StandardFonts, rgb }
 }
 
 // --------------------- Single Invoice PDF ---------------------

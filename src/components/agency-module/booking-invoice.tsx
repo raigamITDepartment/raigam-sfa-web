@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   getCoreRowModel,
@@ -8,8 +8,11 @@ import {
   useReactTable,
   type ColumnDef,
 } from '@tanstack/react-table'
-import { getAllAvailableBookingInvoices } from '@/services/reports/invoiceReports'
-import type { BookingInvoiceReportItem } from '@/types/invoice'
+import {
+  findInvoicePrintExtraDetailsByRequiredArgs,
+  getAllAvailableBookingInvoices,
+} from '@/services/reports/invoiceReports'
+import type { BookingInvoiceReportItem, InvoiceTypeParam } from '@/types/invoice'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { Pencil } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -25,8 +28,9 @@ import BookingInvoiceTableSection from '@/components/agency-module/booking-invoi
 import { DataTableColumnHeader } from '@/components/data-table'
 import { setFilters as setStoredFilters } from '@/store/bookingInvoiceSlice'
 import FullWidthDialog from '@/components/FullWidthDialog'
+import { Checkbox } from '@/components/ui/checkbox'
+import { CommonDialog } from '@/components/common-dialog'
 import { formatPrice } from '@/lib/format-price'
-import type { InvoiceTypeParam } from '@/types/invoice'
 
 const formatDate = (value?: string) => {
   if (!value || value === '0001-01-01') return '-'
@@ -48,7 +52,6 @@ const BookingInvoice = () => {
   const savedFilters = useAppSelector((s) => s.bookingInvoice.filters)
   const dispatch = useAppDispatch()
   const queryClient = useQueryClient()
-
   const toIso = (d: Date) => d.toISOString().slice(0, 10)
   const defaultDates = useMemo(() => {
     const today = new Date()
@@ -68,9 +71,14 @@ const BookingInvoice = () => {
       }
     )
   })
+  const [rowSelection, setRowSelection] = useState({})
   const [invoicePreviewOpen, setInvoicePreviewOpen] = useState(false)
   const [selectedInvoice, setSelectedInvoice] =
     useState<BookingInvoiceReportItem | null>(null)
+  const [printDialogOpen, setPrintDialogOpen] = useState(false)
+  const [extraDetails, setExtraDetails] = useState<Record<string, unknown>>({})
+  const [isFetchingExtras, setIsFetchingExtras] = useState(false)
+  const [extrasError, setExtrasError] = useState<string | null>(null)
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: [
@@ -79,6 +87,8 @@ const BookingInvoice = () => {
       filters.startDate,
       filters.endDate,
       filters.invoiceType,
+      defaultDates.startDate,
+      defaultDates.endDate,
     ],
     enabled: Boolean(user?.territoryId),
     staleTime: 1000 * 60 * 5, // cache for 5 minutes to avoid unnecessary reloads
@@ -94,15 +104,40 @@ const BookingInvoice = () => {
         endDate: filters.endDate ?? defaultDates.endDate,
         invoiceType: invoiceTypeParam,
       }
-      return getAllAvailableBookingInvoices(payload).then((res) => {
-        console.log('[booking-invoice] getAllAvailableBookingInvoices response', res)
-        return res
-      })
+      return getAllAvailableBookingInvoices(payload)
     },
   })
 
   const columns = useMemo<ColumnDef<BookingInvoiceReportItem>[]>(
     () => [
+      {
+        id: 'select',
+        header: ({ table }) => (
+          <div className='flex items-center justify-center pl-1 pr-2'>
+            <Checkbox
+              checked={
+                table.getIsAllPageRowsSelected() ||
+                (table.getIsSomePageRowsSelected() && 'indeterminate')
+              }
+              onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+              aria-label='Select all'
+            />
+          </div>
+        ),
+        cell: ({ row }) => (
+          <div className='flex items-center justify-center pl-1 pr-2'>
+            <Checkbox
+              checked={row.getIsSelected()}
+              onCheckedChange={(value) => row.toggleSelected(!!value)}
+              aria-label='Select row'
+            />
+          </div>
+        ),
+        enableSorting: false,
+        enableHiding: false,
+        meta: { thClassName: 'w-12 text-center' },
+        size: 48,
+      },
       {
         accessorKey: 'invoiceNo',
         header: ({ column }) => (
@@ -272,6 +307,12 @@ const BookingInvoice = () => {
   const table = useReactTable({
     data: rows,
     columns,
+    state: {
+      rowSelection,
+    },
+    onRowSelectionChange: setRowSelection,
+    enableRowSelection: true,
+    getRowId: (row) => String(row.id ?? row.invoiceNo),
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -282,6 +323,58 @@ const BookingInvoice = () => {
       },
     },
   })
+
+  const selectedInvoices = useMemo(() => {
+    const selectedIds = new Set(
+      Object.entries(rowSelection)
+        .filter(([, isSelected]) => Boolean(isSelected))
+        .map(([key]) => key)
+    )
+    return rows.filter((row) => {
+      const id = String(row.id ?? row.invoiceNo)
+      return selectedIds.has(id)
+    })
+  }, [rowSelection, rows])
+
+  useEffect(() => {
+    const loadExtras = async () => {
+      if (!printDialogOpen || !selectedInvoices.length) return
+      setIsFetchingExtras(true)
+      setExtrasError(null)
+      try {
+        const results = await Promise.all(
+          selectedInvoices.map(async (invoice) => {
+            const invoiceId =
+              typeof invoice.id === 'number' && Number.isFinite(invoice.id)
+                ? invoice.id
+                : Number(invoice.invoiceNo) || 0
+            const res = await findInvoicePrintExtraDetailsByRequiredArgs({
+              territoryId: invoice.territoryId ?? user?.territoryId ?? 0,
+              routeId: invoice.routeId ?? 0,
+              outletId: invoice.outletId ?? 0,
+              invoiceId,
+              userId: user?.userId ?? 0,
+            })
+            return {
+              key: invoice.id ?? invoice.invoiceNo,
+              data: res?.payload ?? res,
+            }
+          })
+        )
+        const map: Record<string, unknown> = {}
+        results.forEach((r) => {
+          if (r.key) map[String(r.key)] = r.data
+        })
+        setExtraDetails(map)
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to load details'
+        setExtrasError(message)
+      } finally {
+        setIsFetchingExtras(false)
+      }
+    }
+    loadExtras()
+  }, [printDialogOpen, selectedInvoices, user?.territoryId, user?.userId])
 
   return (
     <Card className='space-y-4'>
@@ -312,6 +405,8 @@ const BookingInvoice = () => {
           error={error}
           rows={rows}
           statusFilterOptions={statusFilterOptions}
+          onPrintClick={() => setPrintDialogOpen(true)}
+          isPrintDisabled={selectedInvoices.length === 0}
         />
         <FullWidthDialog
           title='Invoice Details'
@@ -343,6 +438,8 @@ const BookingInvoice = () => {
                       filters.startDate,
                       filters.endDate,
                       filters.invoiceType,
+                      defaultDates.startDate,
+                      defaultDates.endDate,
                     ],
                   })
                   setInvoicePreviewOpen(false)
@@ -357,6 +454,95 @@ const BookingInvoice = () => {
             </div>
           ) : null}
         </FullWidthDialog>
+        <CommonDialog
+          open={printDialogOpen}
+          onOpenChange={setPrintDialogOpen}
+          title='Print Selected Invoices'
+          description={
+            selectedInvoices.length
+              ? `You have selected ${selectedInvoices.length} invoice${
+                  selectedInvoices.length > 1 ? 's' : ''
+                } to print.`
+              : 'No invoices selected.'
+          }
+          primaryAction={{
+            label: 'Print',
+            onClick: () => {
+              window.print()
+              setPrintDialogOpen(false)
+            },
+            disabled: selectedInvoices.length === 0,
+          }}
+          secondaryAction={{
+            label: 'Close',
+            variant: 'outline',
+            onClick: () => setPrintDialogOpen(false),
+          }}
+          bodyClassName='space-y-3'
+        >
+          {selectedInvoices.length ? (
+            <div className='space-y-4'>
+              {extrasError ? (
+                <p className='text-sm text-red-600'>{extrasError}</p>
+              ) : null}
+              <div className='max-h-[70vh] space-y-4 overflow-y-auto pr-1'>
+                {selectedInvoices.map((invoice) => {
+                  const extra = extraDetails[String(invoice.id ?? invoice.invoiceNo)]
+                  const showLoading = isFetchingExtras && !extra
+                  return (
+                    <div
+                      key={`extra-${invoice.id ?? invoice.invoiceNo}`}
+                      className='rounded border bg-muted/10'
+                    >
+                      <div className='flex flex-wrap items-center justify-between gap-2 border-b bg-muted/40 px-3 py-2'>
+                        <div className='text-sm font-semibold text-slate-900 dark:text-slate-50'>
+                          Invoice <InvoiceNumber invoiceId={invoice.invoiceNo} />
+                        </div>
+                        <div className='text-xs text-muted-foreground'>
+                          Type: {invoice.invoiceType ?? '-'} | Date:{' '}
+                          {formatDate(invoice.dateBook)} | Status:{' '}
+                          {deriveStatus(invoice)}
+                        </div>
+                      </div>
+                      <div className='space-y-3 p-3 text-xs'>
+                        <div className='rounded bg-white p-3 text-slate-900 shadow-sm dark:bg-slate-900 dark:text-slate-100'>
+                          <div className='mb-2 text-[11px] uppercase text-muted-foreground'>
+                            Booking Invoice Payload
+                          </div>
+                          <pre className='whitespace-pre-wrap break-words text-[11px] leading-relaxed'>
+                            {JSON.stringify(invoice, null, 2)}
+                          </pre>
+                        </div>
+                        <div className='rounded bg-white p-3 text-slate-900 shadow-sm dark:bg-slate-900 dark:text-slate-100'>
+                          <div className='mb-2 text-[11px] uppercase text-muted-foreground'>
+                            Extra Print Details (from findInvoicePrintExtraDetailsByRequiredArgs)
+                          </div>
+                          {showLoading ? (
+                            <p className='text-[11px] text-muted-foreground'>
+                              Loading extra details...
+                            </p>
+                          ) : extra ? (
+                            <pre className='whitespace-pre-wrap break-words text-[11px] leading-relaxed'>
+                              {JSON.stringify(extra, null, 2)}
+                            </pre>
+                          ) : (
+                            <p className='text-[11px] text-muted-foreground'>
+                              No extra details returned for this invoice.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          ) : (
+            <p className='text-sm text-muted-foreground'>
+              Select at least one invoice to print.
+            </p>
+          )}
+        </CommonDialog>
       </CardContent>
     </Card>
   )

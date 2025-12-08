@@ -56,6 +56,22 @@ type AreaExportRow = {
   status: string
 }
 
+const getAreaRawStatus = (area: AreaDTO) =>
+  (area.status as string | boolean | undefined) ??
+  (area.isActive as boolean | undefined) ??
+  (area.active as boolean | undefined)
+
+const isAreaActive = (area: AreaDTO) => {
+  const rawStatus = getAreaRawStatus(area)
+  if (typeof rawStatus === 'string') {
+    return rawStatus.toLowerCase() === 'active'
+  }
+  return Boolean(rawStatus)
+}
+
+const getAreaStatusValue = (area: AreaDTO) =>
+  isAreaActive(area) ? 'Active' : 'Inactive'
+
 export default function Area() {
   const queryClient = useQueryClient()
   const { data, isLoading, isError, error } = useQuery({
@@ -68,26 +84,34 @@ export default function Area() {
 
   const rows = useMemo(() => data?.payload ?? [], [data])
 
-  const exportRows = useMemo<AreaExportRow[]>(() => {
-    return rows.map((area) => {
-      const rawStatus =
-        (area.status as string | boolean | undefined) ??
-        (area.isActive as boolean | undefined) ??
-        (area.active as boolean | undefined)
-      const statusLabel =
-        typeof rawStatus === 'string'
-          ? rawStatus
-          : rawStatus
-            ? 'Active'
-            : 'Inactive'
-
-      return {
-        areaCode: area.areaCode,
-        areaName: area.areaName,
-        displayOrder: area.displayOrder,
-        status: statusLabel,
-      }
+  const statusFilterOptions = useMemo(() => {
+    const seen = new Set<string>()
+    rows.forEach((area) => {
+      seen.add(getAreaStatusValue(area))
     })
+    return Array.from(seen)
+      .sort((a, b) => a.localeCompare(b))
+      .map((value) => ({ label: value, value }))
+  }, [rows])
+
+  const toolbarFilters = useMemo(
+    () => [
+      {
+        columnId: 'status',
+        title: 'Status',
+        options: statusFilterOptions,
+      },
+    ],
+    [statusFilterOptions]
+  )
+
+  const exportRows = useMemo<AreaExportRow[]>(() => {
+    return rows.map((area) => ({
+      areaCode: area.areaCode,
+      areaName: area.areaName,
+      displayOrder: area.displayOrder,
+      status: getAreaStatusValue(area),
+    }))
   }, [rows])
 
   const exportColumns = useMemo<ExcelExportColumn<AreaExportRow>[]>(() => {
@@ -230,21 +254,15 @@ export default function Area() {
       },
       {
         id: 'status',
+        accessorFn: getAreaStatusValue,
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title='Status' />
         ),
         enableSorting: false,
         cell: ({ row }) => {
-          const original = row.original as UnknownRecord
-          const raw =
-            (original.status as string | boolean | undefined) ??
-            (original.isActive as boolean | undefined) ??
-            (original.active as boolean | undefined)
-          const baseActive =
-            typeof raw === 'string'
-              ? raw.toLowerCase() === 'active'
-              : Boolean(raw)
-          const label = baseActive ? 'Active' : 'Inactive'
+          const original = row.original as AreaDTO
+          const label = getAreaStatusValue(original)
+          const baseActive = isAreaActive(original)
           const variant = baseActive ? 'secondary' : 'destructive'
           return (
             <Badge
@@ -265,16 +283,9 @@ export default function Area() {
         id: 'actions',
         header: () => <div className='pr-4 text-end'>Actions</div>,
         cell: ({ row }) => {
-          const original = row.original as UnknownRecord
-          const rawStatus =
-            (original.status as string | boolean | undefined) ??
-            (original.isActive as boolean | undefined) ??
-            (original.active as boolean | undefined)
+          const original = row.original as AreaDTO
           const recordId = original.id as Id | undefined
-          const baseActive =
-            typeof rawStatus === 'string'
-              ? rawStatus.toLowerCase() === 'active'
-              : Boolean(rawStatus)
+          const baseActive = isAreaActive(original)
 
           return (
             <div className='flex items-center justify-end gap-1 pr-4'>
@@ -353,7 +364,12 @@ export default function Area() {
   return (
     <Card>
       <CardHeader className='flex flex-row items-center justify-between gap-2'>
-        <CardTitle>Area List</CardTitle>
+        <CardTitle className='flex items-center gap-2'>
+          Area List
+          <Badge variant='secondary' className='text-xs font-medium uppercase'>
+            {rows.length}
+          </Badge>
+        </CardTitle>
         <div className='flex items-center gap-2'>
           <ExcelExportButton
             size='sm'
@@ -384,6 +400,7 @@ export default function Area() {
         <DataTableToolbar
           table={table}
           searchPlaceholder='Search all columns...'
+          filters={toolbarFilters}
         />
         <div className='rounded-md border'>
           <Table className='text-xs'>
@@ -525,4 +542,3 @@ export default function Area() {
   )
 }
 
-type UnknownRecord = Record<string, unknown>

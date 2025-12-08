@@ -1,3 +1,4 @@
+import { AxiosError } from 'axios'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -52,6 +53,26 @@ type SubChannelFormProps = {
   initialValues?: Partial<SubChannelFormValues>
   onSubmit?: (values: SubChannelFormValues) => void | Promise<void>
   onCancel?: () => void
+}
+
+const sanitizeApiMessage = (message: string | undefined) => {
+  if (!message) return ''
+  // Trim noisy SQL tail like "[insert into ...]"
+  const trimmed = message.replace(/\s*\[insert into[\s\S]*$/i, '').trim()
+  return trimmed || message
+}
+
+const getApiErrorMessage = (error: unknown, fallback: string) => {
+  if (error instanceof AxiosError) {
+    const data = error.response?.data as ApiResponse<unknown> | undefined
+    return (
+      sanitizeApiMessage(data?.message) ||
+      sanitizeApiMessage(error.message) ||
+      fallback
+    )
+  }
+  if (error instanceof Error) return error.message
+  return fallback
 }
 
 export function SubChannelForm(props: SubChannelFormProps) {
@@ -115,10 +136,10 @@ export function SubChannelForm(props: SubChannelFormProps) {
       await onSubmit?.(variables)
     },
     onError: (error: unknown) => {
-      const message =
-        error instanceof Error
-          ? error.message
-          : 'Failed to create sub channel'
+      const message = getApiErrorMessage(
+        error,
+        'Failed to create sub channel'
+      )
       toast.error(message)
     },
   })
@@ -151,10 +172,10 @@ export function SubChannelForm(props: SubChannelFormProps) {
       await onSubmit?.(values)
     },
     onError: (error: unknown) => {
-      const message =
-        error instanceof Error
-          ? error.message
-          : 'Failed to update sub channel'
+      const message = getApiErrorMessage(
+        error,
+        'Failed to update sub channel'
+      )
       toast.error(message)
     },
   })

@@ -1,3 +1,4 @@
+import { AxiosError } from 'axios'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -45,6 +46,26 @@ type AreaFormProps = {
   onCancel?: () => void
 }
 
+const sanitizeApiMessage = (message: string | undefined) => {
+  if (!message) return ''
+  // Strip noisy SQL fragments if present
+  const trimmed = message.replace(/\s*\[insert into[\s\S]*$/i, '').trim()
+  return trimmed || message
+}
+
+const getApiErrorMessage = (error: unknown, fallback: string) => {
+  if (error instanceof AxiosError) {
+    const data = error.response?.data as ApiResponse<unknown> | undefined
+    return (
+      sanitizeApiMessage(data?.message) ||
+      sanitizeApiMessage(error.message) ||
+      fallback
+    )
+  }
+  if (error instanceof Error) return error.message
+  return fallback
+}
+
 export function AreaForm(props: AreaFormProps) {
   const { mode, areaId, initialValues, onSubmit, onCancel } = props
   const queryClient = useQueryClient()
@@ -90,8 +111,7 @@ export function AreaForm(props: AreaFormProps) {
       await onSubmit?.(variables)
     },
     onError: (error: unknown) => {
-      const message =
-        error instanceof Error ? error.message : 'Failed to create area'
+      const message = getApiErrorMessage(error, 'Failed to create area')
       toast.error(message)
     },
   })
@@ -123,8 +143,7 @@ export function AreaForm(props: AreaFormProps) {
       await onSubmit?.(values)
     },
     onError: (error: unknown) => {
-      const message =
-        error instanceof Error ? error.message : 'Failed to update area'
+      const message = getApiErrorMessage(error, 'Failed to update area')
       toast.error(message)
     },
   })

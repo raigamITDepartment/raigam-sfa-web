@@ -51,6 +51,30 @@ type ChannelExportRow = {
   status: string
 }
 
+const channelStatusLabels = ['Active', 'Inactive'] as const
+type ChannelStatusLabel = (typeof channelStatusLabels)[number]
+
+const resolveChannelStatus = (
+  record: ChannelDTO | Record<string, unknown>
+): { label: ChannelStatusLabel; isActive: boolean } => {
+  const normalizedRecord = record as Record<string, unknown>
+  const rawStatus =
+    (normalizedRecord.status as string | boolean | undefined) ??
+    (normalizedRecord.isActive as boolean | undefined) ??
+    (normalizedRecord.active as boolean | undefined) ??
+    (normalizedRecord.enabled as boolean | undefined)
+
+  const isActive =
+    typeof rawStatus === 'string'
+      ? rawStatus.toLowerCase() === 'active'
+      : Boolean(rawStatus)
+
+  return {
+    isActive,
+    label: isActive ? 'Active' : 'Inactive',
+  }
+}
+
 export default function Channel() {
   const queryClient = useQueryClient()
   const { data, isLoading, isError, error } = useQuery({
@@ -63,19 +87,23 @@ export default function Channel() {
 
   const rows = useMemo(() => data?.payload ?? [], [data])
 
+  const statusFilterOptions = useMemo(() => {
+    const available = new Set<ChannelStatusLabel>()
+    rows.forEach((row) => {
+      const { label } = resolveChannelStatus(row)
+      available.add(label)
+    })
+    return channelStatusLabels
+      .filter((value) => available.has(value))
+      .map((value) => ({
+        label: value,
+        value,
+      }))
+  }, [rows])
+
   const exportRows = useMemo<ChannelExportRow[]>(() => {
     return rows.map((channel) => {
-      const rawStatus =
-        (channel.status as string | boolean | undefined) ??
-        (channel.isActive as boolean | undefined) ??
-        (channel.active as boolean | undefined)
-      const statusLabel =
-        typeof rawStatus === 'string'
-          ? rawStatus
-          : rawStatus
-            ? 'Active'
-            : 'Inactive'
-
+      const { label: statusLabel } = resolveChannelStatus(channel)
       return {
         channelCode: channel.channelCode,
         channelName: channel.channelName,
@@ -204,41 +232,36 @@ export default function Channel() {
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title='Channel Code' />
         ),
-        cell: ({ row }) => (
-          <span className='pl-4'>{row.getValue('channelCode')}</span>
-        ),
-        meta: { thClassName: 'w-[180px]' },
+        cell: ({ row }) => <span className='block'>{row.getValue('channelCode')}</span>,
+        meta: { thClassName: 'w-[180px] text-left' },
       },
       {
         accessorKey: 'channelName',
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title='Channel Name' />
         ),
-        cell: ({ row }) => (
-          <span className='pl-4 truncate'>{row.getValue('channelName')}</span>
-        ),
+        cell: ({ row }) => <span className='block truncate'>{row.getValue('channelName')}</span>,
       },
       {
         id: 'status',
+        accessorFn: (original) => resolveChannelStatus(original).label,
+        filterFn: (row, columnId, filterValue) => {
+          const values = Array.isArray(filterValue)
+            ? filterValue
+            : filterValue
+              ? [String(filterValue)]
+              : []
+          if (!values.length) return true
+          const cellValue = row.getValue(columnId) as string
+          return values.includes(cellValue)
+        },
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title='Status' />
         ),
         enableSorting: false,
         cell: ({ row }) => {
-          const original = row.original as unknown as Record<string, unknown>
-          const raw =
-            (original.status as string | boolean | undefined) ??
-            (original.isActive as boolean | undefined) ??
-            (original.active as boolean | undefined) ??
-            (original.enabled as boolean | undefined)
-
-          const baseActive =
-            typeof raw === 'string'
-              ? raw.toLowerCase() === 'active'
-              : Boolean(raw)
-          const isActive = baseActive
-
-          const label = isActive ? 'Active' : 'Inactive'
+          const original = row.original as ChannelDTO
+          const { label, isActive } = resolveChannelStatus(original)
           const variant = isActive ? 'secondary' : 'destructive'
 
           return (
@@ -258,27 +281,18 @@ export default function Channel() {
       },
       {
         id: 'actions',
-        header: () => <div className='pr-4 text-end'>Actions</div>,
+        header: () => <div className='text-right'>Actions</div>,
         cell: ({ row }) => {
-          const original = row.original as unknown as Record<string, unknown>
-          const rawStatus =
-            (original.status as string | boolean | undefined) ??
-            (original.isActive as boolean | undefined) ??
-            (original.active as boolean | undefined) ??
-            (original.enabled as boolean | undefined)
+          const original = row.original as ChannelDTO
+          const { isActive } = resolveChannelStatus(original)
 
           const recordId =
             (original.id as Id | undefined) ??
             (original.channelCode as Id | undefined) ??
             (row.id as Id)
-          const baseActive =
-            typeof rawStatus === 'string'
-              ? rawStatus.toLowerCase() === 'active'
-              : Boolean(rawStatus)
-          const isActive = baseActive
 
           return (
-            <div className='flex items-center justify-end gap-1 pr-4'>
+            <div className='flex items-center justify-end gap-1'>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -292,7 +306,7 @@ export default function Channel() {
                         (original.isActive as boolean | undefined) ??
                         (original.active as boolean | undefined) ??
                         (original.enabled as boolean | undefined) ??
-                        baseActive
+                        isActive
 
                       setChannelDialogMode('edit')
                       setEditingChannelId((original.id as Id | undefined) ?? null)
@@ -360,7 +374,15 @@ export default function Channel() {
   return (
     <Card>
       <CardHeader className='flex flex-row items-center justify-between gap-2'>
-        <CardTitle>Channel List</CardTitle>
+        <CardTitle className='flex items-center gap-2'>
+          Channel List
+          <Badge
+            variant='secondary'
+            className='text-xs font-medium uppercase'
+          >
+            {rows.length}
+          </Badge>
+        </CardTitle>
         <div className='flex items-center gap-2'>
           <ExcelExportButton
             size='sm'
@@ -390,6 +412,13 @@ export default function Channel() {
         <DataTableToolbar
           table={table}
           searchPlaceholder='Search all columns...'
+          filters={[
+            {
+              columnId: 'status',
+              title: 'Status',
+              options: statusFilterOptions,
+            },
+          ]}
         />
 
         <div className='rounded-md border'>
@@ -401,7 +430,7 @@ export default function Channel() {
                     <TableHead
                       key={header.id}
                       className={
-                        'h-10 bg-gray-100 px-2 dark:bg-gray-900 ' +
+                        'h-10 bg-gray-100 px-3 text-left dark:bg-gray-900 ' +
                         (header.column.columnDef.meta?.thClassName ?? '')
                       }
                     >
@@ -442,7 +471,7 @@ export default function Channel() {
                     data-state={row.getIsSelected() && 'selected'}
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className='p-1'>
+                      <TableCell key={cell.id} className='px-3 py-2 align-middle'>
                         {flexRender(
                           cell.column.columnDef.cell,
                           cell.getContext()

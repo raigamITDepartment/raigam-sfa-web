@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { ensureRoleAccess, RoleId } from '@/lib/authz'
 import { Main } from '@/components/layout/main'
 import { PageHeader } from '@/components/layout/page-header'
+import TerritoryWiseItemsReport from '@/components/reports/territory-wise-items-report'
 
 export const Route = createFileRoute('/_authenticated/reports/territory-wise-items-report')({
   beforeLoad: () => ensureRoleAccess([RoleId.SystemAdmin, RoleId.TopManager, RoleId.ExecutiveCompany, RoleId.ManagerSales]),
@@ -15,7 +16,7 @@ export const Route = createFileRoute('/_authenticated/reports/territory-wise-ite
           { label: 'Territory Wise Items Report' },
         ]}
       />
-      <div>Reports - Territory Wise Items Report</div>
+      <TerritoryWiseItemsReport />
     </Main>
   ),
 })

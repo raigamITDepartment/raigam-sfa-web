@@ -57,12 +57,27 @@ type RouteExportRow = {
   routeId: string
   routeCode: string
   routeName: string
-  areaName: string
   territoryName: string
   territoryId: string
   oldRouteId: string
   status: string
 }
+
+const getRouteRawStatus = (route: RouteDTO) =>
+  (route.status as string | boolean | undefined) ??
+  (route.isActive as boolean | undefined) ??
+  (route.active as boolean | undefined)
+
+const isRouteActive = (route: RouteDTO) => {
+  const rawStatus = getRouteRawStatus(route)
+  if (typeof rawStatus === 'string') {
+    return rawStatus.toLowerCase() === 'active'
+  }
+  return Boolean(rawStatus)
+}
+
+const getRouteStatusValue = (route: RouteDTO) =>
+  isRouteActive(route) ? 'Active' : 'Inactive'
 
 export default function RouteComponent() {
   const queryClient = useQueryClient()
@@ -76,39 +91,61 @@ export default function RouteComponent() {
 
   const rows = useMemo(() => data?.payload ?? [], [data])
 
-  const exportRows = useMemo<RouteExportRow[]>(() => {
-    return rows.map((route) => {
-      const rawStatus =
-        (route.status as string | boolean | undefined) ??
-        (route.isActive as boolean | undefined) ??
-        (route.active as boolean | undefined)
-      const statusLabel =
-        typeof rawStatus === 'string'
-          ? rawStatus
-          : rawStatus
-            ? 'Active'
-            : 'Inactive'
-
-      return {
-        routeId: String(route.id ?? ''),
-        routeCode: String(route.routeCode ?? ''),
-        routeName: route.routeName ?? '',
-        territoryName: route.territoryName ?? '',
-        territoryId: String(route.territoryId ?? ''),
-        areaName: route.areaName ?? '',
-        oldRouteId: String(route.oldRouteId ?? ''),
-        status: statusLabel,
-      }
+  const territoryFilterOptions = useMemo(() => {
+    const seen = new Set<string>()
+    rows.forEach((route) => {
+      const territory = route.territoryName?.trim()
+      if (territory) seen.add(territory)
     })
+    return Array.from(seen)
+      .sort((a, b) => a.localeCompare(b))
+      .map((value) => ({ label: value, value }))
+  }, [rows])
+
+  const statusFilterOptions = useMemo(() => {
+    const seen = new Set<string>()
+    rows.forEach((route) => {
+      seen.add(getRouteStatusValue(route))
+    })
+    return Array.from(seen)
+      .sort((a, b) => a.localeCompare(b))
+      .map((value) => ({ label: value, value }))
+  }, [rows])
+
+  const toolbarFilters = useMemo(
+    () => [
+      {
+        columnId: 'territoryName',
+        title: 'Territory',
+        options: territoryFilterOptions,
+      },
+      {
+        columnId: 'status',
+        title: 'Status',
+        options: statusFilterOptions,
+      },
+    ],
+    [statusFilterOptions, territoryFilterOptions]
+  )
+
+  const exportRows = useMemo<RouteExportRow[]>(() => {
+    return rows.map((route) => ({
+      routeId: String(route.id ?? ''),
+      routeCode: String(route.routeCode ?? ''),
+      routeName: route.routeName ?? '',
+      territoryName: route.territoryName ?? '',
+      territoryId: String(route.territoryId ?? ''),
+      oldRouteId: String(route.oldRouteId ?? ''),
+      status: getRouteStatusValue(route),
+    }))
   }, [rows])
 
   const exportColumns = useMemo<ExcelExportColumn<RouteExportRow>[]>(() => {
-    return [
-      { header: 'Route ID', accessor: 'routeId' },
-      { header: 'Route Code', accessor: 'routeCode' },
-      { header: 'Route Name', accessor: 'routeName' },
-      { header: 'Area', accessor: 'areaName' },
-      { header: 'Territory', accessor: 'territoryName' },
+      return [
+        { header: 'Route ID', accessor: 'routeId' },
+        { header: 'Route Code', accessor: 'routeCode' },
+        { header: 'Route Name', accessor: 'routeName' },
+        { header: 'Territory', accessor: 'territoryName' },
       { header: 'Territory ID', accessor: 'territoryId' },
       { header: 'Old Route ID', accessor: 'oldRouteId' },
       {
@@ -256,15 +293,6 @@ export default function RouteComponent() {
         ),
       },
       {
-        accessorKey: 'areaName',
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title='Area' />
-        ),
-        cell: ({ row }) => (
-          <span className='pl-4'>{row.getValue('areaName') ?? '-'}</span>
-        ),
-      },
-      {
         accessorKey: 'territoryId',
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title='Territory ID' />
@@ -300,22 +328,15 @@ export default function RouteComponent() {
       },
       {
         id: 'status',
+        accessorFn: getRouteStatusValue,
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title='Status' />
         ),
         enableSorting: false,
         cell: ({ row }) => {
-          const original = row.original as Record<string, unknown>
-          const raw =
-            (original.status as string | boolean | undefined) ??
-            (original.isActive as boolean | undefined) ??
-            (original.active as boolean | undefined)
-
-          const isActive =
-            typeof raw === 'string'
-              ? raw.toLowerCase() === 'active'
-              : Boolean(raw)
-          const label = isActive ? 'Active' : 'Inactive'
+          const original = row.original as RouteDTO
+          const label = getRouteStatusValue(original)
+          const isActive = isRouteActive(original)
           const variant = isActive ? 'secondary' : 'destructive'
 
           return (
@@ -337,20 +358,12 @@ export default function RouteComponent() {
         id: 'actions',
         header: () => <div className='pr-4 text-end'>Actions</div>,
         cell: ({ row }) => {
-          const original = row.original as Record<string, unknown>
-          const rawStatus =
-            (original.status as string | boolean | undefined) ??
-            (original.isActive as boolean | undefined) ??
-            (original.active as boolean | undefined)
-
+          const original = row.original as RouteDTO
           const recordId =
             (original.id as Id | undefined) ??
             (original.routeCode as Id | undefined) ??
             (row.id as Id)
-          const isActive =
-            typeof rawStatus === 'string'
-              ? rawStatus.toLowerCase() === 'active'
-              : Boolean(rawStatus)
+          const isActive = isRouteActive(original)
 
           return (
             <div className='flex items-center justify-end gap-1 pr-4'>
@@ -442,7 +455,12 @@ export default function RouteComponent() {
   return (
     <Card>
       <CardHeader className='flex flex-row items-center justify-between gap-2'>
-        <CardTitle>Route List</CardTitle>
+        <CardTitle className='flex items-center gap-2'>
+          Route List
+          <Badge variant='secondary' className='text-xs font-medium uppercase'>
+            {rows.length}
+          </Badge>
+        </CardTitle>
         <div className='flex items-center gap-2'>
           <ExcelExportButton
             size='sm'
@@ -473,6 +491,7 @@ export default function RouteComponent() {
         <DataTableToolbar
           table={table}
           searchPlaceholder='Search all columns...'
+          filters={toolbarFilters}
         />
         <div className='rounded-md border'>
           <Table className='text-xs'>

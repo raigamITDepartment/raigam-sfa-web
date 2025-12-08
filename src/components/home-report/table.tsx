@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import type { HomeReportItem } from '@/services/reports/homeReportApi'
+import { useEffect, useMemo, useState } from 'react'
+import type { HomeReportItem } from '@/types/home-report'
 import {
   ChevronLeft,
   ChevronRight,
@@ -8,74 +8,13 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import {
-  ExcelExportButton,
-  type ExcelExportColumn,
-} from '@/components/excel-export-button'
-
-type RowRecord = {
-  [key: string]: string | number
-  'Region Name': string
-  Area: string
-  Territory: string
-  Target: string
-  'Total-Value': string
-  'Variance - Cum Target vs': string
-  'Sale (%)': string
-  'PC-Target': string | number
-  'Total-PC': string | number
-  'Avg PC': string | number
-  'Given WD': string | number
-  WD: string | number
-  'WD Variance': string | number
-  'Avg (With Direct)': string | number
-}
-
-type Props = {
-  items: HomeReportItem[]
-  periodLabel?: string
-}
-
-type PastMonthValueKey =
-  | 'past1MonthTotalValue'
-  | 'past2MonthTotalValue'
-  | 'past3MonthTotalValue'
-  | 'past4MonthTotalValue'
-  | 'past5MonthTotalValue'
-  | 'past6MonthTotalValue'
-
-type PastMonthPcKey =
-  | 'past1MonthTotalPcCount'
-  | 'past2MonthTotalPcCount'
-  | 'past3MonthTotalPcCount'
-  | 'past4MonthTotalPcCount'
-  | 'past5MonthTotalPcCount'
-  | 'past6MonthTotalPcCount'
-
-type PastMonthNameKey =
-  | 'past1MonthName'
-  | 'past2MonthName'
-  | 'past3MonthName'
-  | 'past4MonthName'
-  | 'past5MonthName'
-  | 'past6MonthName'
-
-type PastMonthNumberKey =
-  | 'past1MonthNumber'
-  | 'past2MonthNumber'
-  | 'past3MonthNumber'
-  | 'past4MonthNumber'
-  | 'past5MonthNumber'
-  | 'past6MonthNumber'
-
-type PastMonthColumnDef = {
-  index: number
-  defaultLabel: string
-  valueKey: PastMonthValueKey
-  pcKey: PastMonthPcKey
-  nameKey: PastMonthNameKey
-  numberKey: PastMonthNumberKey
-}
+import HomeReportExport from './export-excel'
+import type {
+  HomeReportTableProps,
+  PastMonthColumnDef,
+  PastMonthMeta,
+  RowRecord,
+} from './types'
 
 const PAST_MONTH_COLUMN_DEFS: PastMonthColumnDef[] = [
   {
@@ -163,6 +102,23 @@ const dayColors = [
   'bg-sky-100',
 ]
 
+const BASE_METRIC_HEADERS = [
+  'Target',
+  'Total-Value',
+  'Variance - Cum Target vs',
+  'Sale (%)',
+  'PC-Target',
+  'Total-PC',
+  'Avg PC',
+  'Given WD',
+  'WD',
+  'WD Variance',
+  'Avg (With Direct)',
+] as const
+
+const LABEL_COLUMN_KEYS = ['Region Name', 'Area', 'Territory'] as const
+const LABEL_COLUMN_SET = new Set<string>(LABEL_COLUMN_KEYS)
+
 const parseNum = (v: string | number | undefined): number => {
   if (v === undefined || v === null) return 0
   const s = String(v).replace(/,/g, '').replace(/%/g, '').trim()
@@ -174,30 +130,235 @@ const formatPastMonthCurrency = (value: number): string => {
   return Math.round(value).toLocaleString('en-LK')
 }
 
-const monthNameFormatter = new Intl.DateTimeFormat('en-US', {
-  month: 'long',
-})
+const SHORT_MONTH_NAMES = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+]
+const LONG_MONTH_NAMES = [
+  'january',
+  'february',
+  'march',
+  'april',
+  'may',
+  'june',
+  'july',
+  'august',
+  'september',
+  'october',
+  'november',
+  'december',
+]
+
+const parseMonthIndexFromString = (input?: string) => {
+  if (!input) return undefined
+  const normalized = input.toLowerCase()
+  const longIndex = LONG_MONTH_NAMES.findIndex((m) => normalized.includes(m))
+  if (longIndex >= 0) return longIndex
+  const shortIndex = SHORT_MONTH_NAMES.findIndex((m) =>
+    normalized.includes(m.toLowerCase())
+  )
+  if (shortIndex >= 0) return shortIndex
+  const parsed = Date.parse(`${normalized} 1, 2000`)
+  if (!Number.isNaN(parsed)) {
+    return new Date(parsed).getUTCMonth()
+  }
+  return undefined
+}
+
+const getFallbackPastMonthLabels = (baseMonthIndex?: number) => {
+  const base =
+    typeof baseMonthIndex === 'number' && baseMonthIndex >= 0
+      ? baseMonthIndex
+      : new Date().getMonth()
+  const labels: string[] = []
+  for (let i = 1; i <= 6; i++) {
+    const monthIdx = (base - i + 12) % 12
+    labels.push(SHORT_MONTH_NAMES[monthIdx])
+  }
+  return labels
+}
+
+const resolveShortMonthName = (
+  rawName: string | undefined,
+  monthNumber: number | undefined
+) => {
+  if (typeof rawName === 'string' && rawName.trim()) {
+    const normalized = rawName.trim().toLowerCase()
+    const matchIndex = SHORT_MONTH_NAMES.findIndex(
+      (short, idx) =>
+        short.toLowerCase() === normalized ||
+        normalized === LONG_MONTH_NAMES[idx]
+    )
+    if (matchIndex >= 0) return SHORT_MONTH_NAMES[matchIndex]
+    const parsed = Date.parse(`${normalized} 1, 2000`)
+    if (!Number.isNaN(parsed)) {
+      return SHORT_MONTH_NAMES[new Date(parsed).getUTCMonth()]
+    }
+  }
+  if (monthNumber && monthNumber >= 1 && monthNumber <= 12) {
+    return SHORT_MONTH_NAMES[monthNumber - 1]
+  }
+  return undefined
+}
 
 const resolvePastMonthLabel = (
   rawName: string | undefined,
   monthNumber: number | undefined,
   fallback: string
 ) => {
-  if (typeof rawName === 'string' && rawName.trim().length > 0) {
-    return rawName.trim()
-  }
-  if (monthNumber && monthNumber >= 1 && monthNumber <= 12) {
-    const date = new Date(Date.UTC(2000, monthNumber - 1, 1))
-    return monthNameFormatter.format(date)
-  }
-  return fallback
+  return resolveShortMonthName(rawName, monthNumber) ?? fallback
 }
+
+// Collect days (01-31) that contain any value or count to avoid empty day columns.
+const collectDaysWithData = (items: HomeReportItem[]) => {
+  if (!items?.length) return [] as string[]
+  const days: string[] = []
+  for (let i = 1; i <= 31; i++) {
+    const day = i.toString().padStart(2, '0')
+    const has = items.some(
+      (it) =>
+        (it as any)[`day${day}Value`] > 0 || (it as any)[`day${day}Count`] > 0
+    )
+    if (has) days.push(day)
+  }
+  return days
+}
+
+const buildPastMonthMeta = (
+  firstItem: HomeReportItem | undefined,
+  fallbackPastMonthLabels: string[]
+): PastMonthMeta[] =>
+  // Build labels/headers for past 6 months using provided names or short-name fallbacks.
+  PAST_MONTH_COLUMN_DEFS.map((column) => {
+    const rawName = firstItem?.[column.nameKey]
+    const monthNumber = firstItem?.[column.numberKey]
+    const fallbackLabel =
+      fallbackPastMonthLabels[column.index - 1] || column.defaultLabel
+    const label = resolvePastMonthLabel(rawName, monthNumber, fallbackLabel)
+    return {
+      ...column,
+      label,
+      valueHeader: `${label} Value`,
+      pcHeader: `${label} PC`,
+    }
+  })
+
+const buildHeaders = (
+  daysWithData: string[],
+  pastMonthMeta: PastMonthMeta[]
+) => {
+  // Compose table headers: identifiers, dynamic day columns, base metrics, and past-month headers.
+  const headers: string[] = [...LABEL_COLUMN_KEYS]
+  daysWithData.forEach((day) => {
+    headers.push(`${day} Value`, `${day} PC`)
+  })
+  headers.push(...BASE_METRIC_HEADERS)
+  headers.push(
+    ...pastMonthMeta.flatMap((meta) => [meta.valueHeader, meta.pcHeader])
+  )
+  return headers
+}
+
+const createRowFromItem = (
+  item: HomeReportItem,
+  daysWithData: string[],
+  pastMonthMeta: PastMonthMeta[]
+): RowRecord => {
+  // Normalize a single API item into a formatted table row.
+  const row: RowRecord = {
+    'Region Name': item.regionName,
+    Area: item.areaDisplayOrder
+      ? `${item.areaDisplayOrder}. ${item.areaName}`
+      : item.areaName,
+    Territory: item.territoryName,
+    Target: '0',
+    'Total-Value': '0',
+    'Variance - Cum Target vs': '0',
+    'Sale (%)': '0%',
+    'PC-Target': '0',
+    'Total-PC': '0',
+    'Avg PC': '0',
+    'Given WD': '0',
+    WD: '0',
+    'WD Variance': '0',
+    'Avg (With Direct)': '0',
+  }
+
+  daysWithData.forEach((day) => {
+    const v = Math.round((item as any)[`day${day}Value`] || 0).toLocaleString(
+      'en-LK'
+    )
+    const c = (item as any)[`day${day}Count`] || 0
+    row[`${day} Value`] = v
+    row[`${day} PC`] = c
+  })
+
+  const givenWD = item.givenWorkingDays ?? 0
+  const wd = Math.round(item.workingDays || 0)
+  const totalValue = Math.round(item.totalValue || 0)
+  const targetValue = Math.round(item.valueTarget || 0)
+  const variance = targetValue - totalValue
+
+  Object.assign(row, {
+    Target: targetValue.toLocaleString('en-LK'),
+    'Total-Value': totalValue.toLocaleString('en-LK'),
+    'Variance - Cum Target vs': variance.toLocaleString('en-LK'),
+    'Sale (%)':
+      targetValue > 0
+        ? `${Math.round((totalValue / targetValue) * 100)}%`
+        : '0%',
+    'PC-Target': item.pcTarget || 0,
+    'Total-PC': item.totalCount || 0,
+    'Given WD': givenWD,
+    WD: wd,
+    'WD Variance': givenWD - wd,
+    'Avg PC': wd > 0 ? Math.round((item.totalCount || 0) / wd) : 0,
+    'Avg (With Direct)': '0',
+  })
+
+  pastMonthMeta.forEach((meta) => {
+    const value = Number(item[meta.valueKey] ?? 0)
+    const pcCount = Math.round(item[meta.pcKey] ?? 0)
+    row[meta.valueHeader] = formatPastMonthCurrency(value)
+    row[meta.pcHeader] = pcCount.toLocaleString('en-LK')
+  })
+
+  return row
+}
+
+const buildTableData = (
+  items: HomeReportItem[],
+  fallbackPastMonthLabels: string[]
+) => {
+  // Build headers and rows once per items/period change to keep rendering lean.
+  if (!items || items.length === 0)
+    return { headers: [] as string[], data: [] as RowRecord[] }
+
+  const daysWithData = collectDaysWithData(items)
+  const pastMonthMeta = buildPastMonthMeta(items[0], fallbackPastMonthLabels)
+  const headers = buildHeaders(daysWithData, pastMonthMeta)
+  const data = items.map((item) =>
+    createRowFromItem(item, daysWithData, pastMonthMeta)
+  )
+  return { headers, data }
+}
+
 const isPercentHeader = (h: string) => h.includes('%')
 const isAverageHeader = (h: string) => /avg/i.test(h)
 const isPCHeader = (h: string) => /PC$/.test(h)
 
 const aggregateRows = (rows: RowRecord[], headers: string[]): RowRecord => {
-  const labelCols = new Set(['Region Name', 'Area', 'Territory'])
+  // Aggregate numeric fields for totals/averages while skipping label columns.
   const out: RowRecord = {
     'Region Name': '',
     Area: '',
@@ -205,7 +366,7 @@ const aggregateRows = (rows: RowRecord[], headers: string[]): RowRecord => {
     Target: '0',
     'Total-Value': '0',
     'Variance - Cum Target vs': '0',
-    'Sale (%)': '0% ',
+    'Sale (%)': '0%',
     'PC-Target': '0',
     'Total-PC': '0',
     'Avg PC': '0',
@@ -216,7 +377,7 @@ const aggregateRows = (rows: RowRecord[], headers: string[]): RowRecord => {
   }
 
   for (const h of headers) {
-    if (labelCols.has(h)) continue
+    if (LABEL_COLUMN_SET.has(h)) continue
     const values = rows
       .map((r) => parseNum(r[h]))
       .filter(Number.isFinite) as number[]
@@ -251,6 +412,7 @@ const getRowSpan = (
   key: keyof RowRecord,
   startIdx: number
 ) => {
+  // Return row-span length for merged Region/Area cells; 0 means continue previous span.
   const value = rows[startIdx][key]
   if (startIdx > 0 && rows[startIdx - 1][key] === value) return 0
   let span = 1
@@ -261,6 +423,7 @@ const getRowSpan = (
   return span
 }
 
+// Render the table markup with sticky headers and row spans.
 function renderTable(
   headers: string[],
   currentMonthHeaders: string[],
@@ -352,12 +515,7 @@ function renderTable(
                     if (rowSpan === 0) return null
                   }
 
-                  const labelCols = new Set([
-                    'Region Name',
-                    'Area',
-                    'Territory',
-                  ])
-                  if (labelCols.has(key as string)) {
+                  if (LABEL_COLUMN_SET.has(key as string)) {
                     if (isGrandTotal) {
                       content = key === 'Region Name' ? 'Grand Total' : ''
                     } else if (isAreaTotal || isRegionTotal) {
@@ -454,88 +612,14 @@ function renderTable(
   )
 }
 
-export default function HomeReportTable({ items, periodLabel }: Props) {
+export default function HomeReportTable({
+  items,
+  periodLabel,
+}: HomeReportTableProps) {
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [isFullScreen, setIsFullScreen] = useState(false)
   const rowsPerPage = isFullScreen ? 50 : 10
-  const exportRef = useRef<HTMLDivElement | null>(null)
-
-  const buildExportCss = () => `
-    body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, Noto Sans, 'Apple Color Emoji', 'Segoe UI Emoji'; color: #111827; }
-    table { border-collapse: collapse; width: 100%; font-size: 12px; }
-    thead tr th { text-align: center; }
-    th, td { border: 1px solid #D1D5DB; padding: 6px 10px; white-space: nowrap; }
-    /* Borders and spacing utilities */
-    .border { border: 1px solid #D1D5DB; }
-    .border-gray-300 { border-color: #D1D5DB !important; }
-    .border-blue-500 { border-color: #3B82F6 !important; }
-    .border-l-2 { border-left-width: 2px; }
-    .border-r-2 { border-right-width: 2px; }
-    .px-5 { padding-left: 1.25rem; padding-right: 1.25rem; }
-    .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
-    .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
-    .text-sm { font-size: 0.875rem; }
-    .whitespace-nowrap { white-space: nowrap; }
-    /* Basic backgrounds */
-    .bg-white { background-color: #ffffff; }
-    .bg-gray-100 { background-color: #F3F4F6; }
-    .bg-gray-200 { background-color: #E5E7EB; }
-    .bg-gray-300 { background-color: #D1D5DB; }
-    .bg-blue-100 { background-color: #DBEAFE; }
-    .bg-slate-50 { background-color: #F8FAFC; }
-    .bg-slate-100 { background-color: #E2E8F0; }
-    .bg-slate-200 { background-color: #CBD5F5; }
-    /* Tailwind 50 shades used for daily columns */
-    .bg-blue-50 { background-color: #EFF6FF; }
-    .bg-green-50 { background-color: #F0FDF4; }
-    .bg-yellow-50 { background-color: #FFFBEB; }
-    .bg-red-50 { background-color: #FEF2F2; }
-    .bg-purple-50 { background-color: #FAF5FF; }
-    .bg-pink-50 { background-color: #FDF2F8; }
-    .bg-indigo-50 { background-color: #EEF2FF; }
-    .bg-teal-50 { background-color: #F0FDFA; }
-    .bg-cyan-50 { background-color: #ECFEFF; }
-    .bg-amber-50 { background-color: #FFFBEB; }
-    .bg-lime-50 { background-color: #F7FEE7; }
-    .bg-emerald-50 { background-color: #ECFDF5; }
-    .bg-sky-50 { background-color: #F0F9FF; }
-    .bg-violet-50 { background-color: #F5F3FF; }
-    .bg-fuchsia-50 { background-color: #FDF4FF; }
-    .bg-rose-50 { background-color: #FFF1F2; }
-    .bg-orange-50 { background-color: #FFF7ED; }
-    .bg-gray-50 { background-color: #F9FAFB; }
-    /* Tailwind 100 shades used for daily columns */
-    .bg-blue-100 { background-color: #DBEAFE; }
-    .bg-green-100 { background-color: #DCFCE7; }
-    .bg-yellow-100 { background-color: #FEF3C7; }
-    .bg-red-100 { background-color: #FEE2E2; }
-    .bg-purple-100 { background-color: #F3E8FF; }
-    .bg-pink-100 { background-color: #FCE7F3; }
-    .bg-indigo-100 { background-color: #E0E7FF; }
-    .bg-teal-100 { background-color: #CCFBF1; }
-    .bg-cyan-100 { background-color: #CFFAFE; }
-    .bg-amber-100 { background-color: #FEF3C7; }
-    .bg-lime-100 { background-color: #ECFCCB; }
-    .bg-emerald-100 { background-color: #D1FAE5; }
-    .bg-sky-100 { background-color: #E0F2FE; }
-    .bg-violet-100 { background-color: #EDE9FE; }
-    .bg-fuchsia-100 { background-color: #FAE8FF; }
-    .bg-rose-100 { background-color: #FFE4E6; }
-    .bg-orange-100 { background-color: #FFEDD5; }
-    /* Text colors used */
-    .text-blue-900 { color: #1E3A8A; }
-    .text-green-600 { color: #16A34A; }
-    .text-yellow-600 { color: #CA8A04; }
-    .text-red-600 { color: #DC2626; }
-    .text-gray-900 { color: #111827; }
-    /* Simple utility equivalents */
-    .text-center { text-align: center; }
-    .font-bold { font-weight: 700; }
-    .font-semibold { font-weight: 600; }
-    .sticky { position: sticky; }
-    .left-0 { left: 0; }
-  `
 
   const monthKey = useMemo(() => {
     if (periodLabel) return periodLabel
@@ -543,121 +627,19 @@ export default function HomeReportTable({ items, periodLabel }: Props) {
     return first ? `${first.monthName}` : ''
   }, [items, periodLabel])
 
-  const { headers, data } = useMemo(() => {
-    if (!items || items.length === 0)
-      return { headers: [] as string[], data: [] as RowRecord[] }
+  const baseMonthIndex = useMemo(
+    () => parseMonthIndexFromString(monthKey),
+    [monthKey]
+  )
+  const fallbackPastMonthLabels = useMemo(
+    () => getFallbackPastMonthLabels(baseMonthIndex),
+    [baseMonthIndex]
+  )
 
-    const daysWithData = new Set<string>()
-    for (let i = 1; i <= 31; i++) {
-      const day = i.toString().padStart(2, '0')
-      const has = items.some(
-        (it) =>
-          (it as any)[`day${day}Value`] > 0 || (it as any)[`day${day}Count`] > 0
-      )
-      if (has) daysWithData.add(day)
-    }
-
-    const firstItem = items[0]
-    const pastMonthMeta = PAST_MONTH_COLUMN_DEFS.map((column) => {
-      const rawName = firstItem?.[column.nameKey]
-      const monthNumber = firstItem?.[column.numberKey]
-      const label = resolvePastMonthLabel(
-        rawName,
-        monthNumber,
-        column.defaultLabel
-      )
-      return {
-        ...column,
-        label,
-        valueHeader: `${label} Value`,
-        pcHeader: `${label} PC`,
-      }
-    })
-
-    const headers: string[] = ['Region Name', 'Area', 'Territory']
-    daysWithData.forEach((day) => {
-      headers.push(`${day} Value`, `${day} PC`)
-    })
-    headers.push(
-      'Target',
-      'Total-Value',
-      'Variance - Cum Target vs',
-      'Sale (%)',
-      'PC-Target',
-      'Total-PC',
-      'Avg PC',
-      'Given WD',
-      'WD',
-      'WD Variance',
-      'Avg (With Direct)'
-    )
-    headers.push(
-      ...pastMonthMeta.flatMap((meta) => [meta.valueHeader, meta.pcHeader])
-    )
-
-    const rows: RowRecord[] = items.map((item) => {
-      const row: RowRecord = {
-        'Region Name': item.regionName,
-        Area: item.areaDisplayOrder
-          ? `${item.areaDisplayOrder}. ${item.areaName}`
-          : item.areaName,
-        Territory: item.territoryName,
-        Target: '0',
-        'Total-Value': '0',
-        'Variance - Cum Target vs': '0',
-        'Sale (%)': '0%',
-        'PC-Target': '0',
-        'Total-PC': '0',
-        'Avg PC': '0',
-        'Given WD': '0',
-        WD: '0',
-        'WD Variance': '0',
-        'Avg (With Direct)': '0',
-      }
-      daysWithData.forEach((day) => {
-        const v = Math.round(
-          (item as any)[`day${day}Value`] || 0
-        ).toLocaleString('en-LK')
-        const c = (item as any)[`day${day}Count`] || 0
-        row[`${day} Value`] = v
-        row[`${day} PC`] = c
-      })
-
-      const givenWD = item.givenWorkingDays ?? 0
-      const wd = Math.round(item.workingDays || 0)
-      const totalValue = Math.round(item.totalValue || 0)
-      const targetValue = Math.round(item.valueTarget || 0)
-      const variance = targetValue - totalValue
-
-      Object.assign(row, {
-        Target: targetValue.toLocaleString('en-LK'),
-        'Total-Value': totalValue.toLocaleString('en-LK'),
-        'Variance - Cum Target vs': variance.toLocaleString('en-LK'),
-        'Sale (%)':
-          targetValue > 0
-            ? `${Math.round((totalValue / targetValue) * 100)}%`
-            : '0%',
-        'PC-Target': item.pcTarget || 0,
-        'Total-PC': item.totalCount || 0,
-        'Given WD': givenWD,
-        WD: wd,
-        'WD Variance': givenWD - wd,
-        'Avg PC': wd > 0 ? Math.round((item.totalCount || 0) / wd) : 0,
-        'Avg (With Direct)': '0',
-      })
-
-      pastMonthMeta.forEach((meta) => {
-        const value = Number(item[meta.valueKey] ?? 0)
-        const pcCount = Math.round(item[meta.pcKey] ?? 0)
-        row[meta.valueHeader] = formatPastMonthCurrency(value)
-        row[meta.pcHeader] = pcCount.toLocaleString('en-LK')
-      })
-
-      return row
-    })
-
-    return { headers, data: rows }
-  }, [items])
+  const { headers, data } = useMemo(
+    () => buildTableData(items, fallbackPastMonthLabels),
+    [items, fallbackPastMonthLabels]
+  )
 
   const processedData = useMemo(() => {
     if (!data.length) return [] as RowRecord[]
@@ -725,20 +707,6 @@ export default function HomeReportTable({ items, periodLabel }: Props) {
     return filtered.slice(start, start + rowsPerPage)
   }, [filtered, page, rowsPerPage])
 
-  const exportColumns = useMemo<ExcelExportColumn<RowRecord>[]>(() => {
-    if (!headers.length) return []
-    return headers.map((header) => ({
-      header,
-      accessor: (row) => row[header] ?? '',
-    }))
-  }, [headers])
-
-  const exportStyles = buildExportCss()
-  const exportFileName = useMemo(
-    () => `Home_Report_${monthKey || 'report'}`,
-    [monthKey]
-  )
-
   const [currentMonthHeaders, pastMonthsHeaders] = useMemo(() => {
     if (headers.length === 0) return [[], []] as [string[], string[]]
     const pastColumnCount = PAST_MONTH_COLUMN_DEFS.length * 2
@@ -777,32 +745,20 @@ export default function HomeReportTable({ items, periodLabel }: Props) {
           >
             <Fullscreen className='h-4 w-4' />
           </Button>
-          <ExcelExportButton
-            size='sm'
-            variant='outline'
+          <HomeReportExport
+            headers={headers}
+            currentMonthHeaders={currentMonthHeaders}
+            pastMonthsHeaders={pastMonthsHeaders}
+            monthKey={monthKey}
             data={filtered}
-            columns={exportColumns}
-            fileName={exportFileName}
-            worksheetName={monthKey || 'Home Report'}
-            customStyles={exportStyles}
-            aria-label='Download Excel'
-            title='Download Excel (.xls)'
-            getHtmlContent={() => {
-              const html = exportRef.current?.innerHTML ?? ''
-              if (!html) return null
-              return {
-                html,
-                styles: exportStyles,
-                worksheetName: monthKey || 'Home Report',
-              }
-            }}
+            renderTable={renderTable}
           />
         </div>
       )}
 
       {/* Fullscreen Overlay */}
       {isFullScreen && (
-        <div className='bg-opacity-95 fixed inset-0 z-[2000] flex flex-col bg-white p-6 dark:bg-gray-900'>
+        <div className='bg-opacity-95 fixed inset-0 z-2000 flex flex-col bg-white p-6 dark:bg-gray-900'>
           <div className='mb-3 flex items-center justify-between'>
             <div className='text-xl font-semibold text-gray-900'>
               Home Report
@@ -844,18 +800,6 @@ export default function HomeReportTable({ items, periodLabel }: Props) {
           )}
         </div>
       )}
-
-      {/* Hidden full table for export */}
-      <div className='hidden' ref={exportRef} aria-hidden>
-        {renderTable(
-          headers,
-          currentMonthHeaders,
-          pastMonthsHeaders,
-          monthKey,
-          filtered,
-          false
-        )}
-      </div>
 
       {!isFullScreen && (
         <div className=''>

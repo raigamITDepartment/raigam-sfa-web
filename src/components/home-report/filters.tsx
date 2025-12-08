@@ -44,7 +44,7 @@ const subChannelRangeMap: Record<number, number[]> = {
   7: [8],
 }
 
-type FiltersPayload = {
+export type FiltersPayload = {
   subChannelId?: number
   areaId?: number
   rangeId?: number
@@ -54,9 +54,10 @@ type FiltersPayload = {
 
 type FiltersProps = {
   onApply?: (payload: FiltersPayload) => void
+  initialValues?: FiltersPayload
 }
 
-function Filters({ onApply }: FiltersProps) {
+function Filters({ onApply, initialValues }: FiltersProps) {
   const [subChannelId, setSubChannelId] = useState<string>('')
   const [areaId, setAreaId] = useState<string>('0')
   const [rangeId, setRangeId] = useState<string>('')
@@ -174,11 +175,35 @@ function Filters({ onApply }: FiltersProps) {
     })
   }, [ranges, subChannelId])
 
-  // Clear selected range when sub channel changes to avoid invalid selection
+  // Clear selected range only if it becomes invalid for the chosen sub-channel.
   useEffect(() => {
-    setRangeId('')
     setErrors((prev) => ({ ...prev, subChannelId: false, rangeId: false }))
-  }, [subChannelId])
+    if (!rangeId) return
+    if (!filteredRanges || filteredRanges.length === 0) return
+    const allowedRangeIds = new Set(
+      filteredRanges
+        .map((r) => r.id ?? r.rangeId)
+        .filter((id): id is number => id !== undefined && id !== null)
+        .map((id) => Number(id))
+    )
+    if (!allowedRangeIds.has(Number(rangeId))) {
+      setRangeId('')
+    }
+  }, [subChannelId, filteredRanges, rangeId])
+
+  // Sync form with provided initial values (e.g., persisted route search state)
+  useEffect(() => {
+    if (!initialValues) return
+    setSubChannelId(initialValues.subChannelId ? String(initialValues.subChannelId) : '')
+    setRangeId(initialValues.rangeId ? String(initialValues.rangeId) : '')
+    setAreaId(
+      initialValues.areaId !== undefined && initialValues.areaId !== null
+        ? String(initialValues.areaId)
+        : '0'
+    )
+    setYear(initialValues.year ? String(initialValues.year) : '')
+    setMonth(initialValues.month ? String(initialValues.month) : '')
+  }, [initialValues])
 
   // Change handlers that also clear any prior error for the field
   const onChangeSubChannel = (val: string) => {

@@ -70,6 +70,17 @@ const formatAddress = (...parts: (string | undefined | null)[]) => {
   )
 }
 
+const buildFacetOptions = (values: (string | undefined | null)[]) => {
+  const normalized = values
+    .map((value) => (typeof value === 'string' ? value.trim() : ''))
+    .filter((value): value is string => value !== '')
+
+  return Array.from(new Set(normalized)).map((value) => ({
+    label: value,
+    value,
+  }))
+}
+
 type TogglePayload = {
   id: Id
   nextActive: boolean
@@ -137,6 +148,15 @@ export default function DistributorCreation() {
       }
     })
   }, [data, rangeLookup])
+
+  const rangeFilterOptions = useMemo(
+    () =>
+      buildFacetOptions([
+        ...rows.map((row) => row.range),
+        ...ranges.map((range) => range.rangeName),
+      ]),
+    [rows, ranges]
+  )
 
   const formInitialValues = useMemo(() => {
     if (!activeDistributor) return undefined
@@ -257,6 +277,17 @@ export default function DistributorCreation() {
 .status-active { background-color: #d1fae5; color: #065f46; font-weight: 600; }
 .status-inactive { background-color: #fee2e2; color: #991b1b; font-weight: 600; }
 `
+
+  const filters = useMemo(
+    () => [
+      {
+        columnId: 'range',
+        title: 'Range',
+        options: rangeFilterOptions,
+      },
+    ],
+    [rangeFilterOptions]
+  )
 
   const columns = useMemo<ColumnDef<DistributorDTO>[]>(
     () => [
@@ -398,11 +429,17 @@ export default function DistributorCreation() {
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
   })
+  const filteredCount = table.getFilteredRowModel().rows.length
 
   return (
     <Card>
       <CardHeader className='flex flex-row items-center justify-between gap-2'>
-        <CardTitle>Distributor List</CardTitle>
+        <div className='flex items-center gap-2'>
+          <CardTitle>All Distributors</CardTitle>
+          <Badge variant='secondary' className='text-xs font-medium uppercase'>
+            {filteredCount}/{rows.length}
+          </Badge>
+        </div>
         <div className='flex items-center gap-2'>
           <ExcelExportButton
             size='sm'
@@ -428,6 +465,7 @@ export default function DistributorCreation() {
         <DataTableToolbar
           table={table}
           searchPlaceholder='Search all columns...'
+          filters={filters}
         />
         <div className='rounded-md border'>
           <Table className='text-xs'>

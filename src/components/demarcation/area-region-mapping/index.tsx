@@ -57,6 +57,22 @@ type MappingExportRow = {
   status: string
 }
 
+const getMappingRawStatus = (mapping: AreaRegionDTO) =>
+  (mapping.status as string | boolean | undefined) ??
+  (mapping.isActive as boolean | undefined) ??
+  (mapping.active as boolean | undefined)
+
+const isMappingActive = (mapping: AreaRegionDTO) => {
+  const rawStatus = getMappingRawStatus(mapping)
+  if (typeof rawStatus === 'string') {
+    return rawStatus.toLowerCase() === 'active'
+  }
+  return Boolean(rawStatus)
+}
+
+const getMappingStatusValue = (mapping: AreaRegionDTO) =>
+  isMappingActive(mapping) ? 'Active' : 'Inactive'
+
 export default function AreaRegionMapping() {
   const queryClient = useQueryClient()
   const { data, isLoading, isError, error } = useQuery({
@@ -91,24 +107,65 @@ export default function AreaRegionMapping() {
     })
   }, [data])
 
-  const exportRows = useMemo<MappingExportRow[]>(() => {
-    return rows.map((mapping) => {
-      const rawStatus =
-        (mapping.status as string | boolean | undefined) ??
-        (mapping.isActive as boolean | undefined) ??
-        (mapping.active as boolean | undefined)
-      const statusLabel =
-        typeof rawStatus === 'string'
-          ? rawStatus
-          : rawStatus
-            ? 'Active'
-            : 'Inactive'
-      return {
-        areaName: mapping.areaName,
-        regionName: mapping.regionName,
-        status: statusLabel,
-      }
+  const regionFilterOptions = useMemo(() => {
+    const seen = new Set<string>()
+    rows.forEach((mapping) => {
+      const region = mapping.regionName?.trim()
+      if (region) seen.add(region)
     })
+    return Array.from(seen)
+      .sort((a, b) => a.localeCompare(b))
+      .map((value) => ({ label: value, value }))
+  }, [rows])
+
+  const areaFilterOptions = useMemo(() => {
+    const seen = new Set<string>()
+    rows.forEach((mapping) => {
+      const area = mapping.areaName?.trim()
+      if (area) seen.add(area)
+    })
+    return Array.from(seen)
+      .sort((a, b) => a.localeCompare(b))
+      .map((value) => ({ label: value, value }))
+  }, [rows])
+
+  const statusFilterOptions = useMemo(() => {
+    const seen = new Set<string>()
+    rows.forEach((mapping) => {
+      seen.add(getMappingStatusValue(mapping))
+    })
+    return Array.from(seen)
+      .sort((a, b) => a.localeCompare(b))
+      .map((value) => ({ label: value, value }))
+  }, [rows])
+
+  const toolbarFilters = useMemo(
+    () => [
+      {
+        columnId: 'regionName',
+        title: 'Region',
+        options: regionFilterOptions,
+      },
+      {
+        columnId: 'areaName',
+        title: 'Area Name',
+        options: areaFilterOptions,
+      },
+      {
+        columnId: 'status',
+        title: 'Status',
+        options: statusFilterOptions,
+      },
+    ],
+    [areaFilterOptions, regionFilterOptions, statusFilterOptions]
+  )
+
+  const exportRows = useMemo<MappingExportRow[]>(() => {
+    return rows.map((mapping) => ({
+      areaName: mapping.areaName,
+      regionName: mapping.regionName,
+      status: getMappingStatusValue(mapping),
+    }))
   }, [rows])
 
   const exportColumns = useMemo<ExcelExportColumn<MappingExportRow>[]>(() => {
@@ -237,21 +294,15 @@ export default function AreaRegionMapping() {
       },
       {
         id: 'status',
+        accessorFn: getMappingStatusValue,
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title='Status' />
         ),
         enableSorting: false,
         cell: ({ row }) => {
-          const original = row.original as UnknownRecord
-          const raw =
-            (original.status as string | boolean | undefined) ??
-            (original.isActive as boolean | undefined) ??
-            (original.active as boolean | undefined)
-          const baseActive =
-            typeof raw === 'string'
-              ? raw.toLowerCase() === 'active'
-              : Boolean(raw)
-          const label = baseActive ? 'Active' : 'Inactive'
+          const original = row.original as AreaRegionDTO
+          const label = getMappingStatusValue(original)
+          const baseActive = isMappingActive(original)
           const variant = baseActive ? 'secondary' : 'destructive'
           return (
             <Badge
@@ -272,16 +323,9 @@ export default function AreaRegionMapping() {
         id: 'actions',
         header: () => <div className='pr-4 text-end'>Actions</div>,
         cell: ({ row }) => {
-          const original = row.original as UnknownRecord
-          const rawStatus =
-            (original.status as string | boolean | undefined) ??
-            (original.isActive as boolean | undefined) ??
-            (original.active as boolean | undefined)
+          const original = row.original as AreaRegionDTO
           const recordId = original.id as Id | undefined
-          const baseActive =
-            typeof rawStatus === 'string'
-              ? rawStatus.toLowerCase() === 'active'
-              : Boolean(rawStatus)
+          const baseActive = isMappingActive(original)
 
           return (
             <div className='flex items-center justify-end gap-1 pr-4'>
@@ -362,7 +406,12 @@ export default function AreaRegionMapping() {
   return (
     <Card>
       <CardHeader className='flex flex-row items-center justify-between gap-2'>
-        <CardTitle>Area Region Mapping</CardTitle>
+        <CardTitle className='flex items-center gap-2'>
+          Area Region Mapping
+          <Badge variant='secondary' className='text-xs font-medium uppercase'>
+            {rows.length}
+          </Badge>
+        </CardTitle>
         <div className='flex items-center gap-2'>
           <ExcelExportButton
             size='sm'
@@ -393,6 +442,7 @@ export default function AreaRegionMapping() {
         <DataTableToolbar
           table={table}
           searchPlaceholder='Search all columns...'
+          filters={toolbarFilters}
         />
         <div className='rounded-md border'>
           <Table className='text-xs'>
@@ -540,4 +590,3 @@ export default function AreaRegionMapping() {
   )
 }
 
-type UnknownRecord = Record<string, unknown>

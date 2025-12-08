@@ -12,8 +12,8 @@ export const RoleId = {
   ManagerCompany: 6,
   ExecutiveSales: 7,
   ExecutiveCompany: 8,
-  OperationSales: 9,
-  OperationCompany: 10,
+  OperationSales: 12,
+  OperationCompany: 9,
 } as const
 
 export type RoleIdValue = number
@@ -183,10 +183,6 @@ export const RoleAccess: Record<string, RoleIdValue[]> = {
   '/admin-module/operation/manual-bill-quota': [RoleId.SystemAdmin],
 
   // Agency Module
-  '/agency-module/dashboard/monthly-target': [
-    RoleId.SystemAdmin,
-    RoleId.OperationSales,
-  ],
   '/agency-module/invoice/actual-invoice': [
     RoleId.SystemAdmin,
     RoleId.OperationSales,

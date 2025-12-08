@@ -127,8 +127,21 @@ export function TerritoryForm(props: TerritoryFormProps) {
   })
 
   useEffect(() => {
+    const resolvedChannelId =
+      initialValues?.channelId && String(initialValues.channelId)
+        ? String(initialValues.channelId)
+        : initialValues?.subChannelId && subChannelsData
+          ? (() => {
+              const match = subChannelsData.find(
+                (sc) =>
+                  String(sc.id ?? '') === String(initialValues.subChannelId ?? '')
+              )
+              return match?.channelId ? String(match.channelId) : ''
+            })()
+          : ''
+
     const defaults: TerritoryFormValues = {
-      channelId: '',
+      channelId: resolvedChannelId,
       subChannelId: '',
       areaId: '',
       rangeId: '',
@@ -138,9 +151,27 @@ export function TerritoryForm(props: TerritoryFormProps) {
       isActive: true,
       oldTerritoryId: '',
       ...(initialValues as TerritoryFormValues | undefined),
+      ...(resolvedChannelId ? { channelId: resolvedChannelId } : {}),
     }
     form.reset(defaults)
-  }, [initialValues, form])
+  }, [initialValues, subChannelsData, form])
+
+  const channelValue = form.watch('channelId')
+  const subChannelValue = form.watch('subChannelId')
+  const isEditMode = mode === 'edit'
+
+  const activeChannels = useMemo(
+    () =>
+      channelsData?.filter((channel) => {
+        const active =
+          (channel.isActive as boolean | undefined) ??
+          (channel.active as boolean | undefined) ??
+          true
+        const isSelected = String(channel.id ?? '') === channelValue
+        return active || (isEditMode && isSelected)
+      }) ?? [],
+    [channelsData, channelValue, isEditMode]
+  )
 
   const activeSubChannels = useMemo(
     () =>
@@ -149,9 +180,10 @@ export function TerritoryForm(props: TerritoryFormProps) {
           (item.isActive as boolean | undefined) ??
           (item.active as boolean | undefined) ??
           true
-        return active
+        const isSelected = String(item.id ?? '') === subChannelValue
+        return active || (isEditMode && isSelected)
       }) ?? [],
-    [subChannelsData]
+    [subChannelsData, subChannelValue, isEditMode]
   )
 
   const activeAreas = useMemo(
@@ -177,10 +209,6 @@ export function TerritoryForm(props: TerritoryFormProps) {
       }) ?? [],
     [rangesData]
   )
-
-  const channelValue = form.watch('channelId')
-  const subChannelValue = form.watch('subChannelId')
-  const isEditMode = mode === 'edit'
 
   const filteredSubChannels = useMemo(() => {
     if (!activeSubChannels.length) return []
@@ -327,42 +355,36 @@ export function TerritoryForm(props: TerritoryFormProps) {
         onSubmit={form.handleSubmit(handleSubmit)}
         className='flex flex-col gap-3'
       >
-        <FormField
-          control={form.control}
-          name='channelId'
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Select Channel</FormLabel>
-              <FormControl>
-                <Select
-                  value={field.value}
-                  onValueChange={(value) => field.onChange(value)}
-                  disabled={isEditMode}
-                >
-                  <SelectTrigger className='w-full'>
-                    <SelectValue placeholder='Select Channel' />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {channelsData
-                      ?.filter((channel) => {
-                        const active =
-                          (channel.isActive as boolean | undefined) ??
-                          (channel.active as boolean | undefined) ??
-                          true
-                        return active
-                      })
-                      .map((channel) => (
+        {!isEditMode && (
+          <FormField
+            control={form.control}
+            name='channelId'
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Select Channel</FormLabel>
+                <FormControl>
+                  <Select
+                    value={field.value}
+                    onValueChange={(value) => field.onChange(value)}
+                    disabled={isEditMode}
+                  >
+                    <SelectTrigger className='w-full'>
+                      <SelectValue placeholder='Select Channel' />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {activeChannels.map((channel) => (
                         <SelectItem key={channel.id} value={String(channel.id)}>
                           {channel.channelName}
                         </SelectItem>
                       ))}
-                  </SelectContent>
-                </Select>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                    </SelectContent>
+                  </Select>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
 
         <FormField
           control={form.control}

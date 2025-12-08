@@ -70,6 +70,27 @@ const exportStatusStyles = `
 .status-inactive { background-color: #fee2e2; color: #991b1b; font-weight: 600; }
 `
 
+const buildFilterOptions = (
+  rows: AgencyWarehouseDTO[],
+  accessor: (row: AgencyWarehouseDTO) => string | number | undefined
+) => {
+  const values = new Set<string>()
+
+  rows.forEach((row) => {
+    const value = accessor(row)
+    if (value === undefined || value === null) return
+
+    const normalized = String(value).trim()
+    if (!normalized) return
+
+    values.add(normalized)
+  })
+
+  return Array.from(values)
+    .sort((a, b) => a.localeCompare(b))
+    .map((value) => ({ label: value, value }))
+}
+
 export default function WareHouseMapping() {
   const queryClient = useQueryClient()
   const [sorting, setSorting] = useState<SortingState>([])
@@ -90,6 +111,17 @@ export default function WareHouseMapping() {
   })
 
   const rows = useMemo(() => data?.payload ?? [], [data])
+  const rangeFilterOptions = useMemo(
+    () => buildFilterOptions(rows, (mapping) => mapping.range),
+    [rows]
+  )
+  const statusFilterOptions = useMemo(
+    () => [
+      { label: 'Active', value: 'Active' },
+      { label: 'Inactive', value: 'Inactive' },
+    ],
+    []
+  )
 
   const toggleStatusMutation = useMutation({
     mutationFn: async (vars: PendingToggle) => {
@@ -267,6 +299,12 @@ export default function WareHouseMapping() {
     getPaginationRowModel: getPaginationRowModel(),
   })
 
+  const filteredCount = table.getFilteredRowModel().rows.length
+  const totalCount = rows.length
+  const hasGlobalFilter = Boolean(table.getState().globalFilter)
+  const activeFiltersCount =
+    table.getState().columnFilters.length + (hasGlobalFilter ? 1 : 0)
+
   const handleConfirmToggle = () => {
     if (!pendingToggle) return
     setConfirmOpen(false)
@@ -275,22 +313,50 @@ export default function WareHouseMapping() {
 
   return (
     <Card>
-      <CardHeader className='flex items-center justify-between gap-2'>
-        <CardTitle>Warehouse Mapping List</CardTitle>
-        <ExcelExportButton
-          size='sm'
-          variant='outline'
-          data={exportRows}
-          columns={exportColumns}
-          fileName='agency-warehouses'
-          worksheetName='Agency Warehouses'
-          customStyles={exportStatusStyles}
-        />
+      <CardHeader className='space-y-1'>
+        <div className='flex items-center gap-2'>
+          <CardTitle className='flex w-full items-center gap-3'>
+            <span>Warehouse Mappings</span>
+            <Badge
+              variant='secondary'
+              className='text-xs font-medium uppercase'
+            >
+              {filteredCount}/{totalCount}
+            </Badge>
+            <span className='text-muted-foreground ml-auto text-sm font-medium'>
+              Filters {activeFiltersCount}
+            </span>
+          </CardTitle>
+          <ExcelExportButton
+            size='sm'
+            variant='outline'
+            data={exportRows}
+            columns={exportColumns}
+            fileName='agency-warehouses'
+            worksheetName='Agency Warehouses'
+            customStyles={exportStatusStyles}
+          />
+        </div>
+        <p className='text-muted-foreground text-sm'>
+          Showing {filteredCount} of {totalCount} warehouses
+        </p>
       </CardHeader>
       <CardContent className='space-y-2'>
         <DataTableToolbar
           table={table}
           searchPlaceholder='Search warehouse mappings...'
+        filters={[
+          {
+            columnId: 'range',
+            title: 'Range',
+            options: rangeFilterOptions,
+          },
+          {
+            columnId: 'status',
+            title: 'Status',
+            options: statusFilterOptions,
+          },
+        ]}
         />
         <div className='rounded-md border'>
           <Table className='text-xs'>

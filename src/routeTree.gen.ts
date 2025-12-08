@@ -22,7 +22,6 @@ import { Route as authSignInRouteImport } from './routes/(auth)/sign-in'
 import { Route as AuthenticatedOutletModuleRouteRouteImport } from './routes/_authenticated/outlet-module/route'
 import { Route as AuthenticatedReportsTerritoryWiseSalesReportRouteImport } from './routes/_authenticated/reports/territory-wise-sales-report'
 import { Route as AuthenticatedReportsTerritoryWiseItemsReportRouteImport } from './routes/_authenticated/reports/territory-wise-items-report'
-import { Route as AuthenticatedReportsItemSummaryReportRouteImport } from './routes/_authenticated/reports/item-summary-report'
 import { Route as AuthenticatedReportsAreaWiseSalesReportRouteImport } from './routes/_authenticated/reports/area-wise-sales-report'
 import { Route as AuthenticatedReportsAchievementCategoryWiseRouteImport } from './routes/_authenticated/reports/achievement-category-wise'
 import { Route as AuthenticatedOutletModuleCustomerRouteImport } from './routes/_authenticated/outlet-module/customer'
@@ -55,10 +54,8 @@ import { Route as AuthenticatedAgencyModuleStockAddStockRouteImport } from './ro
 import { Route as AuthenticatedAgencyModuleMarketReturnReturnRouteImport } from './routes/_authenticated/agency-module/market-return/return'
 import { Route as AuthenticatedAgencyModuleLoadingListViewLoadingListRouteImport } from './routes/_authenticated/agency-module/loading-list/view-loading-list'
 import { Route as AuthenticatedAgencyModuleInvoiceViewInvoiceRouteImport } from './routes/_authenticated/agency-module/invoice/view-invoice'
-import { Route as AuthenticatedAgencyModuleInvoicePostInvoiceRouteImport } from './routes/_authenticated/agency-module/invoice/post-invoice'
 import { Route as AuthenticatedAgencyModuleInvoiceManualInvoiceRouteImport } from './routes/_authenticated/agency-module/invoice/manual-invoice'
 import { Route as AuthenticatedAgencyModuleInvoiceActualInvoiceRouteImport } from './routes/_authenticated/agency-module/invoice/actual-invoice'
-import { Route as AuthenticatedAgencyModuleDashboardMonthlyTargetRouteImport } from './routes/_authenticated/agency-module/dashboard/monthly-target'
 import { Route as AuthenticatedAdminModuleUserModuleAddModifiyUserRouteImport } from './routes/_authenticated/admin-module/user-module/add-modifiy-user'
 import { Route as AuthenticatedAdminModuleOperationReverseRequestsRouteImport } from './routes/_authenticated/admin-module/operation/reverse-requests'
 import { Route as AuthenticatedAdminModuleOperationManualBillQuotaRouteImport } from './routes/_authenticated/admin-module/operation/manual-bill-quota'
@@ -127,12 +124,6 @@ const AuthenticatedReportsTerritoryWiseItemsReportRoute =
   AuthenticatedReportsTerritoryWiseItemsReportRouteImport.update({
     id: '/reports/territory-wise-items-report',
     path: '/reports/territory-wise-items-report',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedReportsItemSummaryReportRoute =
-  AuthenticatedReportsItemSummaryReportRouteImport.update({
-    id: '/reports/item-summary-report',
-    path: '/reports/item-summary-report',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedReportsAreaWiseSalesReportRoute =
@@ -327,12 +318,6 @@ const AuthenticatedAgencyModuleInvoiceViewInvoiceRoute =
     path: '/agency-module/invoice/view-invoice',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedAgencyModuleInvoicePostInvoiceRoute =
-  AuthenticatedAgencyModuleInvoicePostInvoiceRouteImport.update({
-    id: '/agency-module/invoice/post-invoice',
-    path: '/agency-module/invoice/post-invoice',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
 const AuthenticatedAgencyModuleInvoiceManualInvoiceRoute =
   AuthenticatedAgencyModuleInvoiceManualInvoiceRouteImport.update({
     id: '/agency-module/invoice/manual-invoice',
@@ -343,12 +328,6 @@ const AuthenticatedAgencyModuleInvoiceActualInvoiceRoute =
   AuthenticatedAgencyModuleInvoiceActualInvoiceRouteImport.update({
     id: '/agency-module/invoice/actual-invoice',
     path: '/agency-module/invoice/actual-invoice',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedAgencyModuleDashboardMonthlyTargetRoute =
-  AuthenticatedAgencyModuleDashboardMonthlyTargetRouteImport.update({
-    id: '/agency-module/dashboard/monthly-target',
-    path: '/agency-module/dashboard/monthly-target',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAdminModuleUserModuleAddModifiyUserRoute =
@@ -396,16 +375,13 @@ export interface FileRoutesByFullPath {
   '/outlet-module/customer': typeof AuthenticatedOutletModuleCustomerRoute
   '/reports/achievement-category-wise': typeof AuthenticatedReportsAchievementCategoryWiseRoute
   '/reports/area-wise-sales-report': typeof AuthenticatedReportsAreaWiseSalesReportRoute
-  '/reports/item-summary-report': typeof AuthenticatedReportsItemSummaryReportRoute
   '/reports/territory-wise-items-report': typeof AuthenticatedReportsTerritoryWiseItemsReportRoute
   '/reports/territory-wise-sales-report': typeof AuthenticatedReportsTerritoryWiseSalesReportRoute
   '/admin-module/operation/manual-bill-quota': typeof AuthenticatedAdminModuleOperationManualBillQuotaRoute
   '/admin-module/operation/reverse-requests': typeof AuthenticatedAdminModuleOperationReverseRequestsRoute
   '/admin-module/user-module/add-modifiy-user': typeof AuthenticatedAdminModuleUserModuleAddModifiyUserRoute
-  '/agency-module/dashboard/monthly-target': typeof AuthenticatedAgencyModuleDashboardMonthlyTargetRoute
   '/agency-module/invoice/actual-invoice': typeof AuthenticatedAgencyModuleInvoiceActualInvoiceRoute
   '/agency-module/invoice/manual-invoice': typeof AuthenticatedAgencyModuleInvoiceManualInvoiceRoute
-  '/agency-module/invoice/post-invoice': typeof AuthenticatedAgencyModuleInvoicePostInvoiceRoute
   '/agency-module/invoice/view-invoice': typeof AuthenticatedAgencyModuleInvoiceViewInvoiceRoute
   '/agency-module/loading-list/view-loading-list': typeof AuthenticatedAgencyModuleLoadingListViewLoadingListRoute
   '/agency-module/market-return/return': typeof AuthenticatedAgencyModuleMarketReturnReturnRoute
@@ -449,16 +425,13 @@ export interface FileRoutesByTo {
   '/outlet-module/customer': typeof AuthenticatedOutletModuleCustomerRoute
   '/reports/achievement-category-wise': typeof AuthenticatedReportsAchievementCategoryWiseRoute
   '/reports/area-wise-sales-report': typeof AuthenticatedReportsAreaWiseSalesReportRoute
-  '/reports/item-summary-report': typeof AuthenticatedReportsItemSummaryReportRoute
   '/reports/territory-wise-items-report': typeof AuthenticatedReportsTerritoryWiseItemsReportRoute
   '/reports/territory-wise-sales-report': typeof AuthenticatedReportsTerritoryWiseSalesReportRoute
   '/admin-module/operation/manual-bill-quota': typeof AuthenticatedAdminModuleOperationManualBillQuotaRoute
   '/admin-module/operation/reverse-requests': typeof AuthenticatedAdminModuleOperationReverseRequestsRoute
   '/admin-module/user-module/add-modifiy-user': typeof AuthenticatedAdminModuleUserModuleAddModifiyUserRoute
-  '/agency-module/dashboard/monthly-target': typeof AuthenticatedAgencyModuleDashboardMonthlyTargetRoute
   '/agency-module/invoice/actual-invoice': typeof AuthenticatedAgencyModuleInvoiceActualInvoiceRoute
   '/agency-module/invoice/manual-invoice': typeof AuthenticatedAgencyModuleInvoiceManualInvoiceRoute
-  '/agency-module/invoice/post-invoice': typeof AuthenticatedAgencyModuleInvoicePostInvoiceRoute
   '/agency-module/invoice/view-invoice': typeof AuthenticatedAgencyModuleInvoiceViewInvoiceRoute
   '/agency-module/loading-list/view-loading-list': typeof AuthenticatedAgencyModuleLoadingListViewLoadingListRoute
   '/agency-module/market-return/return': typeof AuthenticatedAgencyModuleMarketReturnReturnRoute
@@ -505,16 +478,13 @@ export interface FileRoutesById {
   '/_authenticated/outlet-module/customer': typeof AuthenticatedOutletModuleCustomerRoute
   '/_authenticated/reports/achievement-category-wise': typeof AuthenticatedReportsAchievementCategoryWiseRoute
   '/_authenticated/reports/area-wise-sales-report': typeof AuthenticatedReportsAreaWiseSalesReportRoute
-  '/_authenticated/reports/item-summary-report': typeof AuthenticatedReportsItemSummaryReportRoute
   '/_authenticated/reports/territory-wise-items-report': typeof AuthenticatedReportsTerritoryWiseItemsReportRoute
   '/_authenticated/reports/territory-wise-sales-report': typeof AuthenticatedReportsTerritoryWiseSalesReportRoute
   '/_authenticated/admin-module/operation/manual-bill-quota': typeof AuthenticatedAdminModuleOperationManualBillQuotaRoute
   '/_authenticated/admin-module/operation/reverse-requests': typeof AuthenticatedAdminModuleOperationReverseRequestsRoute
   '/_authenticated/admin-module/user-module/add-modifiy-user': typeof AuthenticatedAdminModuleUserModuleAddModifiyUserRoute
-  '/_authenticated/agency-module/dashboard/monthly-target': typeof AuthenticatedAgencyModuleDashboardMonthlyTargetRoute
   '/_authenticated/agency-module/invoice/actual-invoice': typeof AuthenticatedAgencyModuleInvoiceActualInvoiceRoute
   '/_authenticated/agency-module/invoice/manual-invoice': typeof AuthenticatedAgencyModuleInvoiceManualInvoiceRoute
-  '/_authenticated/agency-module/invoice/post-invoice': typeof AuthenticatedAgencyModuleInvoicePostInvoiceRoute
   '/_authenticated/agency-module/invoice/view-invoice': typeof AuthenticatedAgencyModuleInvoiceViewInvoiceRoute
   '/_authenticated/agency-module/loading-list/view-loading-list': typeof AuthenticatedAgencyModuleLoadingListViewLoadingListRoute
   '/_authenticated/agency-module/market-return/return': typeof AuthenticatedAgencyModuleMarketReturnReturnRoute
@@ -560,16 +530,13 @@ export interface FileRouteTypes {
     | '/outlet-module/customer'
     | '/reports/achievement-category-wise'
     | '/reports/area-wise-sales-report'
-    | '/reports/item-summary-report'
     | '/reports/territory-wise-items-report'
     | '/reports/territory-wise-sales-report'
     | '/admin-module/operation/manual-bill-quota'
     | '/admin-module/operation/reverse-requests'
     | '/admin-module/user-module/add-modifiy-user'
-    | '/agency-module/dashboard/monthly-target'
     | '/agency-module/invoice/actual-invoice'
     | '/agency-module/invoice/manual-invoice'
-    | '/agency-module/invoice/post-invoice'
     | '/agency-module/invoice/view-invoice'
     | '/agency-module/loading-list/view-loading-list'
     | '/agency-module/market-return/return'
@@ -613,16 +580,13 @@ export interface FileRouteTypes {
     | '/outlet-module/customer'
     | '/reports/achievement-category-wise'
     | '/reports/area-wise-sales-report'
-    | '/reports/item-summary-report'
     | '/reports/territory-wise-items-report'
     | '/reports/territory-wise-sales-report'
     | '/admin-module/operation/manual-bill-quota'
     | '/admin-module/operation/reverse-requests'
     | '/admin-module/user-module/add-modifiy-user'
-    | '/agency-module/dashboard/monthly-target'
     | '/agency-module/invoice/actual-invoice'
     | '/agency-module/invoice/manual-invoice'
-    | '/agency-module/invoice/post-invoice'
     | '/agency-module/invoice/view-invoice'
     | '/agency-module/loading-list/view-loading-list'
     | '/agency-module/market-return/return'
@@ -668,16 +632,13 @@ export interface FileRouteTypes {
     | '/_authenticated/outlet-module/customer'
     | '/_authenticated/reports/achievement-category-wise'
     | '/_authenticated/reports/area-wise-sales-report'
-    | '/_authenticated/reports/item-summary-report'
     | '/_authenticated/reports/territory-wise-items-report'
     | '/_authenticated/reports/territory-wise-sales-report'
     | '/_authenticated/admin-module/operation/manual-bill-quota'
     | '/_authenticated/admin-module/operation/reverse-requests'
     | '/_authenticated/admin-module/user-module/add-modifiy-user'
-    | '/_authenticated/agency-module/dashboard/monthly-target'
     | '/_authenticated/agency-module/invoice/actual-invoice'
     | '/_authenticated/agency-module/invoice/manual-invoice'
-    | '/_authenticated/agency-module/invoice/post-invoice'
     | '/_authenticated/agency-module/invoice/view-invoice'
     | '/_authenticated/agency-module/loading-list/view-loading-list'
     | '/_authenticated/agency-module/market-return/return'
@@ -797,13 +758,6 @@ declare module '@tanstack/react-router' {
       path: '/reports/territory-wise-items-report'
       fullPath: '/reports/territory-wise-items-report'
       preLoaderRoute: typeof AuthenticatedReportsTerritoryWiseItemsReportRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/reports/item-summary-report': {
-      id: '/_authenticated/reports/item-summary-report'
-      path: '/reports/item-summary-report'
-      fullPath: '/reports/item-summary-report'
-      preLoaderRoute: typeof AuthenticatedReportsItemSummaryReportRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/reports/area-wise-sales-report': {
@@ -1030,13 +984,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAgencyModuleInvoiceViewInvoiceRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/agency-module/invoice/post-invoice': {
-      id: '/_authenticated/agency-module/invoice/post-invoice'
-      path: '/agency-module/invoice/post-invoice'
-      fullPath: '/agency-module/invoice/post-invoice'
-      preLoaderRoute: typeof AuthenticatedAgencyModuleInvoicePostInvoiceRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/agency-module/invoice/manual-invoice': {
       id: '/_authenticated/agency-module/invoice/manual-invoice'
       path: '/agency-module/invoice/manual-invoice'
@@ -1049,13 +996,6 @@ declare module '@tanstack/react-router' {
       path: '/agency-module/invoice/actual-invoice'
       fullPath: '/agency-module/invoice/actual-invoice'
       preLoaderRoute: typeof AuthenticatedAgencyModuleInvoiceActualInvoiceRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/agency-module/dashboard/monthly-target': {
-      id: '/_authenticated/agency-module/dashboard/monthly-target'
-      path: '/agency-module/dashboard/monthly-target'
-      fullPath: '/agency-module/dashboard/monthly-target'
-      preLoaderRoute: typeof AuthenticatedAgencyModuleDashboardMonthlyTargetRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin-module/user-module/add-modifiy-user': {
@@ -1128,16 +1068,13 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedMasterSettingsFinalGeographyMappingRoute: typeof AuthenticatedMasterSettingsFinalGeographyMappingRoute
   AuthenticatedReportsAchievementCategoryWiseRoute: typeof AuthenticatedReportsAchievementCategoryWiseRoute
   AuthenticatedReportsAreaWiseSalesReportRoute: typeof AuthenticatedReportsAreaWiseSalesReportRoute
-  AuthenticatedReportsItemSummaryReportRoute: typeof AuthenticatedReportsItemSummaryReportRoute
   AuthenticatedReportsTerritoryWiseItemsReportRoute: typeof AuthenticatedReportsTerritoryWiseItemsReportRoute
   AuthenticatedReportsTerritoryWiseSalesReportRoute: typeof AuthenticatedReportsTerritoryWiseSalesReportRoute
   AuthenticatedAdminModuleOperationManualBillQuotaRoute: typeof AuthenticatedAdminModuleOperationManualBillQuotaRoute
   AuthenticatedAdminModuleOperationReverseRequestsRoute: typeof AuthenticatedAdminModuleOperationReverseRequestsRoute
   AuthenticatedAdminModuleUserModuleAddModifiyUserRoute: typeof AuthenticatedAdminModuleUserModuleAddModifiyUserRoute
-  AuthenticatedAgencyModuleDashboardMonthlyTargetRoute: typeof AuthenticatedAgencyModuleDashboardMonthlyTargetRoute
   AuthenticatedAgencyModuleInvoiceActualInvoiceRoute: typeof AuthenticatedAgencyModuleInvoiceActualInvoiceRoute
   AuthenticatedAgencyModuleInvoiceManualInvoiceRoute: typeof AuthenticatedAgencyModuleInvoiceManualInvoiceRoute
-  AuthenticatedAgencyModuleInvoicePostInvoiceRoute: typeof AuthenticatedAgencyModuleInvoicePostInvoiceRoute
   AuthenticatedAgencyModuleInvoiceViewInvoiceRoute: typeof AuthenticatedAgencyModuleInvoiceViewInvoiceRoute
   AuthenticatedAgencyModuleLoadingListViewLoadingListRoute: typeof AuthenticatedAgencyModuleLoadingListViewLoadingListRoute
   AuthenticatedAgencyModuleMarketReturnReturnRoute: typeof AuthenticatedAgencyModuleMarketReturnReturnRoute
@@ -1185,8 +1122,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedReportsAchievementCategoryWiseRoute,
   AuthenticatedReportsAreaWiseSalesReportRoute:
     AuthenticatedReportsAreaWiseSalesReportRoute,
-  AuthenticatedReportsItemSummaryReportRoute:
-    AuthenticatedReportsItemSummaryReportRoute,
   AuthenticatedReportsTerritoryWiseItemsReportRoute:
     AuthenticatedReportsTerritoryWiseItemsReportRoute,
   AuthenticatedReportsTerritoryWiseSalesReportRoute:
@@ -1197,14 +1132,10 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedAdminModuleOperationReverseRequestsRoute,
   AuthenticatedAdminModuleUserModuleAddModifiyUserRoute:
     AuthenticatedAdminModuleUserModuleAddModifiyUserRoute,
-  AuthenticatedAgencyModuleDashboardMonthlyTargetRoute:
-    AuthenticatedAgencyModuleDashboardMonthlyTargetRoute,
   AuthenticatedAgencyModuleInvoiceActualInvoiceRoute:
     AuthenticatedAgencyModuleInvoiceActualInvoiceRoute,
   AuthenticatedAgencyModuleInvoiceManualInvoiceRoute:
     AuthenticatedAgencyModuleInvoiceManualInvoiceRoute,
-  AuthenticatedAgencyModuleInvoicePostInvoiceRoute:
-    AuthenticatedAgencyModuleInvoicePostInvoiceRoute,
   AuthenticatedAgencyModuleInvoiceViewInvoiceRoute:
     AuthenticatedAgencyModuleInvoiceViewInvoiceRoute,
   AuthenticatedAgencyModuleLoadingListViewLoadingListRoute:

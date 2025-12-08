@@ -96,7 +96,11 @@ const FinalGeographyMapping = () => {
       },
       { columnId: 'regionName', title: 'Region', options: regionFilterOptions },
       { columnId: 'areaName', title: 'Area', options: areaFilterOptions },
-      { columnId: 'territoryName', title: 'Territory', options: territoryFilterOptions },
+      {
+        columnId: 'territoryName',
+        title: 'Territory',
+        options: territoryFilterOptions,
+      },
     ],
     [
       channelFilterOptions,
@@ -183,11 +187,11 @@ const FinalGeographyMapping = () => {
     <Card>
       <CardHeader className='flex items-center justify-between gap-2'>
         <CardTitle className='text-base font-semibold'>
-          Final Geography Mapping
+          Final Geography Mapping{' '}
+          <Badge variant='secondary' className='text-xs font-medium uppercase'>
+            {filteredCount}/{rows.length}
+          </Badge>
         </CardTitle>
-        <Badge variant='default' className='text-xs font-medium uppercase'>
-          {filteredCount}/{rows.length}
-        </Badge>
       </CardHeader>
       <CardContent className='space-y-4'>
         <DataTableToolbar

@@ -19,7 +19,8 @@ import {
 import { findItemPriceById } from '@/services/sales/itemPriceApi'
 import { toast } from 'sonner'
 import { updateBookingInvoiceWithDetails } from '@/services/sales/invoice/invoiceApi'
-import ItemForm from './ItemForm'
+import ItemForm from './AddItemForm'
+import { UpdateItemForm } from './UpdateItemForm'
 import type { ItemFormValues } from '@/types/itemForm'
 import InvoiceItemsTableLayout, { type AggregatedTotals, type InvoiceItemRow } from './InvoiceItemsTableLayout'
 
@@ -129,6 +130,9 @@ export function BookingInvoiceItemsTable({
   }
   const [addItemOpen, setAddItemOpen] = useState(false)
   const [draftItem, setDraftItem] = useState<ItemFormValues>(emptyDraft)
+  const [editItemOpen, setEditItemOpen] = useState(false)
+  const [editDraft, setEditDraft] = useState<ItemFormValues | null>(null)
+  const [editIndex, setEditIndex] = useState<number | null>(null)
   const [localItems, setLocalItems] =
     useState<BookingInvoiceDetailDTO[]>(items)
   const [isUpdating, setIsUpdating] = useState(false)
@@ -139,6 +143,166 @@ export function BookingInvoiceItemsTable({
   useEffect(() => {
     setSummaryDiscountPct(invoice.discountPercentage ?? 0)
   }, [invoice.discountPercentage])
+  const toNullableNumber = (val: unknown) =>
+    typeof val === 'number' && Number.isFinite(val) ? val : null
+  const normalizeReturnQty = (val: unknown) => {
+    const num = toNullableNumber(val)
+    return num && Math.abs(num) > 0 ? num : null
+  }
+
+  const mapDetailToDraft = (detail: BookingInvoiceDetailDTO): ItemFormValues => ({
+    mainCatId:
+      toNullableNumber((detail as any).mainCatId) ??
+      toNullableNumber((detail as any).itemMainCatId),
+    itemId: toNullableNumber(detail.itemId),
+    itemName: detail.itemName ?? '',
+    sellUnitPrice: toNullableNumber(detail.sellUnitPrice),
+    sellPriceId: detail.sellPriceId ?? null,
+    adjustedUnitPrice:
+      toNullableNumber(detail.adjustedUnitPrice) ??
+      toNullableNumber(detail.sellUnitPrice),
+    totalBookQty: toNullableNumber(detail.totalBookQty) ?? 0,
+    totalCancelQty: toNullableNumber(detail.totalCancelQty) ?? 0,
+    totalBookValue: toNullableNumber(detail.totalBookValue),
+    totalFreeQty: toNullableNumber(detail.totalFreeQty) ?? 0,
+    bookDiscountPercentage:
+      toNullableNumber(detail.bookDiscountPercentage) ??
+      toNullableNumber(detail.discountPercentage) ??
+      0,
+    totalBookDiscountValue: toNullableNumber(
+      detail.totalBookDiscountValue ?? detail.totalDiscountValue
+    ),
+    totalBookSellValue: toNullableNumber(
+      detail.totalBookSellValue ?? detail.sellTotalPrice
+    ),
+    goodReturnUnitPrice: normalizeReturnQty(detail.goodReturnTotalQty)
+      ? toNullableNumber(detail.goodReturnUnitPrice)
+      : null,
+    goodReturnPriceId: detail.goodReturnPriceId ?? null,
+    goodReturnAdjustedUnitPrice: toNullableNumber(
+      normalizeReturnQty(detail.goodReturnTotalQty)
+        ? detail.goodReturnAdjustedUnitPrice
+        : null
+    ),
+    goodReturnTotalQty: normalizeReturnQty(detail.goodReturnTotalQty),
+    goodReturnFreeQty: normalizeReturnQty(detail.goodReturnTotalQty)
+      ? toNullableNumber(detail.goodReturnFreeQty)
+      : null,
+    goodReturnTotalVal: normalizeReturnQty(detail.goodReturnTotalQty)
+      ? toNullableNumber(detail.goodReturnTotalVal)
+      : null,
+    marketReturnUnitPrice: normalizeReturnQty(detail.marketReturnTotalQty)
+      ? toNullableNumber(detail.marketReturnUnitPrice)
+      : null,
+    marketReturnPriceId: detail.marketReturnPriceId ?? null,
+    marketReturnAdjustedUnitPrice: toNullableNumber(
+      normalizeReturnQty(detail.marketReturnTotalQty)
+        ? detail.marketReturnAdjustedUnitPrice
+        : null
+    ),
+    marketReturnTotalQty: normalizeReturnQty(detail.marketReturnTotalQty),
+    marketReturnFreeQty: normalizeReturnQty(detail.marketReturnTotalQty)
+      ? toNullableNumber(detail.marketReturnFreeQty)
+      : null,
+    marketReturnTotalVal: normalizeReturnQty(detail.marketReturnTotalQty)
+      ? toNullableNumber(detail.marketReturnTotalVal)
+      : null,
+    finalTotalValue: toNullableNumber(detail.finalTotalValue),
+  })
+
+  const buildItemFromDraft = (
+    next: ItemFormValues,
+    existing?: BookingInvoiceDetailDTO
+  ): BookingInvoiceDetailDTO => {
+    const hasReturns =
+      safeNumber(next.goodReturnTotalQty) > 0 ||
+      safeNumber(next.marketReturnTotalQty) > 0
+    const hasBaseItemInfo =
+      !!next.itemId &&
+      !!next.sellUnitPrice &&
+      next.totalBookQty !== null &&
+      next.totalBookQty !== undefined
+    if (hasReturns && !hasBaseItemInfo) {
+      throw new Error(
+        'You want to add only good returns or market returns without add any items, plz set Item name, Select Item price and set quintity value 0'
+      )
+    }
+    const bookQty = safeNumber(next.totalBookQty)
+    const cancelQty = safeNumber(next.totalCancelQty)
+    const netQty = Math.max(bookQty - cancelQty, 0)
+    const unitPrice = safeNumber(
+      next.adjustedUnitPrice ?? next.sellUnitPrice ?? 0
+    )
+    const totalBookValue = Number((netQty * unitPrice).toFixed(2))
+    const discountPct = safeNumber(next.bookDiscountPercentage)
+    const totalBookDiscountValue = Number(
+      ((totalBookValue * discountPct) / 100).toFixed(2)
+    )
+    const totalBookSellValue = Number(
+      (totalBookValue - totalBookDiscountValue).toFixed(2)
+    )
+    const goodReturnAdjustedUnitPrice = safeNumber(
+      next.goodReturnAdjustedUnitPrice ?? next.goodReturnUnitPrice
+    )
+    const marketReturnAdjustedUnitPrice = safeNumber(
+      next.marketReturnAdjustedUnitPrice ?? next.marketReturnUnitPrice
+    )
+    const goodReturnTotalVal = computeReturnTotal(
+      safeNumber(next.goodReturnTotalQty),
+      safeNumber(next.goodReturnFreeQty),
+      goodReturnAdjustedUnitPrice
+    )
+    const marketReturnTotalVal = computeReturnTotal(
+      safeNumber(next.marketReturnTotalQty),
+      safeNumber(next.marketReturnFreeQty),
+      marketReturnAdjustedUnitPrice
+    )
+    const finalTotalValue = computeFinalTotal(
+      totalBookSellValue,
+      goodReturnTotalVal,
+      marketReturnTotalVal
+    )
+
+    const baseId = existing?.id ?? Date.now()
+    return {
+      id: baseId,
+      invoiceId: existing?.invoiceId ?? invoice.id,
+      itemId: next.itemId ?? 0,
+      itemName: next.itemName ?? '',
+      sellPriceId: next.sellPriceId ?? null,
+      sellUnitPrice: unitPrice,
+      adjustedUnitPrice: next.adjustedUnitPrice ?? next.sellUnitPrice ?? unitPrice,
+      totalBookQty: bookQty,
+      bookDiscountPercentage: discountPct,
+      totalBookDiscountValue,
+      totalBookValue,
+      totalBookSellValue,
+      totalCancelQty: cancelQty,
+      totalFreeQty: safeNumber(next.totalFreeQty),
+      totalActualQty: safeNumber(existing?.totalActualQty),
+      totalDiscountValue: totalBookDiscountValue,
+      discountPercentage: discountPct,
+      sellTotalPrice: totalBookSellValue,
+      goodReturnUnitPrice: safeNumber(next.goodReturnUnitPrice),
+      ...(Number.isFinite(goodReturnAdjustedUnitPrice) && {
+        goodReturnAdjustedUnitPrice: goodReturnAdjustedUnitPrice as any,
+      }),
+      goodReturnPriceId: next.goodReturnPriceId ?? null,
+      goodReturnFreeQty: safeNumber(next.goodReturnFreeQty),
+      goodReturnTotalQty: safeNumber(next.goodReturnTotalQty),
+      goodReturnTotalVal,
+      marketReturnPriceId: next.marketReturnPriceId ?? null,
+      marketReturnUnitPrice: safeNumber(next.marketReturnUnitPrice),
+      ...(Number.isFinite(marketReturnAdjustedUnitPrice) && {
+        marketReturnAdjustedUnitPrice: marketReturnAdjustedUnitPrice as any,
+      }),
+      marketReturnFreeQty: safeNumber(next.marketReturnFreeQty),
+      marketReturnTotalQty: safeNumber(next.marketReturnTotalQty),
+      marketReturnTotalVal,
+      finalTotalValue,
+      isActive: existing?.isActive ?? true,
+    }
+  }
   const [priceMap, setPriceMap] = useState<Record<number, number>>({})
   const derivedItems = useMemo(
     () => localItems.map((item) => recalcDerivedValues(item)),
@@ -190,101 +354,49 @@ export function BookingInvoiceItemsTable({
   }, [priceIds])
 
   const handleAddItem = (next: ItemFormValues) => {
-    if (!next.itemId) {
+    try {
+      if (!next.itemId) {
+        setAddItemOpen(false)
+        return
+      }
+      const newItem = buildItemFromDraft(next)
+      setLocalItems((prev) => [...prev, newItem])
       setAddItemOpen(false)
-      return
+      setDraftItem(emptyDraft)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to add item'
+      toast.warning(message)
     }
-    const hasReturns =
-      safeNumber(next.goodReturnTotalQty) > 0 ||
-      safeNumber(next.marketReturnTotalQty) > 0
-    const hasBaseItemInfo =
-      !!next.itemId &&
-      !!next.sellUnitPrice &&
-      next.totalBookQty !== null &&
-      next.totalBookQty !== undefined
-    if (hasReturns && !hasBaseItemInfo) {
-      toast.warning(
-        'You want to add only good returns or market returns without add any items, plz set Item name, Select Item price and set quintity value 0'
-      )
-      return
-    }
-    const bookQty = safeNumber(next.totalBookQty)
-    const cancelQty = safeNumber(next.totalCancelQty)
-    const netQty = Math.max(bookQty - cancelQty, 0)
-    const unitPrice = safeNumber(
-      next.adjustedUnitPrice ?? next.sellUnitPrice
-    )
-    const totalBookValue = Number((netQty * unitPrice).toFixed(2))
-    const discountPct = safeNumber(next.bookDiscountPercentage)
-    const totalBookDiscountValue = Number(
-      ((totalBookValue * discountPct) / 100).toFixed(2)
-    )
-    const totalBookSellValue = Number(
-      (totalBookValue - totalBookDiscountValue).toFixed(2)
-    )
-    const goodReturnAdjustedUnitPrice = safeNumber(
-      next.goodReturnAdjustedUnitPrice ?? next.goodReturnUnitPrice
-    )
-    const marketReturnAdjustedUnitPrice = safeNumber(
-      next.marketReturnAdjustedUnitPrice ?? next.marketReturnUnitPrice
-    )
-    const goodReturnTotalVal = computeReturnTotal(
-      safeNumber(next.goodReturnTotalQty),
-      safeNumber(next.goodReturnFreeQty),
-      goodReturnAdjustedUnitPrice
-    )
-    const marketReturnTotalVal = computeReturnTotal(
-      safeNumber(next.marketReturnTotalQty),
-      safeNumber(next.marketReturnFreeQty),
-      marketReturnAdjustedUnitPrice
-    )
-    const finalTotalValue = computeFinalTotal(
-      totalBookSellValue,
-      goodReturnTotalVal,
-      marketReturnTotalVal
-    )
+  }
 
-    const newItem: BookingInvoiceDetailDTO = {
-      id: Date.now(),
-      invoiceId: invoice.id,
-      itemId: next.itemId ?? 0,
-      itemName: next.itemName ?? '',
-      sellPriceId: next.sellPriceId ?? null,
-      sellUnitPrice: unitPrice,
-      totalBookQty: bookQty,
-      bookDiscountPercentage: discountPct,
-      totalBookDiscountValue,
-      totalBookValue,
-      totalBookSellValue,
-      totalCancelQty: cancelQty,
-      totalFreeQty: safeNumber(next.totalFreeQty),
-      totalActualQty: 0,
-      totalDiscountValue: totalBookDiscountValue,
-      discountPercentage: discountPct,
-      sellTotalPrice: totalBookSellValue,
-      goodReturnUnitPrice: safeNumber(next.goodReturnUnitPrice),
-      // persist adjusted price for accurate return totals
-      ...(Number.isFinite(goodReturnAdjustedUnitPrice) && {
-        goodReturnAdjustedUnitPrice: goodReturnAdjustedUnitPrice as any,
-      }),
-      goodReturnPriceId: next.goodReturnPriceId ?? null,
-      goodReturnFreeQty: safeNumber(next.goodReturnFreeQty),
-      goodReturnTotalQty: safeNumber(next.goodReturnTotalQty),
-      goodReturnTotalVal,
-      marketReturnPriceId: next.marketReturnPriceId ?? null,
-      marketReturnUnitPrice: safeNumber(next.marketReturnUnitPrice),
-      ...(Number.isFinite(marketReturnAdjustedUnitPrice) && {
-        marketReturnAdjustedUnitPrice: marketReturnAdjustedUnitPrice as any,
-      }),
-      marketReturnFreeQty: safeNumber(next.marketReturnFreeQty),
-      marketReturnTotalQty: safeNumber(next.marketReturnTotalQty),
-      marketReturnTotalVal,
-      finalTotalValue,
-      isActive: true,
+  const handleRowClick = (rowIndex: number) => {
+    const target = localItems[rowIndex]
+    if (!target) return
+    setEditIndex(rowIndex)
+    setEditDraft(mapDetailToDraft(target))
+    setEditItemOpen(true)
+  }
+
+  const handleSaveEditedItem = (next: ItemFormValues) => {
+    if (editIndex === null) {
+      setEditItemOpen(false)
+      return
     }
-    setLocalItems((prev) => [...prev, newItem])
-    setAddItemOpen(false)
-    setDraftItem(emptyDraft)
+    try {
+      const existing = localItems[editIndex]
+      if (!existing) return
+      const updatedItem = buildItemFromDraft(next, existing)
+      setLocalItems((prev) =>
+        prev.map((item, idx) => (idx === editIndex ? updatedItem : item))
+      )
+      setEditItemOpen(false)
+      setEditDraft(null)
+      setEditIndex(null)
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Failed to update item'
+      toast.warning(message)
+    }
   }
 
   const handleUpdate = async () => {
@@ -591,6 +703,7 @@ export function BookingInvoiceItemsTable({
         onUpdate={handleUpdate}
         onCancel={_onCancel}
         isUpdating={isUpdating}
+        onRowClick={handleRowClick}
       />
       <Dialog open={addItemOpen} onOpenChange={setAddItemOpen}>
         <DialogContent className='max-w-4xl max-h-[85vh] overflow-y-auto'>
@@ -608,6 +721,36 @@ export function BookingInvoiceItemsTable({
             onCancel={() => {
               setAddItemOpen(false)
               setDraftItem(emptyDraft)
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+      <Dialog
+        open={editItemOpen}
+        onOpenChange={(open) => {
+          setEditItemOpen(open)
+          if (!open) {
+            setEditDraft(null)
+            setEditIndex(null)
+          }
+        }}
+      >
+        <DialogContent className='max-w-4xl max-h-[85vh] overflow-y-auto'>
+          <DialogHeader>
+            <DialogTitle>Update Item</DialogTitle>
+            <DialogDescription className='sr-only'>
+              Update invoice item details
+            </DialogDescription>
+          </DialogHeader>
+          <UpdateItemForm
+            value={editDraft ?? emptyDraft}
+            onChange={(val) => setEditDraft(val)}
+            onSubmit={handleSaveEditedItem}
+            submitLabel='Update Item'
+            onCancel={() => {
+              setEditItemOpen(false)
+              setEditDraft(null)
+              setEditIndex(null)
             }}
           />
         </DialogContent>

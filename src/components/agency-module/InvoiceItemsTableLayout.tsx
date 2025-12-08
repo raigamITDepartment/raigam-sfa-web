@@ -11,6 +11,12 @@ import {
 import { formatPrice } from '@/lib/format-price'
 import { formatNegativeValue, safeNumber } from '@/lib/invoice-calcs'
 import { Plus } from 'lucide-react'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 export type InvoiceItemRow = {
   id: number
@@ -138,25 +144,33 @@ export function InvoiceItemsTableLayout({
   }
 
   return (
-    <div className='space-y-2'>
-      <div className='flex items-center justify-between'>
-        <p className='text-sm font-semibold text-slate-900 dark:text-slate-100'>
-          Invoice Items{' '}
-          <Badge variant='secondary'>
-            {tableRows.length} item{tableRows.length > 1 ? 's' : ''}
-          </Badge>
-        </p>
-        <div className='text-muted-foreground text-xs'>
-          <Button
-            size='sm'
-            className='inline-flex items-center gap-2'
-            onClick={onAddItem}
-          >
-            <Plus className='h-4 w-4' />
-            Add Item
-          </Button>
+    <TooltipProvider delayDuration={0}>
+      <div className='space-y-2'>
+        <div className='flex items-center justify-between'>
+          <p className='text-sm font-semibold text-slate-900 dark:text-slate-100'>
+            Invoice Items{' '}
+            <Badge variant='secondary'>
+              {tableRows.length} item{tableRows.length > 1 ? 's' : ''}
+            </Badge>
+          </p>
+          <div className='text-muted-foreground text-xs'>
+            <Tooltip delayDuration={150}>
+              <TooltipTrigger asChild>
+                <Button
+                  size='sm'
+                  className='inline-flex items-center gap-2'
+                  onClick={onAddItem}
+                >
+                  <Plus className='h-4 w-4' />
+                  Add Item
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side='bottom'>
+                <p>Click here add new item</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
         </div>
-      </div>
       <div className='space-y-4'>
         <div className='rounded-md border border-slate-200 p-1 dark:border-slate-800'>
           <div className='rounded-md border border-slate-200 dark:border-slate-800'>
@@ -183,108 +197,121 @@ export function InvoiceItemsTableLayout({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {tableRows.map((row, idx) => (
-                  <TableRow
-                    key={row.id ?? `row-${idx}`}
-                    className={`text-slate-800 dark:text-slate-100 transition-colors ${onRowClick ? 'cursor-pointer' : ''} ${
-                      idx % 2 === 0
-                        ? 'bg-white dark:bg-slate-900'
-                        : 'bg-slate-50 dark:bg-slate-900/70'
-                    } hover:bg-slate-100 hover:dark:bg-slate-800/60 [&>td]:border [&>td]:border-slate-200 [&>td]:px-2 [&>td]:py-2 dark:[&>td]:border-slate-800/70`}
-                    onClick={() => onRowClick?.(idx)}
-                  >
-                    <TableCell className='text-center font-medium'>
-                      {row.itemId}
-                    </TableCell>
-                    <TableCell className='max-w-[240px] font-medium whitespace-normal text-slate-900 dark:text-white'>
-                      <span className='block truncate'>{row.itemName}</span>
-                    </TableCell>
-                    <TableCell className='text-right tabular-nums'>
-                      {formatPrice(row.unitPrice)}
-                    </TableCell>
-                    <TableCell className='text-right text-slate-700 tabular-nums dark:text-slate-200'>
-                      {formatPrice(row.adjustedUnitPrice)}
-                    </TableCell>
-                    <TableCell className='text-right tabular-nums'>
-                      {safeNumber(row.totalBookQty)}
-                    </TableCell>
-                    <TableCell className='text-right tabular-nums'>
-                      {safeNumber(row.totalCancelQty)}
-                    </TableCell>
-                    <TableCell className='text-right tabular-nums bg-blue-50 dark:bg-blue-900/30'>
-                      {formatPrice(row.totalBookValue)}
-                    </TableCell>
-                    <TableCell className='text-right tabular-nums'>
-                      {safeNumber(row.totalFreeQty)}
-                    </TableCell>
-                    <TableCell className='text-right tabular-nums'>
-                      {safeNumber(
-                        row.bookDiscountPercentage ?? row.discountPercentage
-                      ).toFixed(2)}
-                    </TableCell>
-                    <TableCell className='text-right'>
-                      {formatPrice(
-                        safeNumber(row.totalBookDiscountValue ?? row.discountValue)
-                      )}
-                    </TableCell>
-                    <TableCell className='text-right tabular-nums bg-blue-50 dark:bg-blue-900/30'>
-                      {formatPrice(row.totalBookSellValue)}
-                    </TableCell>
-                    <TableCell
-                      className={`${goodReturnCellClass} text-right tabular-nums`}
+                {tableRows.map((row, idx) => {
+                  const rowContent = (
+                    <TableRow
+                      key={row.id ?? `row-${idx}`}
+                      className={`text-slate-800 dark:text-slate-100 transition-colors ${onRowClick ? 'cursor-pointer' : ''} ${
+                        idx % 2 === 0
+                          ? 'bg-white dark:bg-slate-900'
+                          : 'bg-slate-50 dark:bg-slate-900/70'
+                      } hover:bg-slate-100 hover:dark:bg-slate-800/60 [&>td]:border [&>td]:border-slate-200 [&>td]:px-2 [&>td]:py-2 dark:[&>td]:border-slate-800/70`}
+                      onClick={() => onRowClick?.(idx)}
                     >
-                      {formatPrice(row.goodReturnUnitPrice)}
-                    </TableCell>
-                    <TableCell
-                      className={`${goodReturnCellClass} text-right text-slate-700 tabular-nums dark:text-slate-200`}
-                    >
-                      {formatPrice(row.goodReturnAdjustedUnitPrice)}
-                    </TableCell>
-                    <TableCell
-                      className={`${goodReturnCellClass} text-right tabular-nums`}
-                    >
-                      {safeNumber(row.goodReturnTotalQty)}
-                    </TableCell>
-                    <TableCell
-                      className={`${goodReturnCellClass} text-right tabular-nums`}
-                    >
-                      {safeNumber(row.goodReturnFreeQty)}
-                    </TableCell>
-                    <TableCell
-                      className={`${goodReturnCellClass} text-right text-rose-600 dark:text-rose-300`}
-                    >
-                      {formatNegativeValue(row.goodReturnTotalVal)}
-                    </TableCell>
-                    <TableCell
-                      className={`${marketReturnCellClass} text-right tabular-nums`}
-                    >
-                      {formatPrice(row.marketReturnUnitPrice)}
-                    </TableCell>
-                    <TableCell
-                      className={`${marketReturnCellClass} text-right text-slate-700 tabular-nums dark:text-slate-200`}
-                    >
-                      {formatPrice(row.marketReturnAdjustedUnitPrice)}
-                    </TableCell>
-                    <TableCell
-                      className={`${marketReturnCellClass} text-right tabular-nums`}
-                    >
-                      {safeNumber(row.marketReturnTotalQty)}
-                    </TableCell>
-                    <TableCell
-                      className={`${marketReturnCellClass} text-right tabular-nums`}
-                    >
-                      {safeNumber(row.marketReturnFreeQty)}
-                    </TableCell>
-                    <TableCell
-                      className={`${marketReturnCellClass} text-right text-rose-600 dark:text-rose-300`}
-                    >
-                      {formatNegativeValue(row.marketReturnTotalVal)}
-                    </TableCell>
-                    <TableCell className='text-right font-semibold bg-blue-50 dark:bg-blue-900/30'>
-                      {formatPrice(row.finalTotalValue)}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                      <TableCell className='text-center font-medium'>
+                        {row.itemId}
+                      </TableCell>
+                      <TableCell className='max-w-[240px] font-medium whitespace-normal text-slate-900 dark:text-white'>
+                        <span className='block truncate'>{row.itemName}</span>
+                      </TableCell>
+                      <TableCell className='text-right tabular-nums'>
+                        {formatPrice(row.unitPrice)}
+                      </TableCell>
+                      <TableCell className='text-right text-slate-700 tabular-nums dark:text-slate-200'>
+                        {formatPrice(row.adjustedUnitPrice)}
+                      </TableCell>
+                      <TableCell className='text-right tabular-nums'>
+                        {safeNumber(row.totalBookQty)}
+                      </TableCell>
+                      <TableCell className='text-right tabular-nums'>
+                        {safeNumber(row.totalCancelQty)}
+                      </TableCell>
+                      <TableCell className='text-right tabular-nums bg-blue-50 dark:bg-blue-900/30'>
+                        {formatPrice(row.totalBookValue)}
+                      </TableCell>
+                      <TableCell className='text-right tabular-nums'>
+                        {safeNumber(row.totalFreeQty)}
+                      </TableCell>
+                      <TableCell className='text-right tabular-nums'>
+                        {safeNumber(
+                          row.bookDiscountPercentage ?? row.discountPercentage
+                        ).toFixed(2)}
+                      </TableCell>
+                      <TableCell className='text-right'>
+                        {formatPrice(
+                          safeNumber(row.totalBookDiscountValue ?? row.discountValue)
+                        )}
+                      </TableCell>
+                      <TableCell className='text-right tabular-nums bg-blue-50 dark:bg-blue-900/30'>
+                        {formatPrice(row.totalBookSellValue)}
+                      </TableCell>
+                      <TableCell
+                        className={`${goodReturnCellClass} text-right tabular-nums`}
+                      >
+                        {formatPrice(row.goodReturnUnitPrice)}
+                      </TableCell>
+                      <TableCell
+                        className={`${goodReturnCellClass} text-right text-slate-700 tabular-nums dark:text-slate-200`}
+                      >
+                        {formatPrice(row.goodReturnAdjustedUnitPrice)}
+                      </TableCell>
+                      <TableCell
+                        className={`${goodReturnCellClass} text-right tabular-nums`}
+                      >
+                        {safeNumber(row.goodReturnTotalQty)}
+                      </TableCell>
+                      <TableCell
+                        className={`${goodReturnCellClass} text-right tabular-nums`}
+                      >
+                        {safeNumber(row.goodReturnFreeQty)}
+                      </TableCell>
+                      <TableCell
+                        className={`${goodReturnCellClass} text-right text-rose-600 dark:text-rose-300`}
+                      >
+                        {formatNegativeValue(row.goodReturnTotalVal)}
+                      </TableCell>
+                      <TableCell
+                        className={`${marketReturnCellClass} text-right tabular-nums`}
+                      >
+                        {formatPrice(row.marketReturnUnitPrice)}
+                      </TableCell>
+                      <TableCell
+                        className={`${marketReturnCellClass} text-right text-slate-700 tabular-nums dark:text-slate-200`}
+                      >
+                        {formatPrice(row.marketReturnAdjustedUnitPrice)}
+                      </TableCell>
+                      <TableCell
+                        className={`${marketReturnCellClass} text-right tabular-nums`}
+                      >
+                        {safeNumber(row.marketReturnTotalQty)}
+                      </TableCell>
+                      <TableCell
+                        className={`${marketReturnCellClass} text-right tabular-nums`}
+                      >
+                        {safeNumber(row.marketReturnFreeQty)}
+                      </TableCell>
+                      <TableCell
+                        className={`${marketReturnCellClass} text-right text-rose-600 dark:text-rose-300`}
+                      >
+                        {formatNegativeValue(row.marketReturnTotalVal)}
+                      </TableCell>
+                      <TableCell className='text-right font-semibold bg-blue-50 dark:bg-blue-900/30'>
+                        {formatPrice(row.finalTotalValue)}
+                      </TableCell>
+                    </TableRow>
+                  )
+
+                  return onRowClick ? (
+                    <Tooltip key={row.id ?? `row-${idx}`} delayDuration={0}>
+                      <TooltipTrigger asChild>{rowContent}</TooltipTrigger>
+                      <TooltipContent side='top' align='center' sideOffset={4}>
+                        <p>Click to update this item</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    rowContent
+                  )
+                })}
                 <TableRow className='bg-blue-100 font-semibold text-blue-900 dark:bg-blue-900/50 dark:text-blue-100 [&>td]:border [&>td]:border-blue-200 dark:[&>td]:border-blue-800/60'>
                   <TableCell colSpan={2} className='pl-3'>
                     Totals
@@ -379,6 +406,7 @@ export function InvoiceItemsTableLayout({
         </Button>
       </div>
     </div>
+    </TooltipProvider>
   )
 }
 

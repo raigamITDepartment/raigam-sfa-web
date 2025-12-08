@@ -1,8 +1,5 @@
 import { useEffect, useState } from 'react'
-import {
-  getItemsGroupedByMainCategory,
-  findItemPriceByItemId,
-} from '@/services/sales/itemPriceApi'
+import { findItemPriceByItemId } from '@/services/sales/itemPriceApi'
 import {
   Select,
   SelectContent,
@@ -55,10 +52,6 @@ export const UpdateItemForm = ({
     finalTotalValue: null,
   }
 
-  const [items, setItems] = useState<{ id: number; label: string }[]>(
-    value.itemId && value.itemName ? [{ id: value.itemId, label: value.itemName }] : []
-  )
-  const [isLoadingItems, setIsLoadingItems] = useState(false)
   const [priceOptions, setPriceOptions] = useState<{ id: number; label: string; price: number }[]>([])
   const [isLoadingPrices, setIsLoadingPrices] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -311,29 +304,6 @@ export const UpdateItemForm = ({
     value.marketReturnFreeQty,
     value.marketReturnTotalVal,
   ])
-
-  useEffect(() => {
-    const catId = value.mainCatId
-    if (!catId) {
-      if (value.itemId && value.itemName) {
-        setItems([{ id: value.itemId, label: value.itemName }])
-      } else {
-        setItems([])
-      }
-      return
-    }
-    const loadItems = async () => {
-      setIsLoadingItems(true)
-      try {
-        const res = await getItemsGroupedByMainCategory(catId)
-        const list = Array.isArray(res) ? res : []
-        setItems(list.map((i) => ({ id: i.itemId, label: i.itemName })))
-      } finally {
-        setIsLoadingItems(false)
-      }
-    }
-    loadItems()
-  }, [value.mainCatId, value.itemId, value.itemName])
 
   useEffect(() => {
     const itemId = value.itemId

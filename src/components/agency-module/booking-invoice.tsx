@@ -31,6 +31,7 @@ import FullWidthDialog from '@/components/FullWidthDialog'
 import { Checkbox } from '@/components/ui/checkbox'
 import { CommonDialog } from '@/components/common-dialog'
 import { formatPrice } from '@/lib/format-price'
+import { createCombinedInvoicesPdf, createInvoicePdf } from '@/components/agency-module/InvoicePdfButton'
 
 const formatDate = (value?: string) => {
   if (!value || value === '0001-01-01') return '-'
@@ -78,6 +79,7 @@ const BookingInvoice = () => {
   const [printDialogOpen, setPrintDialogOpen] = useState(false)
   const [extraDetails, setExtraDetails] = useState<Record<string, unknown>>({})
   const [isFetchingExtras, setIsFetchingExtras] = useState(false)
+  const [isBuildingPdfs, setIsBuildingPdfs] = useState(false)
   const [extrasError, setExtrasError] = useState<string | null>(null)
 
   const { data, isLoading, isError, error } = useQuery({
@@ -376,6 +378,35 @@ const BookingInvoice = () => {
     loadExtras()
   }, [printDialogOpen, selectedInvoices, user?.territoryId, user?.userId])
 
+  const downloadSelectedInvoices = async () => {
+    const freshSelected = table
+      .getSelectedRowModel()
+      .flatRows.map((row) => row.original as BookingInvoiceReportItem)
+    if (!freshSelected.length) return
+    try {
+      setIsBuildingPdfs(true)
+      const pdfBytes = await createCombinedInvoicesPdf(freshSelected, extraDetails)
+      const blob = new Blob([pdfBytes], { type: 'application/pdf' })
+      const url = URL.createObjectURL(blob)
+
+      // Try to open in a new tab for quick viewing; fallback to download if blocked.
+      const opened = window.open(url, '_blank', 'noopener,noreferrer')
+      if (!opened) {
+        const link = document.createElement('a')
+        link.href = url
+        link.download =
+          freshSelected.length === 1
+            ? `invoice-${freshSelected[0].invoiceNo}.pdf`
+            : `invoices-${freshSelected.length}.pdf`
+        link.click()
+      }
+
+      setTimeout(() => URL.revokeObjectURL(url), 60_000)
+    } finally {
+      setIsBuildingPdfs(false)
+    }
+  }
+
   return (
     <Card className='space-y-4'>
       <CardContent>
@@ -466,12 +497,9 @@ const BookingInvoice = () => {
               : 'No invoices selected.'
           }
           primaryAction={{
-            label: 'Print',
-            onClick: () => {
-              window.print()
-              setPrintDialogOpen(false)
-            },
-            disabled: selectedInvoices.length === 0,
+            label: isBuildingPdfs ? 'Building PDFs...' : 'Download PDFs',
+            onClick: downloadSelectedInvoices,
+            disabled: selectedInvoices.length === 0 || isBuildingPdfs,
           }}
           secondaryAction={{
             label: 'Close',
@@ -482,6 +510,16 @@ const BookingInvoice = () => {
         >
           {selectedInvoices.length ? (
             <div className='space-y-4'>
+              <div className='flex justify-end'>
+                <Button
+                  size='sm'
+                  variant='outline'
+                  disabled={isBuildingPdfs}
+                  onClick={downloadSelectedInvoices}
+                >
+                  {isBuildingPdfs ? 'Building PDF…' : 'Download PDF'}
+                </Button>
+              </div>
               {extrasError ? (
                 <p className='text-sm text-red-600'>{extrasError}</p>
               ) : null}

@@ -68,6 +68,7 @@ type InvoiceItemsTableLayoutProps = {
   onUpdate: () => void
   onCancel?: () => void
   isUpdating?: boolean
+  onRowClick?: (rowIndex: number) => void
 }
 
 export function InvoiceItemsTableLayout({
@@ -80,6 +81,7 @@ export function InvoiceItemsTableLayout({
   onUpdate,
   onCancel,
   isUpdating,
+  onRowClick,
 }: InvoiceItemsTableLayoutProps) {
   const baseHeaderSurface = 'h-10 px-3 text-center'
   const headerTopClass = `${baseHeaderSurface} border border-slate-300 text-[11px] font-semibold dark:border-slate-800`
@@ -184,11 +186,12 @@ export function InvoiceItemsTableLayout({
                 {tableRows.map((row, idx) => (
                   <TableRow
                     key={row.id ?? `row-${idx}`}
-                    className={`text-slate-800 dark:text-slate-100 transition-colors ${
+                    className={`text-slate-800 dark:text-slate-100 transition-colors ${onRowClick ? 'cursor-pointer' : ''} ${
                       idx % 2 === 0
                         ? 'bg-white dark:bg-slate-900'
                         : 'bg-slate-50 dark:bg-slate-900/70'
                     } hover:bg-slate-100 hover:dark:bg-slate-800/60 [&>td]:border [&>td]:border-slate-200 [&>td]:px-2 [&>td]:py-2 dark:[&>td]:border-slate-800/70`}
+                    onClick={() => onRowClick?.(idx)}
                   >
                     <TableCell className='text-center font-medium'>
                       {row.itemId}

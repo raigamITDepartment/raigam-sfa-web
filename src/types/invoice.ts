@@ -25,6 +25,7 @@ export type BookingInvoiceDetailDTO = {
   itemName: string
   sellPriceId: number | null
   sellUnitPrice: number
+  adjustedUnitPrice?: number
   totalBookQty: number
   bookDiscountPercentage: number
   totalBookDiscountValue: number
@@ -38,11 +39,13 @@ export type BookingInvoiceDetailDTO = {
   sellTotalPrice: number
   goodReturnPriceId: number | null
   goodReturnUnitPrice: number
+  goodReturnAdjustedUnitPrice?: number
   goodReturnFreeQty: number
   goodReturnTotalQty: number
   goodReturnTotalVal: number
   marketReturnPriceId: number | null
   marketReturnUnitPrice: number
+  marketReturnAdjustedUnitPrice?: number
   marketReturnFreeQty: number
   marketReturnTotalQty: number
   marketReturnTotalVal: number
@@ -174,6 +177,7 @@ export type UpdateBookingInvoiceWithDetailsPayload = {
     itemId: number
     sellPriceId: number | null
     sellUnitPrice: number
+    adjustedUnitPrice?: number
     totalBookQty: number
     bookDiscountPercentage: number
     totalBookDiscountValue: number
@@ -188,11 +192,13 @@ export type UpdateBookingInvoiceWithDetailsPayload = {
     sellTotalPrice: number
     goodReturnPriceId: number | null
     goodReturnUnitPrice: number
+    goodReturnAdjustedUnitPrice?: number
     goodReturnFreeQty: number
     goodReturnTotalQty: number
     goodReturnTotalVal: number
     marketReturnPriceId: number | null
     marketReturnUnitPrice: number
+    marketReturnAdjustedUnitPrice?: number
     marketReturnFreeQty: number
     marketReturnTotalQty: number
     marketReturnTotalVal: number

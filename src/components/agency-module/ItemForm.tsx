@@ -13,35 +13,8 @@ import {
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-
-export type ItemFormValues = {
-  mainCatId: number | null
-  itemId: number | null
-  itemName: string
-  sellUnitPrice: number | null
-  sellPriceId?: number | null
-  adjustedUnitPrice: number | null
-  totalBookQty: number | null
-  totalCancelQty: number | null
-  totalBookValue: number | null
-  totalFreeQty: number | null
-  bookDiscountPercentage: number | null
-  totalBookDiscountValue: number | null
-  totalBookSellValue: number | null
-  goodReturnUnitPrice: number | null
-  goodReturnPriceId?: number | null
-  goodReturnAdjustedUnitPrice: number | null
-  goodReturnTotalQty: number | null
-  goodReturnFreeQty: number | null
-  goodReturnTotalVal: number | null
-  marketReturnUnitPrice: number | null
-  marketReturnPriceId?: number | null
-  marketReturnAdjustedUnitPrice: number | null
-  marketReturnTotalQty: number | null
-  marketReturnFreeQty: number | null
-  marketReturnTotalVal: number | null
-  finalTotalValue: number | null
-}
+import { GoodReturnSection, MarketReturnSection } from './ItemFormReturnSections'
+import type { ItemFormValues } from '@/types/itemForm'
 
 export type ItemFormProps = {
   value: ItemFormValues
@@ -66,12 +39,12 @@ export const ItemForm = ({
     itemName: '',
     sellUnitPrice: null,
     sellPriceId: null,
-    adjustedUnitPrice: null,
-    totalBookQty: null,
-    totalCancelQty: null,
+    adjustedUnitPrice: 0,
+    totalBookQty: 0,
+    totalCancelQty: 0,
     totalBookValue: null,
-    totalFreeQty: null,
-    bookDiscountPercentage: null,
+    totalFreeQty: 0,
+    bookDiscountPercentage: 0,
     totalBookDiscountValue: null,
     totalBookSellValue: null,
     goodReturnUnitPrice: null,
@@ -154,7 +127,7 @@ export const ItemForm = ({
     if (!value.mainCatId) nextErrors.mainCatId = 'Main Category is required'
     if (!value.itemId) nextErrors.itemId = 'Item Name is required'
     if (!value.sellUnitPrice) nextErrors.sellUnitPrice = 'Select Item Price is required'
-    if (!value.totalBookQty) nextErrors.totalBookQty = 'Quantity is required'
+    if (value.totalBookQty === null || value.totalBookQty === undefined) nextErrors.totalBookQty = 'Quantity is required'
 
     if (useGoodReturn) {
       if (!value.goodReturnUnitPrice) nextErrors.goodReturnUnitPrice = 'Good Return Unit Price is required'
@@ -526,7 +499,7 @@ export const ItemForm = ({
             step='0.01'
             className={controlClass}
             placeholder='Adjusted Unit Price (Rs)'
-            value={value.adjustedUnitPrice ?? ''}
+            value={value.adjustedUnitPrice ?? 0}
             onChange={(e) =>
               onChange({
                 ...value,
@@ -551,7 +524,7 @@ export const ItemForm = ({
             step='1'
             className={controlClass}
             placeholder='Quantity'
-            value={value.totalBookQty ?? ''}
+            value={value.totalBookQty ?? 0}
             onChange={(e) =>
               onChange({
                 ...value,
@@ -576,7 +549,7 @@ export const ItemForm = ({
             step='1'
             className={controlClass}
             placeholder='Cancel Quantity'
-            value={value.totalCancelQty ?? ''}
+            value={value.totalCancelQty ?? 0}
             onChange={(e) =>
               onChange({
                 ...value,
@@ -599,7 +572,7 @@ export const ItemForm = ({
             step='0.01'
             className={controlClass}
             placeholder='Discount (%)'
-            value={value.bookDiscountPercentage ?? ''}
+            value={value.bookDiscountPercentage ?? 0}
             onChange={(e) =>
               onChange({
                 ...value,
@@ -621,7 +594,7 @@ export const ItemForm = ({
           <Input
             className={controlClass}
             placeholder='Item Discount Value (Rs.)'
-            value={value.totalBookDiscountValue ?? ''}
+            value={value.totalBookDiscountValue ?? 0}
             disabled
           />
         </label>
@@ -633,7 +606,7 @@ export const ItemForm = ({
             step='1'
             className={controlClass}
             placeholder='Free Issue'
-            value={value.totalFreeQty ?? ''}
+            value={value.totalFreeQty ?? 0}
             onChange={(e) =>
               onChange({
                 ...value,
@@ -655,327 +628,35 @@ export const ItemForm = ({
           <Input
             className={`${controlClass} w-full`}
             placeholder='Total Book Sell Value (Rs.)'
-            value={value.totalBookSellValue ?? ''}
+            value={value.totalBookSellValue ?? 0}
             disabled
           />
         </label>
       </div>
 
-      <div className='mt-4 flex items-center gap-2 text-sm font-medium text-slate-800 dark:text-slate-100'>
-        <input
-          type='checkbox'
-          className='h-4 w-4 accent-blue-600 dark:accent-blue-500'
-          checked={useGoodReturn}
-          onChange={(e) => toggleGoodReturn(e.target.checked)}
-        />
-        Add Good Returns
-      </div>
+      <GoodReturnSection
+        controlClass={controlClass}
+        priceOptions={priceOptions}
+        isLoadingPrices={isLoadingPrices}
+        value={value}
+        onChange={onChange}
+        formatNegative={formatNegative}
+        useGoodReturn={useGoodReturn}
+        onToggle={toggleGoodReturn}
+        errors={errors}
+      />
 
-      {useGoodReturn ? (
-        <div className='space-y-3 rounded-md bg-gray-100 p-4 dark:bg-slate-800/50'>
-        <h4 className='text-sm font-semibold text-slate-900 dark:text-slate-100'>
-          Good Return Details
-        </h4>
-        <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
-          <label className='space-y-1 text-sm text-slate-700 dark:text-slate-200'>
-            <span className='block font-medium'>Unit Price</span>
-            <Select
-              disabled={!useGoodReturn || !value.itemId || isLoadingPrices}
-              value={
-                priceOptions.find((opt) => opt.price === value.goodReturnUnitPrice)
-                  ? String(
-                      priceOptions.find(
-                        (opt) => opt.price === value.goodReturnUnitPrice
-                      )?.id
-                    )
-                  : ''
-              }
-              onValueChange={(val) => {
-                const found = priceOptions.find((p) => String(p.id) === val)
-                onChange({
-                  ...value,
-                  goodReturnUnitPrice: found?.price ?? null,
-                  goodReturnPriceId: found?.id ?? null,
-                  goodReturnAdjustedUnitPrice: found?.price ?? null,
-                })
-              }}
-            >
-              <SelectTrigger className={`${controlClass} w-full`}>
-                <SelectValue
-                  placeholder={
-                    isLoadingPrices
-                      ? 'Loading prices...'
-                      : priceOptions.length
-                        ? 'Select Unit Price'
-                        : 'No prices found'
-                  }
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {priceOptions.map((opt) => (
-                  <SelectItem key={opt.id} value={String(opt.id)}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.goodReturnUnitPrice ? (
-              <p className='text-xs text-red-600'>{errors.goodReturnUnitPrice}</p>
-            ) : null}
-          </label>
-          <label className='space-y-1 text-sm text-slate-700 dark:text-slate-200'>
-            <span className='block font-medium'>Adjusted Unit Price</span>
-            <Input
-              type='number'
-              min='0'
-              step='0.01'
-              className={controlClass}
-              placeholder='Adjusted Unit Price'
-              value={value.goodReturnAdjustedUnitPrice ?? ''}
-              disabled={!useGoodReturn}
-              onChange={(e) =>
-                onChange({
-                  ...value,
-                  goodReturnAdjustedUnitPrice:
-                    e.target.value.trim() === ''
-                      ? null
-                      : Number.isNaN(Number(e.target.value))
-                        ? null
-                        : Number(e.target.value),
-                })
-              }
-            />
-          </label>
-          <label className='space-y-1 text-sm text-slate-700 dark:text-slate-200'>
-            <span className='block font-medium'>Quantity</span>
-            <Input
-              type='number'
-              min='0'
-              step='1'
-              className={controlClass}
-              placeholder='Quantity'
-              value={value.goodReturnTotalQty ?? ''}
-              disabled={!useGoodReturn}
-              onChange={(e) =>
-                onChange({
-                  ...value,
-                  goodReturnTotalQty:
-                    e.target.value.trim() === ''
-                      ? null
-                      : Number.isNaN(Number(e.target.value))
-                        ? null
-                        : Number(e.target.value),
-                })
-              }
-            />
-            {errors.goodReturnTotalQty ? (
-              <p className='text-xs text-red-600'>{errors.goodReturnTotalQty}</p>
-            ) : null}
-          </label>
-          <label className='space-y-1 text-sm text-slate-700 dark:text-slate-200'>
-            <span className='block font-medium'>Free Quantity</span>
-            <Input
-              type='number'
-              min='0'
-              step='1'
-              className={controlClass}
-              placeholder='Free Quantity'
-              value={value.goodReturnFreeQty ?? ''}
-              disabled={!useGoodReturn}
-              onChange={(e) =>
-                onChange({
-                  ...value,
-                  goodReturnFreeQty:
-                    e.target.value.trim() === ''
-                      ? null
-                      : Number.isNaN(Number(e.target.value))
-                        ? null
-                        : Number(e.target.value),
-                })
-              }
-            />
-          </label>
-          <label className='space-y-1 text-sm text-slate-700 dark:text-slate-200 md:col-span-2'>
-            <span className='block font-medium'>Good Return Total (Rs.)</span>
-            <Input
-              className={`${controlClass} w-full`}
-              placeholder='Total'
-              value={formatNegative(value.goodReturnTotalVal)}
-              disabled
-              onChange={(e) =>
-                onChange({
-                  ...value,
-                  goodReturnTotalVal:
-                    e.target.value.trim() === ''
-                      ? null
-                      : Number.isNaN(Number(e.target.value))
-                        ? null
-                        : Number(e.target.value),
-                })
-              }
-            />
-          </label>
-        </div>
-        </div>
-      ) : null}
-
-      <div className='mt-0 flex items-center gap-2 text-sm font-medium text-slate-800 dark:text-slate-100'>
-        <input
-          type='checkbox'
-          className='h-4 w-4 accent-blue-600 dark:accent-blue-500'
-          checked={useMarketReturn}
-          onChange={(e) => toggleMarketReturn(e.target.checked)}
-        />
-        Add Market Returns
-      </div>
-
-      {useMarketReturn ? (
-        <div className='space-y-3 rounded-md bg-gray-100 p-4 dark:bg-slate-800/50'>
-        <h4 className='text-sm font-semibold text-slate-900 dark:text-slate-100'>
-          Market Return Details
-        </h4>
-        <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
-          <label className='space-y-1 text-sm text-slate-700 dark:text-slate-200'>
-            <span className='block font-medium'>Unit Price</span>
-            <Select
-              disabled={!useMarketReturn || !value.itemId || isLoadingPrices}
-              value={
-                priceOptions.find((opt) => opt.price === value.marketReturnUnitPrice)
-                  ? String(
-                      priceOptions.find(
-                        (opt) => opt.price === value.marketReturnUnitPrice
-                      )?.id
-                    )
-                  : ''
-              }
-              onValueChange={(val) => {
-                const found = priceOptions.find((p) => String(p.id) === val)
-                onChange({
-                  ...value,
-                  marketReturnUnitPrice: found?.price ?? null,
-                  marketReturnPriceId: found?.id ?? null,
-                  marketReturnAdjustedUnitPrice: found?.price ?? null,
-                })
-              }}
-            >
-              <SelectTrigger className={`${controlClass} w-full`}>
-                <SelectValue
-                  placeholder={
-                    isLoadingPrices
-                      ? 'Loading prices...'
-                      : priceOptions.length
-                        ? 'Select Unit Price'
-                        : 'No prices found'
-                  }
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {priceOptions.map((opt) => (
-                  <SelectItem key={opt.id} value={String(opt.id)}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.marketReturnUnitPrice ? (
-              <p className='text-xs text-red-600'>{errors.marketReturnUnitPrice}</p>
-            ) : null}
-          </label>
-          <label className='space-y-1 text-sm text-slate-700 dark:text-slate-200'>
-            <span className='block font-medium'>Adjusted Unit Price</span>
-            <Input
-              type='number'
-              min='0'
-              step='0.01'
-              className={controlClass}
-              placeholder='Adjusted Unit Price'
-              value={value.marketReturnAdjustedUnitPrice ?? ''}
-              disabled={!useMarketReturn}
-              onChange={(e) =>
-                onChange({
-                  ...value,
-                  marketReturnAdjustedUnitPrice:
-                    e.target.value.trim() === ''
-                      ? null
-                      : Number.isNaN(Number(e.target.value))
-                        ? null
-                        : Number(e.target.value),
-                })
-              }
-            />
-          </label>
-          <label className='space-y-1 text-sm text-slate-700 dark:text-slate-200'>
-            <span className='block font-medium'>Quantity</span>
-            <Input
-              type='number'
-              min='0'
-              step='1'
-              className={controlClass}
-              placeholder='Quantity'
-              value={value.marketReturnTotalQty ?? ''}
-              disabled={!useMarketReturn}
-              onChange={(e) =>
-                onChange({
-                  ...value,
-                  marketReturnTotalQty:
-                    e.target.value.trim() === ''
-                      ? null
-                      : Number.isNaN(Number(e.target.value))
-                        ? null
-                        : Number(e.target.value),
-                })
-              }
-            />
-            {errors.marketReturnTotalQty ? (
-              <p className='text-xs text-red-600'>{errors.marketReturnTotalQty}</p>
-            ) : null}
-          </label>
-          <label className='space-y-1 text-sm text-slate-700 dark:text-slate-200'>
-            <span className='block font-medium'>Free Quantity</span>
-            <Input
-              type='number'
-              min='0'
-              step='1'
-              className={controlClass}
-              placeholder='Free Quantity'
-              value={value.marketReturnFreeQty ?? ''}
-              disabled={!useMarketReturn}
-              onChange={(e) =>
-                onChange({
-                  ...value,
-                  marketReturnFreeQty:
-                    e.target.value.trim() === ''
-                      ? null
-                      : Number.isNaN(Number(e.target.value))
-                        ? null
-                        : Number(e.target.value),
-                })
-              }
-            />
-          </label>
-          <label className='space-y-1 text-sm text-slate-700 dark:text-slate-200 md:col-span-2'>
-            <span className='block font-medium'>Total (Rs.)</span>
-            <Input
-              className={`${controlClass} w-full`}
-              placeholder='Total'
-              value={formatNegative(value.marketReturnTotalVal)}
-              disabled
-              onChange={(e) =>
-                onChange({
-                  ...value,
-                  marketReturnTotalVal:
-                    e.target.value.trim() === ''
-                      ? null
-                      : Number.isNaN(Number(e.target.value))
-                        ? null
-                        : Number(e.target.value),
-                })
-              }
-            />
-          </label>
-        </div>
-        </div>
-      ) : null}
+      <MarketReturnSection
+        controlClass={controlClass}
+        priceOptions={priceOptions}
+        isLoadingPrices={isLoadingPrices}
+        value={value}
+        onChange={onChange}
+        formatNegative={formatNegative}
+        useMarketReturn={useMarketReturn}
+        onToggle={toggleMarketReturn}
+        errors={errors}
+      />
 
       <div className='rounded-lg border border-blue-100 bg-gradient-to-r from-blue-50 to-indigo-50 p-4 shadow-sm dark:border-slate-700 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800'>
         <div className='flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between'>

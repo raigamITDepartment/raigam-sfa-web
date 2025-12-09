@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useEffect, useMemo, useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   getCoreRowModel,
   getFilteredRowModel,
@@ -8,26 +8,16 @@ import {
   useReactTable,
   type ColumnDef,
 } from '@tanstack/react-table'
-import { getAllAvailableBookingInvoices } from '@/services/reports/invoiceReports'
-import type { BookingInvoiceReportItem } from '@/types/invoice'
-import { cancelInvoice } from '@/services/sales/invoice/invoiceApi'
-import { useAppDispatch, useAppSelector } from '@/store/hooks'
-import { Pencil, XCircle } from 'lucide-react'
-import { toast } from 'sonner'
-import { cn } from '@/lib/utils'
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogDescription,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
+  findInvoicePrintExtraDetailsByRequiredArgs,
+  getAllAvailableBookingInvoices,
+} from '@/services/reports/invoiceReports'
+import type { BookingInvoiceReportItem, InvoiceTypeParam } from '@/types/invoice'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
+import { Pencil } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Textarea } from '@/components/ui/textarea'
 import InvoiceNumber from '@/components/InvoiceNumber'
 import BookingInvoiceFilter, {
   type BookingInvoiceFilters,
@@ -38,8 +28,10 @@ import BookingInvoiceTableSection from '@/components/agency-module/booking-invoi
 import { DataTableColumnHeader } from '@/components/data-table'
 import { setFilters as setStoredFilters } from '@/store/bookingInvoiceSlice'
 import FullWidthDialog from '@/components/FullWidthDialog'
+import { Checkbox } from '@/components/ui/checkbox'
+import { CommonDialog } from '@/components/common-dialog'
 import { formatPrice } from '@/lib/format-price'
-import type { InvoiceTypeParam } from '@/types/invoice'
+import { createCombinedInvoicesPdf } from '@/components/agency-module/InvoicePdfButton'
 
 const formatDate = (value?: string) => {
   if (!value || value === '0001-01-01') return '-'
@@ -61,7 +53,6 @@ const BookingInvoice = () => {
   const savedFilters = useAppSelector((s) => s.bookingInvoice.filters)
   const dispatch = useAppDispatch()
   const queryClient = useQueryClient()
-
   const toIso = (d: Date) => d.toISOString().slice(0, 10)
   const defaultDates = useMemo(() => {
     const today = new Date()
@@ -81,39 +72,15 @@ const BookingInvoice = () => {
       }
     )
   })
-  const [cancelDialogOpen, setCancelDialogOpen] = useState(false)
-  const [cancelRemark, setCancelRemark] = useState('')
-  const [cancelTarget, setCancelTarget] =
-    useState<BookingInvoiceReportItem | null>(null)
+  const [rowSelection, setRowSelection] = useState({})
   const [invoicePreviewOpen, setInvoicePreviewOpen] = useState(false)
   const [selectedInvoice, setSelectedInvoice] =
     useState<BookingInvoiceReportItem | null>(null)
-  const cancelInvoiceMutation = useMutation({
-    mutationFn: async (vars: {
-      invoiceId: number | string
-      userId: number | string
-    }) => cancelInvoice(vars.invoiceId, vars.userId),
-    onSuccess: (res, vars) => {
-      const invoiceLabel = cancelTarget?.invoiceNo ?? vars.invoiceId
-      const message =
-        res?.message ||
-        `Invoice ${invoiceLabel} canceled successfully${
-          cancelRemark ? ` (Remark: ${cancelRemark})` : ''
-        }`
-      toast.success(message)
-      queryClient.invalidateQueries({
-        queryKey: ['booking-invoices', user?.territoryId],
-      })
-      setCancelDialogOpen(false)
-      setCancelRemark('')
-      setCancelTarget(null)
-    },
-    onError: (err) => {
-      const message =
-        err instanceof Error ? err.message : 'Failed to cancel invoice'
-      toast.error(message)
-    },
-  })
+  const [printDialogOpen, setPrintDialogOpen] = useState(false)
+  const [extraDetails, setExtraDetails] = useState<Record<string, unknown>>({})
+  const [isFetchingExtras, setIsFetchingExtras] = useState(false)
+  const [isBuildingPdfs, setIsBuildingPdfs] = useState(false)
+  const [extrasError, setExtrasError] = useState<string | null>(null)
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: [
@@ -122,6 +89,8 @@ const BookingInvoice = () => {
       filters.startDate,
       filters.endDate,
       filters.invoiceType,
+      defaultDates.startDate,
+      defaultDates.endDate,
     ],
     enabled: Boolean(user?.territoryId),
     staleTime: 1000 * 60 * 5, // cache for 5 minutes to avoid unnecessary reloads
@@ -137,15 +106,40 @@ const BookingInvoice = () => {
         endDate: filters.endDate ?? defaultDates.endDate,
         invoiceType: invoiceTypeParam,
       }
-      return getAllAvailableBookingInvoices(payload).then((res) => {
-        console.log('[booking-invoice] getAllAvailableBookingInvoices response', res)
-        return res
-      })
+      return getAllAvailableBookingInvoices(payload)
     },
   })
 
   const columns = useMemo<ColumnDef<BookingInvoiceReportItem>[]>(
     () => [
+      {
+        id: 'select',
+        header: ({ table }) => (
+          <div className='flex items-center justify-center pl-1 pr-2'>
+            <Checkbox
+              checked={
+                table.getIsAllPageRowsSelected() ||
+                (table.getIsSomePageRowsSelected() && 'indeterminate')
+              }
+              onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+              aria-label='Select all'
+            />
+          </div>
+        ),
+        cell: ({ row }) => (
+          <div className='flex items-center justify-center pl-1 pr-2'>
+            <Checkbox
+              checked={row.getIsSelected()}
+              onCheckedChange={(value) => row.toggleSelected(!!value)}
+              aria-label='Select row'
+            />
+          </div>
+        ),
+        enableSorting: false,
+        enableHiding: false,
+        meta: { thClassName: 'w-12 text-center' },
+        size: 48,
+      },
       {
         accessorKey: 'invoiceNo',
         header: ({ column }) => (
@@ -187,38 +181,6 @@ const BookingInvoice = () => {
         cell: ({ row }) => (
             <span className='block text-right tabular-nums'>
               {formatPrice(row.original.totalBookFinalValue)}
-            </span>
-        ),
-        meta: { thClassName: 'text-right' },
-      },
-      {
-        accessorKey: 'discountPercentage',
-        header: ({ column }) => (
-          <DataTableColumnHeader
-            column={column}
-            title='Discount %'
-            className='w-full justify-end'
-          />
-        ),
-        cell: ({ row }) => (
-          <span className='block text-right tabular-nums'>
-            {row.original.discountPercentage.toFixed(2)}
-          </span>
-        ),
-        meta: { thClassName: 'text-right' },
-      },
-      {
-        accessorKey: 'totalDiscountValue',
-        header: ({ column }) => (
-          <DataTableColumnHeader
-            column={column}
-            title='Discount Value'
-            className='w-full justify-end'
-          />
-        ),
-        cell: ({ row }) => (
-            <span className='block text-right tabular-nums'>
-              {formatPrice(row.original.totalDiscountValue)}
             </span>
         ),
         meta: { thClassName: 'text-right' },
@@ -318,20 +280,6 @@ const BookingInvoice = () => {
               <Pencil className='h-4 w-4' />
               <span className='sr-only'>Edit</span>
             </Button>
-            <Button
-              variant='ghost'
-              size='icon'
-              className='size-8 text-rose-600 hover:text-rose-700'
-              onClick={() => {
-                setCancelTarget(row.original)
-                setCancelRemark('')
-                setCancelDialogOpen(true)
-              }}
-              disabled={cancelInvoiceMutation.isPending}
-            >
-              <XCircle className='h-4 w-4' />
-              <span className='sr-only'>Cancel invoice</span>
-            </Button>
           </div>
         ),
         meta: { thClassName: 'text-center' },
@@ -361,6 +309,12 @@ const BookingInvoice = () => {
   const table = useReactTable({
     data: rows,
     columns,
+    state: {
+      rowSelection,
+    },
+    onRowSelectionChange: setRowSelection,
+    enableRowSelection: true,
+    getRowId: (row) => String(row.id ?? row.invoiceNo),
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -371,6 +325,92 @@ const BookingInvoice = () => {
       },
     },
   })
+
+  const selectedInvoices = useMemo(() => {
+    const selectedIds = new Set(
+      Object.entries(rowSelection)
+        .filter(([, isSelected]) => Boolean(isSelected))
+        .map(([key]) => key)
+    )
+    return rows.filter((row) => {
+      const id = String(row.id ?? row.invoiceNo)
+      return selectedIds.has(id)
+    })
+  }, [rowSelection, rows])
+
+  useEffect(() => {
+    const loadExtras = async () => {
+      if (!printDialogOpen || !selectedInvoices.length) return
+      setIsFetchingExtras(true)
+      setExtrasError(null)
+      try {
+        const results = await Promise.all(
+          selectedInvoices.map(async (invoice) => {
+            const invoiceId =
+              typeof invoice.id === 'number' && Number.isFinite(invoice.id)
+                ? invoice.id
+                : Number(invoice.invoiceNo) || 0
+            const res = await findInvoicePrintExtraDetailsByRequiredArgs({
+              territoryId: invoice.territoryId ?? user?.territoryId ?? 0,
+              routeId: invoice.routeId ?? 0,
+              outletId: invoice.outletId ?? 0,
+              invoiceId,
+              userId: user?.userId ?? 0,
+            })
+            return {
+              key: invoice.id ?? invoice.invoiceNo,
+              data: res?.payload ?? res,
+            }
+          })
+        )
+        const map: Record<string, unknown> = {}
+        results.forEach((r) => {
+          if (r.key) map[String(r.key)] = r.data
+        })
+        setExtraDetails(map)
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to load details'
+        setExtrasError(message)
+      } finally {
+        setIsFetchingExtras(false)
+      }
+    }
+    loadExtras()
+  }, [printDialogOpen, selectedInvoices, user?.territoryId, user?.userId])
+
+  const downloadSelectedInvoices = async () => {
+    const freshSelected = table
+      .getSelectedRowModel()
+      .flatRows.map((row) => row.original as BookingInvoiceReportItem)
+    if (!freshSelected.length) return
+    try {
+      setIsBuildingPdfs(true)
+      const pdfBytes = await createCombinedInvoicesPdf(
+        freshSelected,
+        extraDetails,
+        '/src/assets/logo.png'
+      )
+      const pdfBuffer: ArrayBuffer = new Uint8Array(pdfBytes).buffer
+      const blob = new Blob([pdfBuffer], { type: 'application/pdf' })
+      const url = URL.createObjectURL(blob)
+
+      // Try to open in a new tab for quick viewing; fallback to download if blocked.
+      const opened = window.open(url, '_blank', 'noopener,noreferrer')
+      if (!opened) {
+        const link = document.createElement('a')
+        link.href = url
+        link.download =
+          freshSelected.length === 1
+            ? `invoice-${freshSelected[0].invoiceNo}.pdf`
+            : `invoices-${freshSelected.length}.pdf`
+        link.click()
+      }
+
+      setTimeout(() => URL.revokeObjectURL(url), 60_000)
+    } finally {
+      setIsBuildingPdfs(false)
+    }
+  }
 
   return (
     <Card className='space-y-4'>
@@ -401,75 +441,9 @@ const BookingInvoice = () => {
           error={error}
           rows={rows}
           statusFilterOptions={statusFilterOptions}
+          onPrintClick={() => setPrintDialogOpen(true)}
+          isPrintDisabled={selectedInvoices.length === 0}
         />
-        <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Cancel invoice?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Canceling will mark this invoice as canceled and may not be
-                reversible. Please provide a remark before confirming.
-              </AlertDialogDescription>
-              {cancelTarget?.invoiceNo ? (
-                <p className='text-sm text-slate-600 dark:text-slate-300'>
-                  Invoice:{' '}
-                  <InvoiceNumber
-                    invoiceId={cancelTarget.invoiceNo}
-                    className='font-semibold text-slate-900 dark:text-slate-100'
-                  />
-                </p>
-              ) : null}
-            </AlertDialogHeader>
-            <div className='space-y-2'>
-              <p className='text-sm text-slate-600 dark:text-slate-300'>
-                Please enter a cancel remark.
-              </p>
-              <Textarea
-                value={cancelRemark}
-                onChange={(e) => setCancelRemark(e.target.value)}
-                placeholder='Enter cancel remark'
-                rows={3}
-              />
-            </div>
-            <AlertDialogFooter>
-              <AlertDialogCancel
-                className='border border-slate-300 bg-white text-slate-900 hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-slate-200 focus-visible:ring-offset-2 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50 dark:hover:bg-slate-800'
-                onClick={() => {
-                  setCancelDialogOpen(false)
-                  setCancelRemark('')
-                  setCancelTarget(null)
-                }}
-                disabled={cancelInvoiceMutation.isPending}
-              >
-                Close
-              </AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => {
-                  if (!cancelTarget?.id) {
-                    toast.error('Missing invoice id')
-                    return
-                  }
-                  if (!user?.userId) {
-                    toast.error('Missing user id')
-                    return
-                  }
-                  cancelInvoiceMutation.mutate({
-                    invoiceId: cancelTarget.id,
-                    userId: user.userId,
-                  })
-                }}
-                disabled={
-                  !cancelRemark.trim() || cancelInvoiceMutation.isPending
-                }
-                className='bg-red-600 text-white hover:bg-red-700 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 disabled:opacity-70'
-              >
-                {cancelInvoiceMutation.isPending
-                  ? 'Canceling...'
-                  : 'Confirm Cancel'}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
         <FullWidthDialog
           title='Invoice Details'
           open={invoicePreviewOpen}
@@ -500,6 +474,8 @@ const BookingInvoice = () => {
                       filters.startDate,
                       filters.endDate,
                       filters.invoiceType,
+                      defaultDates.startDate,
+                      defaultDates.endDate,
                     ],
                   })
                   setInvoicePreviewOpen(false)
@@ -514,6 +490,102 @@ const BookingInvoice = () => {
             </div>
           ) : null}
         </FullWidthDialog>
+        <CommonDialog
+          open={printDialogOpen}
+          onOpenChange={setPrintDialogOpen}
+          title='Print Selected Invoices'
+          description={
+            selectedInvoices.length
+              ? `You have selected ${selectedInvoices.length} invoice${
+                  selectedInvoices.length > 1 ? 's' : ''
+                } to print.`
+              : 'No invoices selected.'
+          }
+          primaryAction={{
+            label: isBuildingPdfs ? 'Building PDFs...' : 'Download PDFs',
+            onClick: downloadSelectedInvoices,
+            disabled: selectedInvoices.length === 0 || isBuildingPdfs,
+          }}
+          secondaryAction={{
+            label: 'Close',
+            variant: 'outline',
+            onClick: () => setPrintDialogOpen(false),
+          }}
+          bodyClassName='space-y-3'
+        >
+          {selectedInvoices.length ? (
+            <div className='space-y-4'>
+              <div className='flex justify-end'>
+                <Button
+                  size='sm'
+                  variant='outline'
+                  disabled={isBuildingPdfs}
+                  onClick={downloadSelectedInvoices}
+                >
+                  {isBuildingPdfs ? 'Building PDF…' : 'Download PDF'}
+                </Button>
+              </div>
+              {extrasError ? (
+                <p className='text-sm text-red-600'>{extrasError}</p>
+              ) : null}
+              <div className='max-h-[70vh] space-y-4 overflow-y-auto pr-1'>
+                {selectedInvoices.map((invoice) => {
+                  const extra = extraDetails[String(invoice.id ?? invoice.invoiceNo)]
+                  const showLoading = isFetchingExtras && !extra
+                  return (
+                    <div
+                      key={`extra-${invoice.id ?? invoice.invoiceNo}`}
+                      className='rounded border bg-muted/10'
+                    >
+                      <div className='flex flex-wrap items-center justify-between gap-2 border-b bg-muted/40 px-3 py-2'>
+                        <div className='text-sm font-semibold text-slate-900 dark:text-slate-50'>
+                          Invoice <InvoiceNumber invoiceId={invoice.invoiceNo} />
+                        </div>
+                        <div className='text-xs text-muted-foreground'>
+                          Type: {invoice.invoiceType ?? '-'} | Date:{' '}
+                          {formatDate(invoice.dateBook)} | Status:{' '}
+                          {deriveStatus(invoice)}
+                        </div>
+                      </div>
+                      <div className='space-y-3 p-3 text-xs'>
+                        <div className='rounded bg-white p-3 text-slate-900 shadow-sm dark:bg-slate-900 dark:text-slate-100'>
+                          <div className='mb-2 text-[11px] uppercase text-muted-foreground'>
+                            Booking Invoice Payload
+                          </div>
+                          <pre className='whitespace-pre-wrap break-words text-[11px] leading-relaxed'>
+                            {JSON.stringify(invoice, null, 2)}
+                          </pre>
+                        </div>
+                        <div className='rounded bg-white p-3 text-slate-900 shadow-sm dark:bg-slate-900 dark:text-slate-100'>
+                          <div className='mb-2 text-[11px] uppercase text-muted-foreground'>
+                            Extra Print Details (from findInvoicePrintExtraDetailsByRequiredArgs)
+                          </div>
+                          {showLoading ? (
+                            <p className='text-[11px] text-muted-foreground'>
+                              Loading extra details...
+                            </p>
+                          ) : extra ? (
+                            <pre className='whitespace-pre-wrap break-words text-[11px] leading-relaxed'>
+                              {JSON.stringify(extra, null, 2)}
+                            </pre>
+                          ) : (
+                            <p className='text-[11px] text-muted-foreground'>
+                              No extra details returned for this invoice.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          ) : (
+            <p className='text-sm text-muted-foreground'>
+              Select at least one invoice to print.
+            </p>
+          )}
+        </CommonDialog>
       </CardContent>
     </Card>
   )

@@ -3,14 +3,34 @@ import type {
   BookingInvoiceParams,
   BookingInvoicesResponse,
 } from '@/types/invoice'
+import type { ApiResponse } from '@/types/common'
 
 export const INVOICE_REPORT_BASE = '/api/v1/reports/invoiceReport'
+const INVOICE_PRINT_BASE = '/api/v1/sales/invoice'
 
 export async function getAllAvailableBookingInvoices(
   params: BookingInvoiceParams
 ) {
   const res = await http.get<BookingInvoicesResponse>(
     `${INVOICE_REPORT_BASE}/getAllAvailableBookingInvoices`,
+    { params }
+  )
+  return res.data
+}
+
+export type InvoicePrintExtraDetailsParams = {
+  territoryId: number
+  routeId: number
+  outletId: number
+  invoiceId: number
+  userId: number
+}
+
+export async function findInvoicePrintExtraDetailsByRequiredArgs(
+  params: InvoicePrintExtraDetailsParams
+) {
+  const res = await http.get<ApiResponse<unknown>>(
+    `${INVOICE_PRINT_BASE}/findInvoicePrintExtraDetailsByRequiredArgs`,
     { params }
   )
   return res.data

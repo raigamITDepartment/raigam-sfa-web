@@ -12,9 +12,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { Button } from '@/components/ui/button'
 import { DataTablePagination, DataTableToolbar } from '@/components/data-table'
 import { CommonAlert } from '@/components/common-alert'
 import type { BookingInvoiceReportItem } from '@/types/invoice'
+import { Printer } from 'lucide-react'
 
 interface BookingInvoiceTableSectionProps {
   table: ReactTable<BookingInvoiceReportItem>
@@ -24,6 +26,8 @@ interface BookingInvoiceTableSectionProps {
   error: unknown
   rows: BookingInvoiceReportItem[]
   statusFilterOptions: { label: string; value: string }[]
+  onPrintClick: () => void
+  isPrintDisabled: boolean
 }
 
 export function BookingInvoiceTableSection({
@@ -34,6 +38,8 @@ export function BookingInvoiceTableSection({
   error,
   rows,
   statusFilterOptions,
+  onPrintClick,
+  isPrintDisabled,
 }: BookingInvoiceTableSectionProps) {
   const tableRows = table.getRowModel().rows
   const hasRows = tableRows.length > 0
@@ -97,6 +103,18 @@ export function BookingInvoiceTableSection({
                 options: statusFilterOptions,
               },
             ]}
+            rightContentAfterViewOptions={
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 gap-2 px-3"
+                onClick={onPrintClick}
+                disabled={isPrintDisabled}
+              >
+                <Printer className="h-4 w-4" />
+                Print Selected
+              </Button>
+            }
           />
           <div className="mt-4 mb-4 rounded-md border">
             <Table className="text-xs">

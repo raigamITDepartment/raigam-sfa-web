@@ -20,6 +20,7 @@ type DataTableToolbarProps<TData> = {
     }[]
   }[]
   rightContent?: React.ReactNode
+  rightContentAfterViewOptions?: React.ReactNode
 }
 
 export function DataTableToolbar<TData>({
@@ -28,6 +29,7 @@ export function DataTableToolbar<TData>({
   searchKey,
   filters = [],
   rightContent,
+  rightContentAfterViewOptions,
 }: DataTableToolbarProps<TData>) {
   const isFiltered =
     table.getState().columnFilters.length > 0 || table.getState().globalFilter
@@ -85,6 +87,7 @@ export function DataTableToolbar<TData>({
       <div className='flex items-center gap-2'>
         {rightContent}
         <DataTableViewOptions table={table} />
+        {rightContentAfterViewOptions}
       </div>
     </div>
   )

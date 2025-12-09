@@ -185,18 +185,36 @@ async function renderInvoiceIntoDoc(
   }
 
   const agentNameText =
-    getExtraString('agentName') || normalize((invoice as any).dealerName) || '-'
+    getExtraString('agentName') ||
+    normalize((invoice as any).agentName) ||
+    normalize((invoice as any).dealerName) ||
+    '-'
+  const outletNameText =
+    getExtraString('outletName') ||
+    normalize((invoice as any).outletName) ||
+    normalize((invoice as any).dealerName) ||
+    '-'
   const shopAddressText = formatAddressTwoLines(collectAddressParts())
+  const territoryCodeVal = getExtraString('territoryCode')
+  const routeCodeVal = getExtraString('routeCode')
+  const shopCodeVal = getExtraString('shopCode')
   const territoryText =
-    getExtraString('territoryCode') ||
+    territoryCodeVal ||
     normalize((invoice as any).territory) ||
     (invoice.territoryId ? String(invoice.territoryId) : '-') ||
     '-'
-  const dealerCodeText =
-    getExtraString('dealerCode') ||
-    getExtraString('shopCode') ||
-    (invoice.outletId ? String(invoice.outletId) : '-') ||
-    '-'
+  const dealerCodeText = (() => {
+    const parts = [territoryCodeVal, routeCodeVal, shopCodeVal]
+    const hasAny = parts.some((p) => p)
+    if (hasAny) {
+      return parts.map((p) => p || '-').join('/')
+    }
+    return (
+      getExtraString('dealerCode') ||
+      (invoice.outletId ? String(invoice.outletId) : '-') ||
+      '-'
+    )
+  })()
   const orderTimeText = getExtraString('orderTime', '-')
   const agentMobileText = getExtraString('agentMobileNumber', '-')
 
@@ -333,7 +351,7 @@ async function renderInvoiceIntoDoc(
   // Info blocks
   const leftInfo: Array<[string, string]> = [
     ['Dealer Code:', dealerCodeText],
-    ['Dealer Name:', agentNameText],
+    ['Dealer Name:', outletNameText],
     ['Territory:', territoryText],
     ['Address:', shopAddressText],
   ]

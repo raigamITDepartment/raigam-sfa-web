@@ -7,6 +7,7 @@ import {
   type PDFFont,
   type PDFPage,
 } from 'pdf-lib'
+import Logo from '@/assets/logo.png'
 import { Button } from '@/components/ui/button'
 import InvoiceNumber, { formatInvoiceNumber } from '@/components/InvoiceNumber'
 
@@ -91,7 +92,7 @@ const loadPdfLib = async (): Promise<PdfLib> => {
 export async function createInvoicePdf(
   invoice: BookingInvoiceReportItem,
   extraDetails?: unknown,
-  logoUrl = '/src/assets/logo.png'
+  logoUrl: string = Logo
 ) {
   const lib = await loadPdfLib()
   const pdfDoc = await lib.PDFDocument.create()
@@ -112,7 +113,7 @@ export async function createInvoicePdf(
 export async function createCombinedInvoicesPdf(
   invoices: BookingInvoiceReportItem[],
   extras: Record<string, unknown>,
-  logoUrl = '/src/assets/logo.png'
+  logoUrl: string = Logo
 ) {
   const lib = await loadPdfLib()
   const combined = await lib.PDFDocument.create()

@@ -78,9 +78,10 @@ const BookingInvoice = () => {
     useState<BookingInvoiceReportItem | null>(null)
   const [printDialogOpen, setPrintDialogOpen] = useState(false)
   const [extraDetails, setExtraDetails] = useState<Record<string, unknown>>({})
-  const [isFetchingExtras, setIsFetchingExtras] = useState(false)
   const [isBuildingPdfs, setIsBuildingPdfs] = useState(false)
   const [extrasError, setExtrasError] = useState<string | null>(null)
+  const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null)
+  const [previewError, setPreviewError] = useState<string | null>(null)
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: [
@@ -341,7 +342,6 @@ const BookingInvoice = () => {
   useEffect(() => {
     const loadExtras = async () => {
       if (!printDialogOpen || !selectedInvoices.length) return
-      setIsFetchingExtras(true)
       setExtrasError(null)
       try {
         const results = await Promise.all(
@@ -371,17 +371,54 @@ const BookingInvoice = () => {
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to load details'
         setExtrasError(message)
-      } finally {
-        setIsFetchingExtras(false)
       }
     }
     loadExtras()
   }, [printDialogOpen, selectedInvoices, user?.territoryId, user?.userId])
 
-  const downloadSelectedInvoices = async () => {
-    const freshSelected = table
+  const revokePreviewUrl = () => {
+    setPdfPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev)
+      return null
+    })
+  }
+
+  const getFreshSelected = () =>
+    table
       .getSelectedRowModel()
       .flatRows.map((row) => row.original as BookingInvoiceReportItem)
+
+  const buildPdfPreview = async () => {
+    const freshSelected = getFreshSelected()
+    if (!freshSelected.length) {
+      revokePreviewUrl()
+      return
+    }
+    setIsBuildingPdfs(true)
+    setPreviewError(null)
+    try {
+      const pdfBytes = await createCombinedInvoicesPdf(
+        freshSelected,
+        extraDetails
+      )
+      const pdfBuffer: ArrayBuffer = new Uint8Array(pdfBytes).buffer
+      const blob = new Blob([pdfBuffer], { type: 'application/pdf' })
+      const url = URL.createObjectURL(blob)
+      setPdfPreviewUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev)
+        return url
+      })
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Failed to build PDF preview'
+      setPreviewError(message)
+    } finally {
+      setIsBuildingPdfs(false)
+    }
+  }
+
+  const downloadSelectedInvoices = async () => {
+    const freshSelected = getFreshSelected()
     if (!freshSelected.length) return
     try {
       setIsBuildingPdfs(true)
@@ -410,6 +447,44 @@ const BookingInvoice = () => {
       setIsBuildingPdfs(false)
     }
   }
+
+  const openPreviewInNewTab = () => {
+    if (!pdfPreviewUrl) return
+    window.open(pdfPreviewUrl, '_blank', 'noopener,noreferrer')
+  }
+
+  const printPreview = () => {
+    if (!pdfPreviewUrl) return
+    const iframe = document.createElement('iframe')
+    iframe.style.position = 'fixed'
+    iframe.style.right = '0'
+    iframe.style.bottom = '0'
+    iframe.style.width = '0'
+    iframe.style.height = '0'
+    iframe.style.border = '0'
+    iframe.src = pdfPreviewUrl
+    iframe.onload = () => {
+      iframe.contentWindow?.focus()
+      iframe.contentWindow?.print()
+      setTimeout(() => iframe.remove(), 500)
+    }
+    document.body.appendChild(iframe)
+  }
+
+  useEffect(() => {
+    if (!printDialogOpen) {
+      revokePreviewUrl()
+      setPreviewError(null)
+      return
+    }
+    buildPdfPreview()
+  }, [printDialogOpen, selectedInvoices, extraDetails])
+
+  useEffect(() => {
+    return () => {
+      revokePreviewUrl()
+    }
+  }, [])
 
   return (
     <Card className='space-y-4'>
@@ -500,10 +575,11 @@ const BookingInvoice = () => {
                 } to print.`
               : 'No invoices selected.'
           }
+          contentClassName='sm:max-w-6xl md:max-w-[1200px] w-[95vw]'
           primaryAction={{
-            label: isBuildingPdfs ? 'Building PDFs...' : 'Download PDFs',
-            onClick: downloadSelectedInvoices,
-            disabled: selectedInvoices.length === 0 || isBuildingPdfs,
+            label: isBuildingPdfs ? 'Building PDF…' : 'Print',
+            onClick: printPreview,
+            disabled: selectedInvoices.length === 0 || isBuildingPdfs || !pdfPreviewUrl,
           }}
           secondaryAction={{
             label: 'Close',
@@ -514,69 +590,62 @@ const BookingInvoice = () => {
         >
           {selectedInvoices.length ? (
             <div className='space-y-4'>
-              <div className='flex justify-end'>
+              <div className='flex flex-wrap items-center justify-end gap-2'>
                 <Button
                   size='sm'
                   variant='outline'
+                  onClick={buildPdfPreview}
                   disabled={isBuildingPdfs}
-                  onClick={downloadSelectedInvoices}
                 >
-                  {isBuildingPdfs ? 'Building PDF…' : 'Download PDF'}
+                  {isBuildingPdfs ? 'Building…' : 'Refresh Preview'}
+                </Button>
+                <Button
+                  size='sm'
+                  variant='outline'
+                  onClick={openPreviewInNewTab}
+                  disabled={!pdfPreviewUrl || isBuildingPdfs}
+                >
+                  Open in new tab
+                </Button>
+                <Button
+                  size='sm'
+                  variant='default'
+                  onClick={printPreview}
+                  disabled={!pdfPreviewUrl || isBuildingPdfs}
+                >
+                  Print
+                </Button>
+                <Button
+                  size='sm'
+                  variant='secondary'
+                  onClick={downloadSelectedInvoices}
+                  disabled={isBuildingPdfs}
+                >
+                  {isBuildingPdfs ? 'Building…' : 'Download'}
                 </Button>
               </div>
               {extrasError ? (
                 <p className='text-sm text-red-600'>{extrasError}</p>
               ) : null}
-              <div className='max-h-[70vh] space-y-4 overflow-y-auto pr-1'>
-                {selectedInvoices.map((invoice) => {
-                  const extra = extraDetails[String(invoice.id ?? invoice.invoiceNo)]
-                  const showLoading = isFetchingExtras && !extra
-                  return (
-                    <div
-                      key={`extra-${invoice.id ?? invoice.invoiceNo}`}
-                      className='rounded border bg-muted/10'
-                    >
-                      <div className='flex flex-wrap items-center justify-between gap-2 border-b bg-muted/40 px-3 py-2'>
-                        <div className='text-sm font-semibold text-slate-900 dark:text-slate-50'>
-                          Invoice <InvoiceNumber invoiceId={invoice.invoiceNo} />
-                        </div>
-                        <div className='text-xs text-muted-foreground'>
-                          Type: {invoice.invoiceType ?? '-'} | Date:{' '}
-                          {formatDate(invoice.dateBook)} | Status:{' '}
-                          {deriveStatus(invoice)}
-                        </div>
-                      </div>
-                      <div className='space-y-3 p-3 text-xs'>
-                        <div className='rounded bg-white p-3 text-slate-900 shadow-sm dark:bg-slate-900 dark:text-slate-100'>
-                          <div className='mb-2 text-[11px] uppercase text-muted-foreground'>
-                            Booking Invoice Payload
-                          </div>
-                          <pre className='whitespace-pre-wrap break-words text-[11px] leading-relaxed'>
-                            {JSON.stringify(invoice, null, 2)}
-                          </pre>
-                        </div>
-                        <div className='rounded bg-white p-3 text-slate-900 shadow-sm dark:bg-slate-900 dark:text-slate-100'>
-                          <div className='mb-2 text-[11px] uppercase text-muted-foreground'>
-                            Extra Print Details (from findInvoicePrintExtraDetailsByRequiredArgs)
-                          </div>
-                          {showLoading ? (
-                            <p className='text-[11px] text-muted-foreground'>
-                              Loading extra details...
-                            </p>
-                          ) : extra ? (
-                            <pre className='whitespace-pre-wrap break-words text-[11px] leading-relaxed'>
-                              {JSON.stringify(extra, null, 2)}
-                            </pre>
-                          ) : (
-                            <p className='text-[11px] text-muted-foreground'>
-                              No extra details returned for this invoice.
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
+              {previewError ? (
+                <p className='text-sm text-red-600'>{previewError}</p>
+              ) : null}
+              <div className='overflow-hidden rounded border bg-white shadow-sm dark:bg-slate-900'>
+                {isBuildingPdfs && !pdfPreviewUrl ? (
+                  <div className='p-4 text-sm text-muted-foreground'>
+                    Building PDF preview...
+                  </div>
+                ) : pdfPreviewUrl ? (
+                  <iframe
+                    title='Invoice PDF Preview'
+                    src={pdfPreviewUrl}
+                    className='h-[70vh] w-full'
+                  />
+                ) : (
+                  <div className='p-4 text-sm text-muted-foreground'>
+                    Select invoices and refresh to view the PDF preview.
+                  </div>
+                )}
               </div>
             </div>
           ) : (

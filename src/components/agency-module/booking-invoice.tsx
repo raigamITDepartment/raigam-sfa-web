@@ -387,8 +387,7 @@ const BookingInvoice = () => {
       setIsBuildingPdfs(true)
       const pdfBytes = await createCombinedInvoicesPdf(
         freshSelected,
-        extraDetails,
-        '/src/assets/logo.png'
+        extraDetails
       )
       const pdfBuffer: ArrayBuffer = new Uint8Array(pdfBytes).buffer
       const blob = new Blob([pdfBuffer], { type: 'application/pdf' })

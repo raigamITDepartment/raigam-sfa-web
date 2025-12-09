@@ -31,7 +31,7 @@ import FullWidthDialog from '@/components/FullWidthDialog'
 import { Checkbox } from '@/components/ui/checkbox'
 import { CommonDialog } from '@/components/common-dialog'
 import { formatPrice } from '@/lib/format-price'
-import { createCombinedInvoicesPdf, createInvoicePdf } from '@/components/agency-module/InvoicePdfButton'
+import { createCombinedInvoicesPdf } from '@/components/agency-module/InvoicePdfButton'
 
 const formatDate = (value?: string) => {
   if (!value || value === '0001-01-01') return '-'
@@ -388,9 +388,10 @@ const BookingInvoice = () => {
       const pdfBytes = await createCombinedInvoicesPdf(
         freshSelected,
         extraDetails,
-        '/raigam-logo.png'
+        '/src/assets/logo.png'
       )
-      const blob = new Blob([pdfBytes], { type: 'application/pdf' })
+      const pdfBuffer: ArrayBuffer = new Uint8Array(pdfBytes).buffer
+      const blob = new Blob([pdfBuffer], { type: 'application/pdf' })
       const url = URL.createObjectURL(blob)
 
       // Try to open in a new tab for quick viewing; fallback to download if blocked.

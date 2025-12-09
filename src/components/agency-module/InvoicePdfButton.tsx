@@ -1,8 +1,19 @@
 import { useState } from 'react'
 import type { BookingInvoiceReportItem } from '@/types/invoice'
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
+import {
+  PDFDocument,
+  StandardFonts,
+  rgb,
+  type PDFFont,
+  type PDFPage,
+} from 'pdf-lib'
 import { Button } from '@/components/ui/button'
 import InvoiceNumber, { formatInvoiceNumber } from '@/components/InvoiceNumber'
+
+type PdfLib = Pick<
+  typeof import('pdf-lib'),
+  'PDFDocument' | 'StandardFonts' | 'rgb'
+>
 
 type InvoicePdfButtonProps = {
   invoice: BookingInvoiceReportItem
@@ -37,7 +48,8 @@ export function InvoicePdfButton({
     try {
       setIsBuilding(true)
       const pdfBytes = await createInvoicePdf(invoice, extraDetails)
-      const blob = new Blob([pdfBytes], { type: 'application/pdf' })
+      const pdfBuffer: ArrayBuffer = new Uint8Array(pdfBytes).buffer
+      const blob = new Blob([pdfBuffer], { type: 'application/pdf' })
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
@@ -72,14 +84,14 @@ export function InvoicePdfButton({
 
 export default InvoicePdfButton
 
-const loadPdfLib = async () => {
+const loadPdfLib = async (): Promise<PdfLib> => {
   return { PDFDocument, StandardFonts, rgb }
 }
 
 export async function createInvoicePdf(
   invoice: BookingInvoiceReportItem,
   extraDetails?: unknown,
-  logoUrl = '/raigam-logo.png'
+  logoUrl = '/src/assets/logo.png'
 ) {
   const lib = await loadPdfLib()
   const pdfDoc = await lib.PDFDocument.create()
@@ -100,7 +112,7 @@ export async function createInvoicePdf(
 export async function createCombinedInvoicesPdf(
   invoices: BookingInvoiceReportItem[],
   extras: Record<string, unknown>,
-  logoUrl = '/raigam-logo.png'
+  logoUrl = '/src/assets/logo.png'
 ) {
   const lib = await loadPdfLib()
   const combined = await lib.PDFDocument.create()
@@ -131,12 +143,12 @@ export async function createCombinedInvoicesPdf(
 }
 
 async function renderInvoiceIntoDoc(
-  pdfDoc: any,
-  lib: typeof import('pdf-lib'),
+  pdfDoc: PDFDocument,
+  lib: PdfLib,
   invoice: BookingInvoiceReportItem,
   extraDetails: unknown,
-  font: any,
-  fontBold: any,
+  font: PDFFont,
+  fontBold: PDFFont,
   logoUrl: string
 ) {
   const { rgb } = lib
@@ -219,7 +231,7 @@ async function renderInvoiceIntoDoc(
   const agentMobileText = getExtraString('agentMobileNumber', '-')
 
   const margin = 36
-  let page = pdfDoc.addPage([595.28, 841.89]) // A4
+  let page: PDFPage = pdfDoc.addPage([595.28, 841.89]) // A4
   let { height, width } = page.getSize()
   const contentWidth = width - margin * 2
   let y = height - margin
@@ -242,22 +254,6 @@ async function renderInvoiceIntoDoc(
     y -= 20
   }
 
-  const drawText = (
-    text: string,
-    opts?: { x?: number; size?: number; color?: any; font?: any }
-  ) => {
-    const size = opts?.size ?? 12
-    if (y < margin + size + 20) newPage()
-    page.drawText(text, {
-      x: opts?.x ?? margin,
-      y,
-      size,
-      font: opts?.font ?? font,
-      color: opts?.color ?? rgb(0, 0, 0),
-    })
-    y -= size + 6
-  }
-
   // Header
   const drawHeader = async () => {
     const headerHeight = 60
@@ -278,9 +274,7 @@ async function renderInvoiceIntoDoc(
         color: rgb(shade, shade, shade),
       })
     }
-    const logoBytes = await fetch('/src/assets/logo.png').then((res) =>
-      res.arrayBuffer()
-    )
+    const logoBytes = await fetch(logoUrl).then((res) => res.arrayBuffer())
     const logoImage = await pdfDoc.embedPng(logoBytes)
     const logoWidth = 120
     const logoHeight = (logoImage.height / logoImage.width) * logoWidth
@@ -508,13 +502,13 @@ async function renderInvoiceIntoDoc(
       const topY = y
       const bottomY = y - rowHeight
 
-       page.drawRectangle({
-         x: startX,
-         y: bottomY,
-         width: tableWidth,
-         height: rowHeight,
-         color: headerBgColor,
-       })
+      page.drawRectangle({
+        x: startX,
+        y: bottomY,
+        width: tableWidth,
+        height: rowHeight,
+        color: headerBgColor,
+      })
 
       headers.forEach((title, i) => {
         const offset = colWidths.slice(0, i).reduce((a, b) => a + b, 0)
@@ -721,7 +715,9 @@ async function renderInvoiceIntoDoc(
     )
 
     // Free issue rows from API data (totalFreeQty)
-    const freeItems = items.filter((item) => (Math.trunc(Number(item.totalFreeQty ?? 0))) > 0)
+    const freeItems = items.filter(
+      (item) => Math.trunc(Number(item.totalFreeQty ?? 0)) > 0
+    )
     if (freeItems.length) {
       drawRow(['', '', '', '', ''], { shaded: false })
       drawRow(['Free Issues', '', '', '', ''], {
@@ -743,19 +739,16 @@ async function renderInvoiceIntoDoc(
       })
     }
 
-    y -= 4
+    y -= 10
 
     // Ensure summary table is visible on the current page
     const grossValue = invoice.totalBookFinalValue ?? totalValue
     const lineDiscountValue = invoice.totalDiscountValue ?? 0
     const lineDiscountPct = invoice.discountPercentage ?? 0
-    const summaryRows = [
-      ['Gross Value :', grossValue],
-      [
-        `Bill Discount (${formatNumber(lineDiscountPct)}%):`,
-        lineDiscountValue,
-      ],
-      ['Invoice Value :', invoice.totalBookFinalValue ?? grossValue],
+    const summaryRows: Array<[string, number | string]> = [
+      ['Gross Value', grossValue],
+      [`Bill Discount (${formatNumber(lineDiscountPct)}%)`, lineDiscountValue],
+      ['Invoice Value', invoice.totalBookFinalValue ?? grossValue],
     ]
     const summaryRowHeight = 18
     const summaryTableHeight = summaryRows.length * summaryRowHeight
@@ -833,7 +826,10 @@ async function renderInvoiceIntoDoc(
         color: textColor,
       })
 
-      const valueWidth = font.widthOfTextAtSize(valueText, isFinalRow ? 10.5 : 10)
+      const valueWidth = font.widthOfTextAtSize(
+        valueText,
+        isFinalRow ? 10.5 : 10
+      )
       page.drawText(valueText, {
         x: summaryStartX + summaryTableWidth - 6 - valueWidth,
         y: textY,
@@ -901,13 +897,16 @@ async function renderInvoiceIntoDoc(
       font,
       color: rgb(0.2, 0.2, 0.2),
     })
-    page.drawText(dottedLine.slice(0, Math.min(dottedLine.length, lineLength / 3)), {
-      x: margin + columnGap,
-      y,
-      size: 10,
-      font,
-      color: rgb(0.2, 0.2, 0.2),
-    })
+    page.drawText(
+      dottedLine.slice(0, Math.min(dottedLine.length, lineLength / 3)),
+      {
+        x: margin + columnGap,
+        y,
+        size: 10,
+        font,
+        color: rgb(0.2, 0.2, 0.2),
+      }
+    )
     y -= 12
   }
 
@@ -968,6 +967,3 @@ async function renderInvoiceIntoDoc(
   }
   applyFooter()
 }
-
-
-

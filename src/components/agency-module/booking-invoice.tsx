@@ -385,7 +385,11 @@ const BookingInvoice = () => {
     if (!freshSelected.length) return
     try {
       setIsBuildingPdfs(true)
-      const pdfBytes = await createCombinedInvoicesPdf(freshSelected, extraDetails)
+      const pdfBytes = await createCombinedInvoicesPdf(
+        freshSelected,
+        extraDetails,
+        '/raigam-logo.png'
+      )
       const blob = new Blob([pdfBytes], { type: 'application/pdf' })
       const url = URL.createObjectURL(blob)
 

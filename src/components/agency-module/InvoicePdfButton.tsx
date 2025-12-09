@@ -442,9 +442,9 @@ async function renderInvoiceIntoDoc(
     const headers = [
       'Item Description',
       'Qty',
-      'Unit Price',
+      'Unit Price(Rs.)',
       'Discount',
-      'Value',
+      'Value(Rs.)',
     ]
     const colWidths = [
       tableWidth * 0.46,
@@ -747,9 +747,9 @@ async function renderInvoiceIntoDoc(
     const lineDiscountValue = invoice.totalDiscountValue ?? 0
     const lineDiscountPct = invoice.discountPercentage ?? 0
     const summaryRows: Array<[string, number | string]> = [
-      ['Gross Value', grossValue],
+      ['Gross Value(Rs.)', grossValue],
       [`Bill Discount (${formatNumber(lineDiscountPct)}%)`, lineDiscountValue],
-      ['Invoice Value', invoice.totalBookFinalValue ?? grossValue],
+      ['Invoice Value(Rs.)', invoice.totalBookFinalValue ?? grossValue],
     ]
     const summaryRowHeight = 18
     const summaryTableHeight = summaryRows.length * summaryRowHeight

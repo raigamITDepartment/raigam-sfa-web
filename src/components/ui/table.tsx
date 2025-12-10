@@ -79,7 +79,7 @@ function TableCell({ className, ...props }: React.ComponentProps<'td'>) {
   return (
     <td
       data-slot='table-cell'
-      className={cn('p-2 align-middle [&>[role=checkbox]]:translate-y-[2px]', className)}
+      className={cn('px-2 align-middle [&>[role=checkbox]]:translate-y-[2px]', className)}
       {...props}
     />
   )

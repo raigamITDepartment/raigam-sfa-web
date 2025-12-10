@@ -12,6 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { DataTablePagination, DataTableToolbar } from '@/components/data-table'
 import { CommonAlert } from '@/components/common-alert'
@@ -78,9 +79,12 @@ export function BookingInvoiceTableSection({
                 (_, idx) => (
                   <TableRow key={`skeleton-${idx}`}>
                     {columns.map((_, colIdx) => (
-                    <TableCell key={`${idx}-${colIdx}`} className="px-3">
-                      <div className="h-4 w-full animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
-                    </TableCell>
+                      <TableCell
+                        key={`${idx}-${colIdx}`}
+                        className="px-3 py-1 align-middle"
+                      >
+                        <Skeleton className="h-5 w-full rounded-sm bg-slate-200/80 dark:bg-slate-800/60" />
+                      </TableCell>
                     ))}
                   </TableRow>
                 )

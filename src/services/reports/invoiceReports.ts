@@ -2,7 +2,9 @@ import { http } from '@/services/http'
 import type { ApiResponse } from '@/types/common'
 import type {
   BookingInvoiceParams,
+  BookingInvoiceReportItem,
   BookingInvoicesResponse,
+  InvoiceStatusParams,
 } from '@/types/invoice'
 
 export const INVOICE_REPORT_BASE = '/api/v1/reports/invoiceReport'
@@ -14,6 +16,21 @@ export async function getAllAvailableBookingInvoices(
   const res = await http.get<BookingInvoicesResponse>(
     `${INVOICE_REPORT_BASE}/getAllAvailableBookingInvoices`,
     { params }
+  )
+  return res.data
+}
+
+export async function getInvoiceDetailsByStatus(params: InvoiceStatusParams) {
+  const res = await http.get<BookingInvoicesResponse>(
+    `${INVOICE_REPORT_BASE}/getAllInvoicesByStatus`,
+    { params }
+  )
+  return res.data
+}
+
+export async function getInvoiceDetailsById(invoiceId: number | string) {
+  const res = await http.get<ApiResponse<BookingInvoiceReportItem>>(
+    `${INVOICE_REPORT_BASE}/findInvoiceWithDetailsByInvoiceId/${invoiceId}`
   )
   return res.data
 }
@@ -43,4 +60,5 @@ export type {
   BookingInvoicesResponse,
   BookingInvoiceDetailDTO,
   InvoiceType,
+  InvoiceStatusParams,
 } from '@/types/invoice'

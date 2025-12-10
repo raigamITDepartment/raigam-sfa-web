@@ -26,7 +26,7 @@ interface BookingInvoiceTableSectionProps {
   isError: boolean
   error: unknown
   rows: BookingInvoiceReportItem[]
-  statusFilterOptions: { label: string; value: string }[]
+  statusFilterOptions?: { label: string; value: string }[]
   onPrintClick: () => void
   isPrintDisabled: boolean
 }
@@ -38,7 +38,7 @@ export function BookingInvoiceTableSection({
   isError,
   error,
   rows,
-  statusFilterOptions,
+  statusFilterOptions = [],
   onPrintClick,
   isPrintDisabled,
 }: BookingInvoiceTableSectionProps) {
@@ -46,6 +46,15 @@ export function BookingInvoiceTableSection({
   const hasRows = tableRows.length > 0
   const hasPayload = rows.length > 0
   const showNoData = !isLoading && !isError && !hasPayload
+
+  const filters = []
+  if (statusFilterOptions.length) {
+    filters.push({
+      columnId: 'status',
+      title: 'Status',
+      options: statusFilterOptions,
+    })
+  }
 
   return (
     <>
@@ -100,13 +109,7 @@ export function BookingInvoiceTableSection({
             table={table}
             searchPlaceholder="Search invoice id..."
             searchKey="invoiceNo"
-            filters={[
-              {
-                columnId: 'status',
-                title: 'Status',
-                options: statusFilterOptions,
-              },
-            ]}
+            filters={filters}
             rightContentAfterViewOptions={
               <Button
                 variant="outline"

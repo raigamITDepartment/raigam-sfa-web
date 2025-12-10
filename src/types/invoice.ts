@@ -12,6 +12,10 @@ export type BookingInvoiceParams = {
   invoiceType: InvoiceTypeParam
 }
 
+export type InvoiceStatusParams = BookingInvoiceParams & {
+  invoiceStatus: string
+}
+
 export type BookingInvoiceFilters = {
   startDate?: string
   endDate?: string
@@ -65,8 +69,8 @@ export type BookingInvoiceReportItem = {
   outletName: string
   invoiceNo: string
   totalBookValue: number
-  totalBookSellValue: number
-  totalBookFinalValue: number
+  totalBookSellValue: number | null
+  totalBookFinalValue: number | null
   totalCancelValue: number
   totalMarketReturnValue: number
   totalGoodReturnValue: number

@@ -705,8 +705,6 @@ export function BookingInvoiceItemsTable({
     }
   }, [aggregatedTotals, summaryDiscountPct])
 
-  console.log(totals)
-
   return (
     <div className='space-y-2'>
       <InvoiceItemsTableLayout

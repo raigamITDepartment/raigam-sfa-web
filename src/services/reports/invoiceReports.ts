@@ -1,9 +1,9 @@
 import { http } from '@/services/http'
+import type { ApiResponse } from '@/types/common'
 import type {
   BookingInvoiceParams,
   BookingInvoicesResponse,
 } from '@/types/invoice'
-import type { ApiResponse } from '@/types/common'
 
 export const INVOICE_REPORT_BASE = '/api/v1/reports/invoiceReport'
 const INVOICE_PRINT_BASE = '/api/v1/sales/invoice'
@@ -15,7 +15,6 @@ export async function getAllAvailableBookingInvoices(
     `${INVOICE_REPORT_BASE}/getAllAvailableBookingInvoices`,
     { params }
   )
-  console.log('getAllAvailableBookingInvoices response', res.data)
   return res.data
 }
 

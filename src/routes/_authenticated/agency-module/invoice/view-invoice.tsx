@@ -2,7 +2,8 @@ import { createFileRoute } from '@tanstack/react-router'
 import { ensureRoleAccess, RoleId } from '@/lib/authz'
 import ActualInvoice from '@/components/agency-module/actual-invoice'
 import BookingInvoice from '@/components/agency-module/booking-invoice'
-import ManualInvoice from '@/components/agency-module/manual-invoice'
+import CanceledInvoice from '@/components/agency-module/canceled-invoice'
+import LateDeliveryInvoice from '@/components/agency-module/late-delivery-invoice'
 import CommonTabs from '@/components/common-tabs'
 import { Main } from '@/components/layout/main'
 import { PageHeader } from '@/components/layout/page-header'
@@ -42,12 +43,12 @@ export const Route = createFileRoute(
               {
                 value: 'late-delivery',
                 label: 'Late Delivery Invoice',
-                content: <ManualInvoice />,
+                content: <LateDeliveryInvoice />,
               },
               {
                 value: 'canceled',
                 label: 'Canceled Invoice',
-                content: <div>Canceled Invoice</div>,
+                content: <CanceledInvoice />,
               },
             ]}
           />

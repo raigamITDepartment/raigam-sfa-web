@@ -27,8 +27,9 @@ interface BookingInvoiceTableSectionProps {
   error: unknown
   rows: BookingInvoiceReportItem[]
   statusFilterOptions?: { label: string; value: string }[]
-  onPrintClick: () => void
-  isPrintDisabled: boolean
+  onPrintClick?: () => void
+  isPrintDisabled?: boolean
+  showPrintAction?: boolean
 }
 
 export function BookingInvoiceTableSection({
@@ -39,8 +40,9 @@ export function BookingInvoiceTableSection({
   error,
   rows,
   statusFilterOptions = [],
-  onPrintClick,
-  isPrintDisabled,
+  onPrintClick = () => {},
+  isPrintDisabled = false,
+  showPrintAction = true,
 }: BookingInvoiceTableSectionProps) {
   const tableRows = table.getRowModel().rows
   const hasRows = tableRows.length > 0
@@ -55,6 +57,19 @@ export function BookingInvoiceTableSection({
       options: statusFilterOptions,
     })
   }
+
+  const rightAction = showPrintAction ? (
+    <Button
+      variant="outline"
+      size="sm"
+      className="h-8 gap-2 px-3"
+      onClick={onPrintClick}
+      disabled={isPrintDisabled}
+    >
+      <Printer className="h-4 w-4" />
+      Print Selected
+    </Button>
+  ) : undefined
 
   return (
     <>
@@ -110,18 +125,7 @@ export function BookingInvoiceTableSection({
             searchPlaceholder="Search invoice id..."
             searchKey="invoiceNo"
             filters={filters}
-            rightContentAfterViewOptions={
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 gap-2 px-3"
-                onClick={onPrintClick}
-                disabled={isPrintDisabled}
-              >
-                <Printer className="h-4 w-4" />
-                Print Selected
-              </Button>
-            }
+            rightContentAfterViewOptions={rightAction}
           />
           <div className="mt-4 mb-4 rounded-md border">
             <Table className="text-xs">

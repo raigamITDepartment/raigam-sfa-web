@@ -53,7 +53,10 @@ function TableRow({ className, ...props }: React.ComponentProps<'tr'>) {
   return (
     <tr
       data-slot='table-row'
-      className={cn('border-b transition-colors', className)}
+      className={cn(
+        'border-b transition-colors [&>td]:py-1 [&>td]:h-6 odd:bg-white even:bg-slate-50 dark:odd:bg-slate-900 dark:even:bg-slate-900/70 hover:bg-slate-100 dark:hover:bg-slate-800 data-[state=selected]:bg-blue-100 data-[state=selected]:dark:bg-blue-900/70 data-[state=selected]:font-semibold',
+        className
+      )}
       {...props}
     />
   )
@@ -64,7 +67,7 @@ function TableHead({ className, ...props }: React.ComponentProps<'th'>) {
     <th
       data-slot='table-head'
       className={cn(
-        'text-foreground h-10 px-2 text-start align-middle font-medium [&>[role=checkbox]]:translate-y-[2px]',
+        'text-foreground h-10 px-2 text-start align-middle font-medium [&>[role=checkbox]]:translate-y-[2px] bg-slate-100 dark:bg-slate-900/80',
         className
       )}
       {...props}

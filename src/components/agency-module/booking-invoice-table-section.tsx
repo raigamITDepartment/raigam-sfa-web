@@ -78,9 +78,9 @@ export function BookingInvoiceTableSection({
                 (_, idx) => (
                   <TableRow key={`skeleton-${idx}`}>
                     {columns.map((_, colIdx) => (
-                      <TableCell key={`${idx}-${colIdx}`} className="px-3 py-2">
-                        <div className="h-4 w-full animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
-                      </TableCell>
+                    <TableCell key={`${idx}-${colIdx}`} className="px-3">
+                      <div className="h-4 w-full animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
+                    </TableCell>
                     ))}
                   </TableRow>
                 )
@@ -124,10 +124,10 @@ export function BookingInvoiceTableSection({
                     {headerGroup.headers.map((header) => (
                       <TableHead
                         key={header.id}
-                        className={
-                          'h-10 bg-gray-100 px-3 text-left dark:bg-gray-900 ' +
-                          (header.column.columnDef.meta?.thClassName ?? '')
-                        }
+                      className={
+                        'h-10 bg-gray-100 px-3 text-left dark:bg-gray-900 ' +
+                        (header.column.columnDef.meta?.thClassName ?? '')
+                      }
                       >
                         {header.isPlaceholder
                           ? null
@@ -148,10 +148,10 @@ export function BookingInvoiceTableSection({
                       data-state={row.getIsSelected() && 'selected'}
                     >
                       {row.getVisibleCells().map((cell) => (
-                        <TableCell
-                          key={cell.id}
-                          className="px-3 py-2 align-middle"
-                        >
+                          <TableCell
+                            key={cell.id}
+                            className="px-3 align-middle"
+                          >
                           {flexRender(
                             cell.column.columnDef.cell,
                             cell.getContext()

@@ -15,6 +15,7 @@ export async function getAllAvailableBookingInvoices(
     `${INVOICE_REPORT_BASE}/getAllAvailableBookingInvoices`,
     { params }
   )
+  console.log('getAllAvailableBookingInvoices response', res.data)
   return res.data
 }
 

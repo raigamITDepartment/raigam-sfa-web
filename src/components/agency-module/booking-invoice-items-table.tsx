@@ -1,4 +1,18 @@
 import { useEffect, useMemo, useState } from 'react'
+import { updateBookingInvoiceWithDetails } from '@/services/sales/invoice/invoiceApi'
+import { findItemPriceById } from '@/services/sales/itemPriceApi'
+import type {
+  BookingInvoice,
+  BookingInvoiceDetailDTO,
+  BookingInvoiceReportItem,
+} from '@/types/invoice'
+import type { ItemFormValues } from '@/types/itemForm'
+import { toast } from 'sonner'
+import {
+  computeFinalTotal,
+  computeReturnTotal,
+  safeNumber,
+} from '@/lib/invoice-calcs'
 import {
   Dialog,
   DialogContent,
@@ -6,23 +20,12 @@ import {
   DialogDescription,
   DialogTitle,
 } from '@/components/ui/dialog'
-import type {
-  BookingInvoice,
-  BookingInvoiceDetailDTO,
-  BookingInvoiceReportItem,
-} from '@/types/invoice'
-import {
-  computeFinalTotal,
-  computeReturnTotal,
-  safeNumber,
-} from '@/lib/invoice-calcs'
-import { findItemPriceById } from '@/services/sales/itemPriceApi'
-import { toast } from 'sonner'
-import { updateBookingInvoiceWithDetails } from '@/services/sales/invoice/invoiceApi'
 import ItemForm from './AddItemForm'
+import InvoiceItemsTableLayout, {
+  type AggregatedTotals,
+  type InvoiceItemRow,
+} from './InvoiceItemsTableLayout'
 import { UpdateItemForm } from './UpdateItemForm'
-import type { ItemFormValues } from '@/types/itemForm'
-import InvoiceItemsTableLayout, { type AggregatedTotals, type InvoiceItemRow } from './InvoiceItemsTableLayout'
 
 type BookingInvoiceItemsTableProps = {
   invoice: BookingInvoiceReportItem
@@ -42,7 +45,9 @@ const recalcDerivedValues = (item: BookingInvoiceDetailDTO) => {
 
   const grossTotal = safeNumber(item.totalBookValue ?? netBookQty * unitPrice)
   const discountValue = safeNumber(
-    item.totalBookDiscountValue ?? item.totalDiscountValue ?? (grossTotal * discountPct) / 100
+    item.totalBookDiscountValue ??
+      item.totalDiscountValue ??
+      (grossTotal * discountPct) / 100
   )
   const discountAfterValue = safeNumber(
     item.totalBookSellValue ?? item.sellTotalPrice ?? grossTotal - discountValue
@@ -88,8 +93,8 @@ const recalcDerivedValues = (item: BookingInvoiceDetailDTO) => {
     marketReturnTotalVal,
     finalTotalValue,
     // persist adjusted prices if backend provided
-      goodReturnAdjustedUnitPrice,
-      marketReturnAdjustedUnitPrice,
+    goodReturnAdjustedUnitPrice,
+    marketReturnAdjustedUnitPrice,
   }
 }
 
@@ -133,10 +138,11 @@ export function BookingInvoiceItemsTable({
   const [editItemOpen, setEditItemOpen] = useState(false)
   const [editDraft, setEditDraft] = useState<ItemFormValues | null>(null)
   const [editIndex, setEditIndex] = useState<number | null>(null)
-  const [localItems, setLocalItems] =
-    useState<BookingInvoiceDetailDTO[]>(items)
+  const [localItems, setLocalItems] = useState<BookingInvoiceDetailDTO[]>(items)
   const [isUpdating, setIsUpdating] = useState(false)
-  const [summaryDiscountPct, setSummaryDiscountPct] = useState<number>(invoice.discountPercentage ?? 0)
+  const [summaryDiscountPct, setSummaryDiscountPct] = useState<number>(
+    invoice.discountPercentage ?? 0
+  )
   useEffect(() => {
     setLocalItems(items)
   }, [items])
@@ -150,7 +156,9 @@ export function BookingInvoiceItemsTable({
     return num && Math.abs(num) > 0 ? num : null
   }
 
-  const mapDetailToDraft = (detail: BookingInvoiceDetailDTO): ItemFormValues => ({
+  const mapDetailToDraft = (
+    detail: BookingInvoiceDetailDTO
+  ): ItemFormValues => ({
     mainCatId:
       toNullableNumber((detail as any).mainCatId) ??
       toNullableNumber((detail as any).itemMainCatId),
@@ -271,7 +279,8 @@ export function BookingInvoiceItemsTable({
       itemName: next.itemName ?? '',
       sellPriceId: next.sellPriceId ?? null,
       sellUnitPrice: unitPrice,
-      adjustedUnitPrice: next.adjustedUnitPrice ?? next.sellUnitPrice ?? unitPrice,
+      adjustedUnitPrice:
+        next.adjustedUnitPrice ?? next.sellUnitPrice ?? unitPrice,
       totalBookQty: bookQty,
       bookDiscountPercentage: discountPct,
       totalBookDiscountValue,
@@ -312,8 +321,10 @@ export function BookingInvoiceItemsTable({
     const ids = new Set<number>()
     localItems.forEach((item) => {
       if (typeof item.sellPriceId === 'number') ids.add(item.sellPriceId)
-      if (typeof item.goodReturnPriceId === 'number') ids.add(item.goodReturnPriceId)
-      if (typeof item.marketReturnPriceId === 'number') ids.add(item.marketReturnPriceId)
+      if (typeof item.goodReturnPriceId === 'number')
+        ids.add(item.goodReturnPriceId)
+      if (typeof item.marketReturnPriceId === 'number')
+        ids.add(item.marketReturnPriceId)
     })
     return Array.from(ids)
   }, [localItems])
@@ -411,10 +422,16 @@ export function BookingInvoiceItemsTable({
         : (_userId ?? invoice.userId ?? 0)
       const details = localItems.map((item) => {
         const sellUnitPrice = safeNumber(item.sellUnitPrice)
-        const discountPct = safeNumber(item.bookDiscountPercentage ?? item.discountPercentage)
+        const discountPct = safeNumber(
+          item.bookDiscountPercentage ?? item.discountPercentage
+        )
         const totalBookValue = safeNumber(item.totalBookValue)
-        const totalBookDiscountValue = safeNumber(item.totalBookDiscountValue ?? item.totalDiscountValue)
-        const totalBookSellValue = safeNumber(item.totalBookSellValue ?? item.sellTotalPrice)
+        const totalBookDiscountValue = safeNumber(
+          item.totalBookDiscountValue ?? item.totalDiscountValue
+        )
+        const totalBookSellValue = safeNumber(
+          item.totalBookSellValue ?? item.sellTotalPrice
+        )
         const goodReturnAdjustedUnitPrice = safeNumber(
           item.goodReturnAdjustedUnitPrice ?? item.goodReturnUnitPrice
         )
@@ -475,7 +492,7 @@ export function BookingInvoiceItemsTable({
       })
 
       const invoiceDiscountValue = totals.totalDiscountValue
-      const invoiceBookFinalValue = totals.totalActualValue
+      const invoiceBookFinalValue = totals.totalFinalValue
       const invoiceActualValue =
         typeof invoice.totalActualValue === 'number'
           ? invoice.totalActualValue
@@ -523,7 +540,8 @@ export function BookingInvoiceItemsTable({
       }
       _onUpdated?.((res as any)?.payload ?? null)
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to update invoice'
+      const message =
+        err instanceof Error ? err.message : 'Failed to update invoice'
       toast.error(message)
     } finally {
       setIsUpdating(false)
@@ -537,8 +555,7 @@ export function BookingInvoiceItemsTable({
       const netBookQty = Math.max(bookQty - cancelQty, 0)
       const rawSellUnitPrice = safeNumber(item.sellUnitPrice)
       const unitPrice =
-        (item.sellPriceId && priceMap[item.sellPriceId]) ??
-        rawSellUnitPrice
+        (item.sellPriceId && priceMap[item.sellPriceId]) ?? rawSellUnitPrice
       const discountPct =
         item.bookDiscountPercentage ?? item.discountPercentage ?? 0
       const grossValue = safeNumber(
@@ -561,15 +578,12 @@ export function BookingInvoiceItemsTable({
       const goodReturnAdjustedUnitPrice = safeNumber(
         item.goodReturnAdjustedUnitPrice ?? goodReturnUnitPrice
       )
-    const goodReturnPayingQty = Math.max(
-      goodReturnQty - goodReturnFreeQty,
-      0
-    )
-    const goodReturnTotalVal = computeReturnTotal(
-      goodReturnQty,
-      goodReturnFreeQty,
-      goodReturnAdjustedUnitPrice
-    )
+      const goodReturnPayingQty = Math.max(goodReturnQty - goodReturnFreeQty, 0)
+      const goodReturnTotalVal = computeReturnTotal(
+        goodReturnQty,
+        goodReturnFreeQty,
+        goodReturnAdjustedUnitPrice
+      )
 
       const marketReturnQty = safeNumber(item.marketReturnTotalQty)
       const marketReturnFreeQty = safeNumber(item.marketReturnFreeQty)
@@ -577,15 +591,15 @@ export function BookingInvoiceItemsTable({
       const marketReturnAdjustedUnitPrice = safeNumber(
         item.marketReturnAdjustedUnitPrice ?? marketReturnUnitPrice
       )
-    const marketReturnPayingQty = Math.max(
-      marketReturnQty - marketReturnFreeQty,
-      0
-    )
-    const marketReturnTotalVal = computeReturnTotal(
-      marketReturnQty,
-      marketReturnFreeQty,
-      marketReturnAdjustedUnitPrice
-    )
+      const marketReturnPayingQty = Math.max(
+        marketReturnQty - marketReturnFreeQty,
+        0
+      )
+      const marketReturnTotalVal = computeReturnTotal(
+        marketReturnQty,
+        marketReturnFreeQty,
+        marketReturnAdjustedUnitPrice
+      )
 
       return {
         ...item,
@@ -617,7 +631,7 @@ export function BookingInvoiceItemsTable({
         const cancelQty = safeNumber(item.totalCancelQty)
         const netBookQty = Math.max(bookQty - cancelQty, 0)
         const gross = safeNumber(item.grossValue ?? netBookQty * unitPrice)
-      const discountValue = safeNumber(item.discountValue)
+        const discountValue = safeNumber(item.discountValue)
         const discountAfterValue = safeNumber(
           item.discountAfterValue ?? gross - discountValue
         )
@@ -691,6 +705,8 @@ export function BookingInvoiceItemsTable({
     }
   }, [aggregatedTotals, summaryDiscountPct])
 
+  console.log(totals)
+
   return (
     <div className='space-y-2'>
       <InvoiceItemsTableLayout
@@ -706,7 +722,7 @@ export function BookingInvoiceItemsTable({
         onRowClick={handleRowClick}
       />
       <Dialog open={addItemOpen} onOpenChange={setAddItemOpen}>
-        <DialogContent className='max-w-4xl max-h-[85vh] overflow-y-auto'>
+        <DialogContent className='max-h-[85vh] max-w-4xl overflow-y-auto'>
           <DialogHeader>
             <DialogTitle>Add Item</DialogTitle>
             <DialogDescription className='sr-only'>
@@ -735,7 +751,7 @@ export function BookingInvoiceItemsTable({
           }
         }}
       >
-        <DialogContent className='max-w-4xl max-h-[85vh] overflow-y-auto'>
+        <DialogContent className='max-h-[85vh] max-w-4xl overflow-y-auto'>
           <DialogHeader>
             <DialogTitle>Update Item</DialogTitle>
             <DialogDescription className='sr-only'>

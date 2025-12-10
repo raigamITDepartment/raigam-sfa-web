@@ -8,6 +8,7 @@ import {
   type PDFPage,
 } from 'pdf-lib'
 import Logo from '@/assets/logo.png'
+import { formatPrice } from '@/lib/format-price'
 import { Button } from '@/components/ui/button'
 import InvoiceNumber, { formatInvoiceNumber } from '@/components/InvoiceNumber'
 
@@ -414,15 +415,7 @@ async function renderInvoiceIntoDoc(
   y = infoStartY - usedRows * lineGap - 12
 
   // Items table (cleaned layout)
-  const formatNumber = (value?: number | null) => {
-    if (value === null || value === undefined || Number.isNaN(Number(value))) {
-      return '-'
-    }
-    return Number(value).toLocaleString('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })
-  }
+  const formatNumber = (value?: number | null) => formatPrice(value)
   const formatQty = (value?: number | null) => {
     if (value === null || value === undefined || Number.isNaN(Number(value))) {
       return '-'
@@ -743,13 +736,15 @@ async function renderInvoiceIntoDoc(
     y -= 10
 
     // Ensure summary table is visible on the current page
-    const grossValue = invoice.totalBookFinalValue ?? totalValue
+    const grossValue =
+      invoice.totalBookFinalValue ?? invoice.totalBookValue ?? totalValue
     const lineDiscountValue = invoice.totalDiscountValue ?? 0
     const lineDiscountPct = invoice.discountPercentage ?? 0
+    const invoiceValue = Math.max(grossValue - lineDiscountValue, 0)
     const summaryRows: Array<[string, number | string]> = [
       ['Gross Value(Rs.)', grossValue],
       [`Bill Discount (${formatNumber(lineDiscountPct)}%)`, lineDiscountValue],
-      ['Invoice Value(Rs.)', invoice.totalBookFinalValue ?? grossValue],
+      ['Invoice Value(Rs.)', formatPrice(invoiceValue)],
     ]
     const summaryRowHeight = 18
     const summaryTableHeight = summaryRows.length * summaryRowHeight

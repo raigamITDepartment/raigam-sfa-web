@@ -83,7 +83,7 @@ const BookingInvoice = () => {
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null)
   const [previewError, setPreviewError] = useState<string | null>(null)
 
-  const { data, isLoading, isError, error } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: [
       'booking-invoices',
       user?.territoryId,
@@ -515,7 +515,10 @@ const BookingInvoice = () => {
           error={error}
           rows={rows}
           statusFilterOptions={statusFilterOptions}
-          onPrintClick={() => setPrintDialogOpen(true)}
+        onPrintClick={() => {
+          setPrintDialogOpen(true)
+          refetch()
+        }}
           isPrintDisabled={selectedInvoices.length === 0}
         />
         <FullWidthDialog

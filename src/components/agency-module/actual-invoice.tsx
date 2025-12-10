@@ -337,7 +337,8 @@ const ActualInvoice = () => {
   const selectedInvoiceFresh = useMemo(() => {
     if (!selectedInvoice) return null
     const refreshed = rows.find((row) => row.id === selectedInvoice.id)
-    return refreshed ?? selectedInvoice
+    if (!refreshed) return selectedInvoice
+    return { ...refreshed, ...selectedInvoice }
   }, [rows, selectedInvoice])
 
   const openInvoiceById = async (invoice: BookingInvoiceReportItem) => {
@@ -352,10 +353,8 @@ const ActualInvoice = () => {
       const res = await getInvoiceDetailsById(invoiceId)
       const payload =
         (res as { payload?: BookingInvoiceReportItem })?.payload ?? res
-      // Debug: log the loaded invoice details from API
-      // eslint-disable-next-line no-console
-      console.log('Loaded invoice details', { invoiceId, payload })
-      setSelectedInvoice(payload ?? invoice)
+      const merged = payload ? { ...invoice, ...payload } : invoice
+      setSelectedInvoice(merged)
       setInvoicePreviewOpen(true)
     } catch (err) {
       const message =
@@ -448,9 +447,29 @@ const ActualInvoice = () => {
       .getSelectedRowModel()
       .flatRows.map((row) => row.original as BookingInvoiceReportItem)
 
-  const buildPdfPreview = async () => {
+  const loadInvoiceWithDetails = async (
+    invoice: BookingInvoiceReportItem
+  ): Promise<BookingInvoiceReportItem> => {
+    if (invoice.invoiceDetailDTOList?.length) return invoice
+    const invoiceId =
+      typeof invoice.id === 'number' && Number.isFinite(invoice.id)
+        ? invoice.id
+        : Number(invoice.invoiceNo) || 0
+    if (!invoiceId) return invoice
+    const res = await getInvoiceDetailsById(invoiceId)
+    const payload =
+      (res as { payload?: BookingInvoiceReportItem })?.payload ?? res
+    return payload ? { ...invoice, ...payload } : invoice
+  }
+
+  const getSelectedInvoicesWithDetails = async () => {
     const freshSelected = getFreshSelected()
-    if (!freshSelected.length) {
+    return Promise.all(freshSelected.map((inv) => loadInvoiceWithDetails(inv)))
+  }
+
+  const buildPdfPreview = async () => {
+    const detailed = await getSelectedInvoicesWithDetails()
+    if (!detailed.length) {
       revokePreviewUrl()
       return
     }
@@ -458,7 +477,7 @@ const ActualInvoice = () => {
     setPreviewError(null)
     try {
       const pdfBytes = await createCombinedInvoicesPdf(
-        freshSelected,
+        detailed,
         extraDetails
       )
       const pdfBuffer: ArrayBuffer = new Uint8Array(pdfBytes).buffer
@@ -478,12 +497,12 @@ const ActualInvoice = () => {
   }
 
   const downloadSelectedInvoices = async () => {
-    const freshSelected = getFreshSelected()
-    if (!freshSelected.length) return
+    const detailed = await getSelectedInvoicesWithDetails()
+    if (!detailed.length) return
     try {
       setIsBuildingPdfs(true)
       const pdfBytes = await createCombinedInvoicesPdf(
-        freshSelected,
+        detailed,
         extraDetails
       )
       const pdfBuffer: ArrayBuffer = new Uint8Array(pdfBytes).buffer
@@ -495,9 +514,9 @@ const ActualInvoice = () => {
         const link = document.createElement('a')
         link.href = url
         link.download =
-          freshSelected.length === 1
-            ? `invoice-${freshSelected[0].invoiceNo}.pdf`
-            : `invoices-${freshSelected.length}.pdf`
+          detailed.length === 1
+            ? `invoice-${detailed[0].invoiceNo}.pdf`
+            : `invoices-${detailed.length}.pdf`
         link.click()
       }
 
@@ -600,30 +619,40 @@ const ActualInvoice = () => {
                 formatDate={formatDate}
               />
 
-              <BookingInvoiceItemsTable
-                invoice={selectedInvoiceFresh}
-                items={selectedInvoiceFresh.invoiceDetailDTOList ?? []}
-                onUpdated={() => {
-                  queryClient.invalidateQueries({
-                    queryKey: [
-                      'actual-invoices',
-                      user?.territoryId,
-                      filters.startDate,
-                      filters.endDate,
-                      filters.invoiceType,
-                      defaultDates.startDate,
-                      defaultDates.endDate,
-                    ],
-                  })
-                  setInvoicePreviewOpen(false)
-                  setSelectedInvoice(null)
+              <div
+                className='[&_div.flex.items-center.justify-between>div:last-child]:hidden [&_div.flex.justify-end.gap-3.pt-2]:hidden [&_table tr]:pointer-events-none [&_table tr]:cursor-not-allowed [&_input]:pointer-events-none'
+                onClickCapture={(e) => e.stopPropagation()}
+                onDoubleClickCapture={(e) => e.stopPropagation()}
+                onMouseDownCapture={(e) => e.stopPropagation()}
+                onKeyDownCapture={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') e.stopPropagation()
                 }}
-                userId={user?.userId ?? null}
-                onCancel={() => {
-                  setInvoicePreviewOpen(false)
-                  setSelectedInvoice(null)
-                }}
-              />
+              >
+                <BookingInvoiceItemsTable
+                  invoice={selectedInvoiceFresh}
+                  items={selectedInvoiceFresh.invoiceDetailDTOList ?? []}
+                  onUpdated={() => {
+                    queryClient.invalidateQueries({
+                      queryKey: [
+                        'actual-invoices',
+                        user?.territoryId,
+                        filters.startDate,
+                        filters.endDate,
+                        filters.invoiceType,
+                        defaultDates.startDate,
+                        defaultDates.endDate,
+                      ],
+                    })
+                    setInvoicePreviewOpen(false)
+                    setSelectedInvoice(null)
+                  }}
+                  userId={user?.userId ?? null}
+                  onCancel={() => {
+                    setInvoicePreviewOpen(false)
+                    setSelectedInvoice(null)
+                  }}
+                />
+              </div>
             </div>
           ) : null}
         </FullWidthDialog>

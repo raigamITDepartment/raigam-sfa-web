@@ -159,8 +159,6 @@ async function renderInvoiceIntoDoc(
   const { rgb } = lib
   const lineGray = rgb(0.75, 0.82, 0.9)
   const invoiceNumberText = formatInvoiceNumber(invoice.invoiceNo)
-  console.log('BookingInvoiceReportItem', invoice)
-  console.log('extraDetails', extraDetails)
   const extra =
     extraDetails && typeof extraDetails === 'object'
       ? (extraDetails as Record<string, unknown>)

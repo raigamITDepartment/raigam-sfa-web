@@ -8,9 +8,12 @@ export async function getHomeReportData(params: HomeReportParams) {
     `${BASE}/getHomeReportDataByRequiredArgs`,
     { params }
   )
-  console.log('home report data', res.data)
   return res.data
 }
 
 // Re-export types for backwards compatibility
-export type { HomeReportParams, HomeReportItem, HomeReportResponse } from '@/types/home-report'
+export type {
+  HomeReportParams,
+  HomeReportItem,
+  HomeReportResponse,
+} from '@/types/home-report'

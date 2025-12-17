@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   getCoreRowModel,
@@ -12,26 +12,41 @@ import {
   findInvoicePrintExtraDetailsByRequiredArgs,
   getAllAvailableBookingInvoices,
 } from '@/services/reports/invoiceReports'
-import type { BookingInvoiceReportItem, InvoiceTypeParam } from '@/types/invoice'
+import {
+  updateBookingInvoiceToActual,
+  updateBookingInvoiceToLateDelivery,
+} from '@/services/sales/invoice/invoiceApi'
+import { setFilters as setStoredFilters } from '@/store/bookingInvoiceSlice'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
+import type {
+  BookingInvoiceReportItem,
+  InvoiceTypeParam,
+} from '@/types/invoice'
 import { Pencil } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
+import { formatPrice } from '@/lib/format-price'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import FullWidthDialog from '@/components/FullWidthDialog'
 import InvoiceNumber from '@/components/InvoiceNumber'
-import BookingInvoiceFilter, {
-  type BookingInvoiceFilters,
-} from '@/components/agency-module/filter'
+import { createCombinedInvoicesPdf } from '@/components/agency-module/InvoicePdfButton'
 import BookingInvoiceDetailsHeader from '@/components/agency-module/booking-invoice-details-header'
 import BookingInvoiceItemsTable from '@/components/agency-module/booking-invoice-items-table'
 import BookingInvoiceTableSection from '@/components/agency-module/booking-invoice-table-section'
-import { DataTableColumnHeader } from '@/components/data-table'
-import { setFilters as setStoredFilters } from '@/store/bookingInvoiceSlice'
-import FullWidthDialog from '@/components/FullWidthDialog'
-import { Checkbox } from '@/components/ui/checkbox'
+import BookingInvoiceFilter, {
+  type BookingInvoiceFilters,
+} from '@/components/agency-module/filter'
 import { CommonDialog } from '@/components/common-dialog'
-import { formatPrice } from '@/lib/format-price'
-import { createCombinedInvoicesPdf } from '@/components/agency-module/InvoicePdfButton'
+import { ConfirmDialog } from '@/components/confirm-dialog'
+import { DataTableColumnHeader } from '@/components/data-table'
 
 const formatDate = (value?: string) => {
   if (!value || value === '0001-01-01') return '-'
@@ -82,6 +97,18 @@ const BookingInvoice = () => {
   const [extrasError, setExtrasError] = useState<string | null>(null)
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null)
   const [previewError, setPreviewError] = useState<string | null>(null)
+  const [statusUpdatingMap, setStatusUpdatingMap] = useState<
+    Record<string, boolean>
+  >({})
+  const [statusResetCounters, setStatusResetCounters] = useState<
+    Record<string, number>
+  >({})
+  const [pendingStatusChange, setPendingStatusChange] = useState<{
+    invoice: BookingInvoiceReportItem
+    nextStatus: 'ACTUAL' | 'LATE_DELIVERY'
+  } | null>(null)
+  const [pendingRowKey, setPendingRowKey] = useState<string | null>(null)
+  const confirmDialogOpen = Boolean(pendingStatusChange)
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: [
@@ -100,7 +127,9 @@ const BookingInvoice = () => {
     refetchOnWindowFocus: false,
     queryFn: () => {
       const invoiceTypeParam: InvoiceTypeParam =
-        filters.invoiceType === 'ALL' ? '' : (filters.invoiceType as InvoiceTypeParam)
+        filters.invoiceType === 'ALL'
+          ? ''
+          : (filters.invoiceType as InvoiceTypeParam)
       const payload = {
         territoryId: user?.territoryId ?? 0,
         startDate: filters.startDate ?? defaultDates.startDate,
@@ -111,24 +140,91 @@ const BookingInvoice = () => {
     },
   })
 
+  const resetStatusSelect = useCallback((rowKey: string) => {
+    setStatusResetCounters((prev) => ({
+      ...prev,
+      [rowKey]: (prev[rowKey] ?? 0) + 1,
+    }))
+  }, [])
+
+  const handleStatusChange = useCallback(
+    async (
+      invoice: BookingInvoiceReportItem,
+      nextStatus: 'ACTUAL' | 'LATE_DELIVERY'
+    ) => {
+      const invoiceId =
+        typeof invoice.id === 'number' && Number.isFinite(invoice.id)
+          ? invoice.id
+          : Number(invoice.invoiceNo) || 0
+      if (!invoiceId) {
+        toast.error('Invalid invoice id')
+        return
+      }
+      const userId = user?.userId
+      if (!userId) {
+        toast.error('Unable to update the invoice without user context')
+        return
+      }
+      const rowKey = String(invoice.id ?? invoice.invoiceNo)
+      setStatusUpdatingMap((prev) => ({ ...prev, [rowKey]: true }))
+      try {
+        const fn =
+          nextStatus === 'ACTUAL'
+            ? updateBookingInvoiceToActual
+            : updateBookingInvoiceToLateDelivery
+        const res = await fn(invoiceId, userId)
+        const fallbackMessage =
+          nextStatus === 'ACTUAL'
+            ? 'Invoice updated to Actual.'
+            : 'Invoice updated to Late Delivery.'
+        toast.success(res?.message ?? fallbackMessage)
+        await refetch()
+      } catch (err) {
+        const message =
+          err instanceof Error
+            ? err.message
+            : 'Failed to update invoice status.'
+        toast.error(message)
+      } finally {
+        setStatusUpdatingMap((prev) => {
+          const next = { ...prev }
+          delete next[rowKey]
+          return next
+        })
+        resetStatusSelect(rowKey)
+      }
+    },
+    [refetch, resetStatusSelect, user?.userId]
+  )
+
+  const closePendingStatusDialog = (shouldReset: boolean) => {
+    if (shouldReset && pendingRowKey) {
+      resetStatusSelect(pendingRowKey)
+    }
+    setPendingStatusChange(null)
+    setPendingRowKey(null)
+  }
+
   const columns = useMemo<ColumnDef<BookingInvoiceReportItem>[]>(
     () => [
       {
         id: 'select',
         header: ({ table }) => (
-          <div className='flex items-center justify-center pl-1 pr-2'>
+          <div className='flex items-center justify-center pr-2 pl-1'>
             <Checkbox
               checked={
                 table.getIsAllPageRowsSelected() ||
                 (table.getIsSomePageRowsSelected() && 'indeterminate')
               }
-              onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+              onCheckedChange={(value) =>
+                table.toggleAllPageRowsSelected(!!value)
+              }
               aria-label='Select all'
             />
           </div>
         ),
         cell: ({ row }) => (
-          <div className='flex items-center justify-center pl-1 pr-2'>
+          <div className='flex items-center justify-center pr-2 pl-1'>
             <Checkbox
               checked={row.getIsSelected()}
               onCheckedChange={(value) => row.toggleSelected(!!value)}
@@ -180,9 +276,9 @@ const BookingInvoice = () => {
           />
         ),
         cell: ({ row }) => (
-            <span className='block text-right tabular-nums'>
-              {formatPrice(row.original.totalBookFinalValue)}
-            </span>
+          <span className='block text-right tabular-nums'>
+            {formatPrice(row.original.totalBookFinalValue)}
+          </span>
         ),
         meta: { thClassName: 'text-right' },
       },
@@ -240,24 +336,46 @@ const BookingInvoice = () => {
         ),
         cell: ({ row }) => {
           const status = row.getValue('status') as string
-          return (
-            <div className='flex justify-center'>
-              <span
-                className={cn('rounded-full px-2 py-1 text-xs font-semibold', {
-                  'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200':
-                    status === 'Booked',
-                  'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200':
-                    status === 'Actual',
-                  'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200':
-                    status === 'Late Delivery',
-                  'bg-rose-100 text-rose-800 dark:bg-rose-900/50 dark:text-rose-200':
-                    status === 'Reversed',
-                })}
-              >
-                {status}
-              </span>
-            </div>
-          )
+          const rowKey = String(row.original.id ?? row.original.invoiceNo)
+          const isUpdating = Boolean(statusUpdatingMap[rowKey])
+          const resetCounter = statusResetCounters[rowKey] ?? 0
+          if (status === 'Booked') {
+            return (
+              <div className='flex justify-center'>
+                <Select
+                  key={`${rowKey}-${resetCounter}`}
+                  disabled={isUpdating}
+                  onValueChange={(value) => {
+                    if (value === 'actual') {
+                      setPendingStatusChange({
+                        invoice: row.original,
+                        nextStatus: 'ACTUAL',
+                      })
+                      setPendingRowKey(rowKey)
+                    } else if (value === 'late') {
+                      setPendingStatusChange({
+                        invoice: row.original,
+                        nextStatus: 'LATE_DELIVERY',
+                      })
+                      setPendingRowKey(rowKey)
+                    }
+                  }}
+                >
+                  <SelectTrigger
+                    size='sm'
+                    className='min-w-[140px] justify-between'
+                  >
+                    <SelectValue placeholder='Select action' />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value='actual'>Actual</SelectItem>
+                    <SelectItem value='late'>Late Delivery</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )
+          }
+          return null
         },
         meta: { thClassName: 'text-center' },
         sortingFn: (a, b) =>
@@ -286,11 +404,11 @@ const BookingInvoice = () => {
         meta: { thClassName: 'text-center' },
       },
     ],
-    []
+    [handleStatusChange, statusResetCounters, statusUpdatingMap]
   )
 
   const rows = useMemo(
-    () => (data && 'payload' in data ? data.payload ?? [] : []),
+    () => (data && 'payload' in data ? (data.payload ?? []) : []),
     [data]
   )
   const selectedInvoiceFresh = useMemo(() => {
@@ -369,7 +487,8 @@ const BookingInvoice = () => {
         })
         setExtraDetails(map)
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Failed to load details'
+        const message =
+          err instanceof Error ? err.message : 'Failed to load details'
         setExtrasError(message)
       }
     }
@@ -489,6 +608,49 @@ const BookingInvoice = () => {
   return (
     <Card className='space-y-4'>
       <CardContent>
+        <ConfirmDialog
+          open={confirmDialogOpen}
+          destructive
+          onOpenChange={(open) => {
+            if (!open) {
+              closePendingStatusDialog(true)
+            }
+          }}
+          title='Confirm Status Update'
+          desc={
+            pendingStatusChange ? (
+              <div className='flex flex-wrap items-center gap-1'>
+                <span>Do you want to mark invoice</span>
+                <InvoiceNumber
+                  invoiceId={pendingStatusChange.invoice.invoiceNo}
+                  className='font-semibold text-slate-900 dark:text-slate-50'
+                />
+                <span>
+                  as{' '}
+                  {pendingStatusChange.nextStatus === 'ACTUAL'
+                    ? 'Actual'
+                    : 'Late Delivery'}
+                  ?
+                </span>
+              </div>
+            ) : (
+              ''
+            )
+          }
+          cancelBtnText='No'
+          confirmText='Yes'
+          handleConfirm={async () => {
+            if (!pendingStatusChange) return
+            await handleStatusChange(
+              pendingStatusChange.invoice,
+              pendingStatusChange.nextStatus
+            )
+            closePendingStatusDialog(false)
+          }}
+          isLoading={
+            pendingRowKey ? Boolean(statusUpdatingMap[pendingRowKey]) : false
+          }
+        />
         <BookingInvoiceFilter
           initialStartDate={defaultDates.startDate}
           initialEndDate={defaultDates.endDate}
@@ -515,10 +677,10 @@ const BookingInvoice = () => {
           error={error}
           rows={rows}
           statusFilterOptions={statusFilterOptions}
-        onPrintClick={() => {
-          setPrintDialogOpen(true)
-          refetch()
-        }}
+          onPrintClick={() => {
+            setPrintDialogOpen(true)
+            refetch()
+          }}
           isPrintDisabled={selectedInvoices.length === 0}
         />
         <FullWidthDialog
@@ -539,7 +701,7 @@ const BookingInvoice = () => {
                 status={deriveStatus(selectedInvoiceFresh)}
                 formatDate={formatDate}
               />
-              
+
               <BookingInvoiceItemsTable
                 invoice={selectedInvoiceFresh}
                 items={selectedInvoiceFresh.invoiceDetailDTOList ?? []}
@@ -582,7 +744,8 @@ const BookingInvoice = () => {
           primaryAction={{
             label: isBuildingPdfs ? 'Building PDF…' : 'Print',
             onClick: printPreview,
-            disabled: selectedInvoices.length === 0 || isBuildingPdfs || !pdfPreviewUrl,
+            disabled:
+              selectedInvoices.length === 0 || isBuildingPdfs || !pdfPreviewUrl,
           }}
           secondaryAction={{
             label: 'Close',
@@ -635,7 +798,7 @@ const BookingInvoice = () => {
               ) : null}
               <div className='overflow-hidden rounded border bg-white shadow-sm dark:bg-slate-900'>
                 {isBuildingPdfs && !pdfPreviewUrl ? (
-                  <div className='p-4 text-sm text-muted-foreground'>
+                  <div className='text-muted-foreground p-4 text-sm'>
                     Building PDF preview...
                   </div>
                 ) : pdfPreviewUrl ? (
@@ -645,14 +808,14 @@ const BookingInvoice = () => {
                     className='h-[70vh] w-full'
                   />
                 ) : (
-                  <div className='p-4 text-sm text-muted-foreground'>
+                  <div className='text-muted-foreground p-4 text-sm'>
                     Select invoices and refresh to view the PDF preview.
                   </div>
                 )}
               </div>
             </div>
           ) : (
-            <p className='text-sm text-muted-foreground'>
+            <p className='text-muted-foreground text-sm'>
               Select at least one invoice to print.
             </p>
           )}

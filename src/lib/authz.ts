@@ -59,25 +59,21 @@ export const RoleAccess: Record<string, RoleIdValue[]> = {
     RoleId.SystemAdmin,
     RoleId.ManagerSales,
     RoleId.ExecutiveSales,
-    RoleId.OperationSales,
   ],
   '/sales/sales-details/stock': [
     RoleId.SystemAdmin,
     RoleId.ManagerSales,
     RoleId.ExecutiveSales,
-    RoleId.OperationSales,
   ],
   '/sales/sales-details/view-invoices': [
     RoleId.SystemAdmin,
     RoleId.ManagerSales,
     RoleId.ExecutiveSales,
-    RoleId.OperationSales,
   ],
   '/sales/sales-details/market-return': [
     RoleId.SystemAdmin,
     RoleId.ManagerSales,
     RoleId.ExecutiveSales,
-    RoleId.OperationSales,
   ],
 
   // Sales Operations

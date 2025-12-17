@@ -110,6 +110,16 @@ const BookingInvoice = () => {
   const [pendingRowKey, setPendingRowKey] = useState<string | null>(null)
   const confirmDialogOpen = Boolean(pendingStatusChange)
 
+  const invalidateRelatedTabs = useCallback(
+    async (status: 'ACTUAL' | 'LATE_DELIVERY') => {
+      const key =
+        status === 'ACTUAL' ? 'actual-invoices' : 'late-delivery-invoices'
+      await queryClient.invalidateQueries({ queryKey: [key] })
+      await queryClient.refetchQueries({ queryKey: [key], type: 'active' })
+    },
+    [queryClient]
+  )
+
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: [
       'booking-invoices',
@@ -179,6 +189,7 @@ const BookingInvoice = () => {
             : 'Invoice updated to Late Delivery.'
         toast.success(res?.message ?? fallbackMessage)
         await refetch()
+        await invalidateRelatedTabs(nextStatus)
       } catch (err) {
         const message =
           err instanceof Error
@@ -194,7 +205,7 @@ const BookingInvoice = () => {
         resetStatusSelect(rowKey)
       }
     },
-    [refetch, resetStatusSelect, user?.userId]
+    [invalidateRelatedTabs, refetch, resetStatusSelect, user?.userId]
   )
 
   const closePendingStatusDialog = (shouldReset: boolean) => {
@@ -416,14 +427,6 @@ const BookingInvoice = () => {
     const refreshed = rows.find((row) => row.id === selectedInvoice.id)
     return refreshed ?? selectedInvoice
   }, [rows, selectedInvoice])
-  const statusFilterOptions = useMemo(() => {
-    const set = new Set<string>()
-    rows.forEach((row) => set.add(deriveStatus(row)))
-    return Array.from(set).map((status) => ({
-      label: status,
-      value: status,
-    }))
-  }, [rows])
 
   const table = useReactTable({
     data: rows,
@@ -676,7 +679,7 @@ const BookingInvoice = () => {
           isError={isError}
           error={error}
           rows={rows}
-          statusFilterOptions={statusFilterOptions}
+          statusFilterOptions={[]}
           onPrintClick={() => {
             setPrintDialogOpen(true)
             refetch()

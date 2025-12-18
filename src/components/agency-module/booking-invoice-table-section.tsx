@@ -3,6 +3,7 @@ import {
   type ColumnDef,
   type Table as ReactTable,
 } from '@tanstack/react-table'
+import type { ReactNode } from 'react'
 
 import {
   Table,
@@ -30,6 +31,7 @@ interface BookingInvoiceTableSectionProps {
   onPrintClick?: () => void
   isPrintDisabled?: boolean
   showPrintAction?: boolean
+  toolbarRightContent?: ReactNode
 }
 
 export function BookingInvoiceTableSection({
@@ -43,6 +45,7 @@ export function BookingInvoiceTableSection({
   onPrintClick = () => {},
   isPrintDisabled = false,
   showPrintAction = true,
+  toolbarRightContent,
 }: BookingInvoiceTableSectionProps) {
   const tableRows = table.getRowModel().rows
   const hasRows = tableRows.length > 0
@@ -58,18 +61,20 @@ export function BookingInvoiceTableSection({
     })
   }
 
-  const rightAction = showPrintAction ? (
-    <Button
-      variant="outline"
-      size="sm"
-      className="h-8 gap-2 px-3"
-      onClick={onPrintClick}
-      disabled={isPrintDisabled}
-    >
-      <Printer className="h-4 w-4" />
-      Print Selected
-    </Button>
-  ) : undefined
+  const rightAction =
+    toolbarRightContent ??
+    (showPrintAction ? (
+      <Button
+        variant="outline"
+        size="sm"
+        className="h-8 gap-2 px-3"
+        onClick={onPrintClick}
+        disabled={isPrintDisabled}
+      >
+        <Printer className="h-4 w-4" />
+        Print Selected
+      </Button>
+    ) : undefined)
 
   return (
     <>

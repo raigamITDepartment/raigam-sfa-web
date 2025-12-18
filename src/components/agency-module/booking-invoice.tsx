@@ -22,7 +22,7 @@ import type {
   BookingInvoiceReportItem,
   InvoiceTypeParam,
 } from '@/types/invoice'
-import { Pencil } from 'lucide-react'
+import { Pencil, Printer } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatPrice } from '@/lib/format-price'
 import { cn } from '@/lib/utils'
@@ -99,18 +99,12 @@ const BookingInvoice = () => {
   const [extrasError, setExtrasError] = useState<string | null>(null)
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null)
   const [previewError, setPreviewError] = useState<string | null>(null)
-  const [statusUpdatingMap, setStatusUpdatingMap] = useState<
-    Record<string, boolean>
-  >({})
-  const [statusResetCounters, setStatusResetCounters] = useState<
-    Record<string, number>
-  >({})
-  const [pendingStatusChange, setPendingStatusChange] = useState<{
-    invoice: BookingInvoiceReportItem
+  const [pendingBulkStatus, setPendingBulkStatus] = useState<{
+    invoices: BookingInvoiceReportItem[]
     nextStatus: 'ACTUAL' | 'LATE_DELIVERY'
   } | null>(null)
-  const [pendingRowKey, setPendingRowKey] = useState<string | null>(null)
-  const confirmDialogOpen = Boolean(pendingStatusChange)
+  const [isBulkStatusUpdating, setIsBulkStatusUpdating] = useState(false)
+  const [statusSelectResetCounter, setStatusSelectResetCounter] = useState(0)
 
   const invalidateRelatedTabs = useCallback(
     async (status: 'ACTUAL' | 'LATE_DELIVERY') => {
@@ -152,71 +146,68 @@ const BookingInvoice = () => {
     },
   })
 
-  const resetStatusSelect = useCallback((rowKey: string) => {
-    setStatusResetCounters((prev) => ({
-      ...prev,
-      [rowKey]: (prev[rowKey] ?? 0) + 1,
-    }))
-  }, [])
-
-  const handleStatusChange = useCallback(
+  const handleBulkStatusChange = useCallback(
     async (
-      invoice: BookingInvoiceReportItem,
+      invoices: BookingInvoiceReportItem[],
       nextStatus: 'ACTUAL' | 'LATE_DELIVERY'
     ) => {
-      const invoiceId =
-        typeof invoice.id === 'number' && Number.isFinite(invoice.id)
-          ? invoice.id
-          : Number(invoice.invoiceNo) || 0
-      if (!invoiceId) {
-        toast.error('Invalid invoice id')
+      if (!invoices.length) {
+        toast.error('Select at least one invoice to update')
         return
       }
       const userId = user?.userId
       if (!userId) {
-        toast.error('Unable to update the invoice without user context')
+        toast.error('Unable to update invoices without user context')
         return
       }
-      const rowKey = String(invoice.id ?? invoice.invoiceNo)
-      setStatusUpdatingMap((prev) => ({ ...prev, [rowKey]: true }))
-      try {
-        const fn =
-          nextStatus === 'ACTUAL'
-            ? updateBookingInvoiceToActual
-            : updateBookingInvoiceToLateDelivery
-        const res = await fn(invoiceId, userId)
-        const fallbackMessage =
-          nextStatus === 'ACTUAL'
-            ? 'Invoice updated to Actual.'
-            : 'Invoice updated to Late Delivery.'
-        toast.success(res?.message ?? fallbackMessage)
+      const fn =
+        nextStatus === 'ACTUAL'
+          ? updateBookingInvoiceToActual
+          : updateBookingInvoiceToLateDelivery
+      const label = nextStatus === 'ACTUAL' ? 'Actual' : 'Late Delivery'
+      let successCount = 0
+      let failureCount = 0
+      for (const invoice of invoices) {
+        const invoiceId =
+          typeof invoice.id === 'number' && Number.isFinite(invoice.id)
+            ? invoice.id
+            : Number(invoice.invoiceNo) || 0
+        if (!invoiceId) {
+          failureCount += 1
+          toast.error(
+            `Unable to determine id for invoice ${invoice.invoiceNo ?? ''}`
+          )
+          continue
+        }
+        try {
+          await fn(invoiceId, userId)
+          successCount += 1
+        } catch (err) {
+          failureCount += 1
+          const message =
+            err instanceof Error
+              ? err.message
+              : 'Failed to update invoice status.'
+          toast.error(
+            `Invoice ${invoice.invoiceNo ?? invoiceId}: ${message}`
+          )
+        }
+      }
+      if (successCount) {
+        const summary =
+          successCount === 1
+            ? `Invoice updated to ${label}.`
+            : `${successCount} invoices updated to ${label}.`
+        toast.success(summary)
         await refetch()
         await invalidateRelatedTabs(nextStatus)
-      } catch (err) {
-        const message =
-          err instanceof Error
-            ? err.message
-            : 'Failed to update invoice status.'
-        toast.error(message)
-      } finally {
-        setStatusUpdatingMap((prev) => {
-          const next = { ...prev }
-          delete next[rowKey]
-          return next
-        })
-        resetStatusSelect(rowKey)
+      }
+      if (!successCount && failureCount) {
+        toast.error('Failed to update the selected invoices.')
       }
     },
-    [invalidateRelatedTabs, refetch, resetStatusSelect, user?.userId]
+    [invalidateRelatedTabs, refetch, user?.userId]
   )
-
-  const closePendingStatusDialog = (shouldReset: boolean) => {
-    if (shouldReset && pendingRowKey) {
-      resetStatusSelect(pendingRowKey)
-    }
-    setPendingStatusChange(null)
-    setPendingRowKey(null)
-  }
 
   const columns = useMemo<ColumnDef<BookingInvoiceReportItem>[]>(
     () => [
@@ -378,72 +369,33 @@ const BookingInvoice = () => {
         id: 'actions',
         header: () => <div className='text-center'>Action</div>,
         enableSorting: false,
-        cell: ({ row }) => {
-          const status = row.getValue('status') as string
-          const rowKey = String(row.original.id ?? row.original.invoiceNo)
-          const isUpdating = Boolean(statusUpdatingMap[rowKey])
-          const resetCounter = statusResetCounters[rowKey] ?? 0
-          const showStatusChanger = status === 'Booked'
-          return (
-            <div className='flex items-center justify-center gap-2'>
-              <Tooltip delayDuration={100}>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant='ghost'
-                    size='icon'
-                    className='size-8'
-                    onClick={() => {
-                      setSelectedInvoice(row.original)
-                      setInvoicePreviewOpen(true)
-                    }}
-                  >
-                    <Pencil className='h-4 w-4' />
-                    <span className='sr-only'>Edit</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side='top' align='center'>
-                  Click Edit Invoice
-                </TooltipContent>
-              </Tooltip>
-              {showStatusChanger ? (
-                <Select
-                  key={`${rowKey}-${resetCounter}`}
-                  disabled={isUpdating}
-                  onValueChange={(value) => {
-                    if (value === 'actual') {
-                      setPendingStatusChange({
-                        invoice: row.original,
-                        nextStatus: 'ACTUAL',
-                      })
-                      setPendingRowKey(rowKey)
-                    } else if (value === 'late') {
-                      setPendingStatusChange({
-                        invoice: row.original,
-                        nextStatus: 'LATE_DELIVERY',
-                      })
-                      setPendingRowKey(rowKey)
-                    }
+        cell: ({ row }) => (
+          <div className='flex items-center justify-center'>
+            <Tooltip delayDuration={100}>
+              <TooltipTrigger asChild>
+                <Button
+                  variant='ghost'
+                  size='icon'
+                  className='size-8'
+                  onClick={() => {
+                    setSelectedInvoice(row.original)
+                    setInvoicePreviewOpen(true)
                   }}
                 >
-                  <SelectTrigger
-                    size='sm'
-                    className='min-w-[140px] justify-between'
-                  >
-                    <SelectValue placeholder='Change Status' />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value='actual'>Actual</SelectItem>
-                    <SelectItem value='late'>Late Delivery</SelectItem>
-                  </SelectContent>
-                </Select>
-              ) : null}
-            </div>
-          )
-        },
+                  <Pencil className='h-4 w-4' />
+                  <span className='sr-only'>Edit</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side='top' align='center'>
+                Click Edit Invoice
+              </TooltipContent>
+            </Tooltip>
+          </div>
+        ),
         meta: { thClassName: 'text-center' },
       },
     ],
-    [handleStatusChange, statusResetCounters, statusUpdatingMap]
+    []
   )
 
   const rows = useMemo(
@@ -487,6 +439,50 @@ const BookingInvoice = () => {
       return selectedIds.has(id)
     })
   }, [rowSelection, rows])
+  const isPrintDisabled = selectedInvoices.length === 0
+  const hasEligibleStatusChange = selectedInvoices.some(
+    (invoice) => deriveStatus(invoice) === 'Booked'
+  )
+
+  const handlePrintSelected = useCallback(() => {
+    setPrintDialogOpen(true)
+    refetch()
+  }, [refetch])
+
+  const toolbarRightContent = (
+    <div className='flex flex-wrap items-center gap-2'>
+      <Button
+        variant='outline'
+        size='sm'
+        className='h-8 gap-2 px-3'
+        onClick={handlePrintSelected}
+        disabled={isPrintDisabled}
+      >
+        <Printer className='h-4 w-4' />
+        Print Selected
+      </Button>
+      <Select
+        key={`bulk-status-${statusSelectResetCounter}`}
+        disabled={!hasEligibleStatusChange || isBulkStatusUpdating}
+        onValueChange={(value) => {
+          if (value === 'actual' || value === 'late') {
+            triggerBulkStatusChange(value)
+          }
+        }}
+      >
+        <SelectTrigger
+          size='sm'
+          className='min-w-[160px] justify-between'
+        >
+          <SelectValue placeholder='Change Status' />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value='actual'>Actual</SelectItem>
+          <SelectItem value='late'>Late Delivery</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  )
 
   useEffect(() => {
     const loadExtras = async () => {
@@ -533,10 +529,38 @@ const BookingInvoice = () => {
     })
   }
 
-  const getFreshSelected = () =>
-    table
-      .getSelectedRowModel()
-      .flatRows.map((row) => row.original as BookingInvoiceReportItem)
+  const getFreshSelected = useCallback(
+    () =>
+      table
+        .getSelectedRowModel()
+        .flatRows.map((row) => row.original as BookingInvoiceReportItem),
+    [table]
+  )
+
+  const triggerBulkStatusChange = useCallback(
+    (value: 'actual' | 'late') => {
+      const selected = getFreshSelected()
+      if (!selected.length) {
+        toast.error('Select at least one invoice to update')
+        setStatusSelectResetCounter((prev) => prev + 1)
+        return
+      }
+      const eligible = selected.filter(
+        (invoice) => deriveStatus(invoice) === 'Booked'
+      )
+      if (!eligible.length) {
+        toast.error('Only booked invoices can change status')
+        setStatusSelectResetCounter((prev) => prev + 1)
+        return
+      }
+      setPendingBulkStatus({
+        invoices: eligible,
+        nextStatus: value === 'actual' ? 'ACTUAL' : 'LATE_DELIVERY',
+      })
+      setStatusSelectResetCounter((prev) => prev + 1)
+    },
+    [getFreshSelected]
+  )
 
   const buildPdfPreview = async () => {
     const freshSelected = getFreshSelected()
@@ -640,25 +664,25 @@ const BookingInvoice = () => {
     <Card className='space-y-4'>
       <CardContent>
         <ConfirmDialog
-          open={confirmDialogOpen}
+          open={Boolean(pendingBulkStatus)}
           destructive
           onOpenChange={(open) => {
             if (!open) {
-              closePendingStatusDialog(true)
+              setPendingBulkStatus(null)
             }
           }}
           title='Confirm Status Update'
           desc={
-            pendingStatusChange ? (
+            pendingBulkStatus ? (
               <div className='flex flex-wrap items-center gap-1'>
-                <span>Do you want to mark invoice</span>
-                <InvoiceNumber
-                  invoiceId={pendingStatusChange.invoice.invoiceNo}
-                  className='font-semibold text-slate-900 dark:text-slate-50'
-                />
+                <span>Do you want to mark</span>
+                <span className='font-semibold text-slate-900 dark:text-slate-50'>
+                  {pendingBulkStatus.invoices.length} invoice
+                  {pendingBulkStatus.invoices.length > 1 ? 's' : ''}
+                </span>
                 <span>
                   as{' '}
-                  {pendingStatusChange.nextStatus === 'ACTUAL'
+                  {pendingBulkStatus.nextStatus === 'ACTUAL'
                     ? 'Actual'
                     : 'Late Delivery'}
                   ?
@@ -671,16 +695,19 @@ const BookingInvoice = () => {
           cancelBtnText='No'
           confirmText='Yes'
           handleConfirm={async () => {
-            if (!pendingStatusChange) return
-            await handleStatusChange(
-              pendingStatusChange.invoice,
-              pendingStatusChange.nextStatus
-            )
-            closePendingStatusDialog(false)
+            if (!pendingBulkStatus) return
+            setIsBulkStatusUpdating(true)
+            try {
+              await handleBulkStatusChange(
+                pendingBulkStatus.invoices,
+                pendingBulkStatus.nextStatus
+              )
+            } finally {
+              setIsBulkStatusUpdating(false)
+              setPendingBulkStatus(null)
+            }
           }}
-          isLoading={
-            pendingRowKey ? Boolean(statusUpdatingMap[pendingRowKey]) : false
-          }
+          isLoading={isBulkStatusUpdating}
         />
         <BookingInvoiceFilter
           initialStartDate={defaultDates.startDate}
@@ -708,11 +735,7 @@ const BookingInvoice = () => {
           error={error}
           rows={rows}
           statusFilterOptions={[]}
-          onPrintClick={() => {
-            setPrintDialogOpen(true)
-            refetch()
-          }}
-          isPrintDisabled={selectedInvoices.length === 0}
+          toolbarRightContent={toolbarRightContent}
         />
         <FullWidthDialog
           title='Invoice Details'

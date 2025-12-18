@@ -55,7 +55,7 @@ import { Route as AuthenticatedAgencyModuleMarketReturnReturnRouteImport } from 
 import { Route as AuthenticatedAgencyModuleLoadingListViewLoadingListRouteImport } from './routes/_authenticated/agency-module/loading-list/view-loading-list'
 import { Route as AuthenticatedAgencyModuleInvoiceViewInvoiceRouteImport } from './routes/_authenticated/agency-module/invoice/view-invoice'
 import { Route as AuthenticatedAgencyModuleInvoiceManualInvoiceRouteImport } from './routes/_authenticated/agency-module/invoice/manual-invoice'
-import { Route as AuthenticatedAgencyModuleInvoiceActualInvoiceRouteImport } from './routes/_authenticated/agency-module/invoice/actual-invoice'
+import { Route as AuthenticatedAgencyModuleInvoiceInvoicesSummaryRouteImport } from './routes/_authenticated/agency-module/invoice/invoices-summary'
 import { Route as AuthenticatedAdminModuleUserModuleAddModifiyUserRouteImport } from './routes/_authenticated/admin-module/user-module/add-modifiy-user'
 import { Route as AuthenticatedAdminModuleOperationReverseRequestsRouteImport } from './routes/_authenticated/admin-module/operation/reverse-requests'
 import { Route as AuthenticatedAdminModuleOperationManualBillQuotaRouteImport } from './routes/_authenticated/admin-module/operation/manual-bill-quota'
@@ -324,10 +324,10 @@ const AuthenticatedAgencyModuleInvoiceManualInvoiceRoute =
     path: '/agency-module/invoice/manual-invoice',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedAgencyModuleInvoiceActualInvoiceRoute =
-  AuthenticatedAgencyModuleInvoiceActualInvoiceRouteImport.update({
-    id: '/agency-module/invoice/actual-invoice',
-    path: '/agency-module/invoice/actual-invoice',
+const AuthenticatedAgencyModuleInvoiceInvoicesSummaryRoute =
+  AuthenticatedAgencyModuleInvoiceInvoicesSummaryRouteImport.update({
+    id: '/agency-module/invoice/invoices-summary',
+    path: '/agency-module/invoice/invoices-summary',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAdminModuleUserModuleAddModifiyUserRoute =
@@ -380,7 +380,7 @@ export interface FileRoutesByFullPath {
   '/admin-module/operation/manual-bill-quota': typeof AuthenticatedAdminModuleOperationManualBillQuotaRoute
   '/admin-module/operation/reverse-requests': typeof AuthenticatedAdminModuleOperationReverseRequestsRoute
   '/admin-module/user-module/add-modifiy-user': typeof AuthenticatedAdminModuleUserModuleAddModifiyUserRoute
-  '/agency-module/invoice/actual-invoice': typeof AuthenticatedAgencyModuleInvoiceActualInvoiceRoute
+  '/agency-module/invoice/invoices-summary': typeof AuthenticatedAgencyModuleInvoiceInvoicesSummaryRoute
   '/agency-module/invoice/manual-invoice': typeof AuthenticatedAgencyModuleInvoiceManualInvoiceRoute
   '/agency-module/invoice/view-invoice': typeof AuthenticatedAgencyModuleInvoiceViewInvoiceRoute
   '/agency-module/loading-list/view-loading-list': typeof AuthenticatedAgencyModuleLoadingListViewLoadingListRoute
@@ -430,7 +430,7 @@ export interface FileRoutesByTo {
   '/admin-module/operation/manual-bill-quota': typeof AuthenticatedAdminModuleOperationManualBillQuotaRoute
   '/admin-module/operation/reverse-requests': typeof AuthenticatedAdminModuleOperationReverseRequestsRoute
   '/admin-module/user-module/add-modifiy-user': typeof AuthenticatedAdminModuleUserModuleAddModifiyUserRoute
-  '/agency-module/invoice/actual-invoice': typeof AuthenticatedAgencyModuleInvoiceActualInvoiceRoute
+  '/agency-module/invoice/invoices-summary': typeof AuthenticatedAgencyModuleInvoiceInvoicesSummaryRoute
   '/agency-module/invoice/manual-invoice': typeof AuthenticatedAgencyModuleInvoiceManualInvoiceRoute
   '/agency-module/invoice/view-invoice': typeof AuthenticatedAgencyModuleInvoiceViewInvoiceRoute
   '/agency-module/loading-list/view-loading-list': typeof AuthenticatedAgencyModuleLoadingListViewLoadingListRoute
@@ -483,7 +483,7 @@ export interface FileRoutesById {
   '/_authenticated/admin-module/operation/manual-bill-quota': typeof AuthenticatedAdminModuleOperationManualBillQuotaRoute
   '/_authenticated/admin-module/operation/reverse-requests': typeof AuthenticatedAdminModuleOperationReverseRequestsRoute
   '/_authenticated/admin-module/user-module/add-modifiy-user': typeof AuthenticatedAdminModuleUserModuleAddModifiyUserRoute
-  '/_authenticated/agency-module/invoice/actual-invoice': typeof AuthenticatedAgencyModuleInvoiceActualInvoiceRoute
+  '/_authenticated/agency-module/invoice/invoices-summary': typeof AuthenticatedAgencyModuleInvoiceInvoicesSummaryRoute
   '/_authenticated/agency-module/invoice/manual-invoice': typeof AuthenticatedAgencyModuleInvoiceManualInvoiceRoute
   '/_authenticated/agency-module/invoice/view-invoice': typeof AuthenticatedAgencyModuleInvoiceViewInvoiceRoute
   '/_authenticated/agency-module/loading-list/view-loading-list': typeof AuthenticatedAgencyModuleLoadingListViewLoadingListRoute
@@ -535,7 +535,7 @@ export interface FileRouteTypes {
     | '/admin-module/operation/manual-bill-quota'
     | '/admin-module/operation/reverse-requests'
     | '/admin-module/user-module/add-modifiy-user'
-    | '/agency-module/invoice/actual-invoice'
+    | '/agency-module/invoice/invoices-summary'
     | '/agency-module/invoice/manual-invoice'
     | '/agency-module/invoice/view-invoice'
     | '/agency-module/loading-list/view-loading-list'
@@ -585,7 +585,7 @@ export interface FileRouteTypes {
     | '/admin-module/operation/manual-bill-quota'
     | '/admin-module/operation/reverse-requests'
     | '/admin-module/user-module/add-modifiy-user'
-    | '/agency-module/invoice/actual-invoice'
+    | '/agency-module/invoice/invoices-summary'
     | '/agency-module/invoice/manual-invoice'
     | '/agency-module/invoice/view-invoice'
     | '/agency-module/loading-list/view-loading-list'
@@ -637,7 +637,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin-module/operation/manual-bill-quota'
     | '/_authenticated/admin-module/operation/reverse-requests'
     | '/_authenticated/admin-module/user-module/add-modifiy-user'
-    | '/_authenticated/agency-module/invoice/actual-invoice'
+    | '/_authenticated/agency-module/invoice/invoices-summary'
     | '/_authenticated/agency-module/invoice/manual-invoice'
     | '/_authenticated/agency-module/invoice/view-invoice'
     | '/_authenticated/agency-module/loading-list/view-loading-list'
@@ -991,11 +991,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAgencyModuleInvoiceManualInvoiceRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/agency-module/invoice/actual-invoice': {
-      id: '/_authenticated/agency-module/invoice/actual-invoice'
-      path: '/agency-module/invoice/actual-invoice'
-      fullPath: '/agency-module/invoice/actual-invoice'
-      preLoaderRoute: typeof AuthenticatedAgencyModuleInvoiceActualInvoiceRouteImport
+    '/_authenticated/agency-module/invoice/invoices-summary': {
+      id: '/_authenticated/agency-module/invoice/invoices-summary'
+      path: '/agency-module/invoice/invoices-summary'
+      fullPath: '/agency-module/invoice/invoices-summary'
+      preLoaderRoute: typeof AuthenticatedAgencyModuleInvoiceInvoicesSummaryRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin-module/user-module/add-modifiy-user': {
@@ -1073,7 +1073,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminModuleOperationManualBillQuotaRoute: typeof AuthenticatedAdminModuleOperationManualBillQuotaRoute
   AuthenticatedAdminModuleOperationReverseRequestsRoute: typeof AuthenticatedAdminModuleOperationReverseRequestsRoute
   AuthenticatedAdminModuleUserModuleAddModifiyUserRoute: typeof AuthenticatedAdminModuleUserModuleAddModifiyUserRoute
-  AuthenticatedAgencyModuleInvoiceActualInvoiceRoute: typeof AuthenticatedAgencyModuleInvoiceActualInvoiceRoute
+  AuthenticatedAgencyModuleInvoiceInvoicesSummaryRoute: typeof AuthenticatedAgencyModuleInvoiceInvoicesSummaryRoute
   AuthenticatedAgencyModuleInvoiceManualInvoiceRoute: typeof AuthenticatedAgencyModuleInvoiceManualInvoiceRoute
   AuthenticatedAgencyModuleInvoiceViewInvoiceRoute: typeof AuthenticatedAgencyModuleInvoiceViewInvoiceRoute
   AuthenticatedAgencyModuleLoadingListViewLoadingListRoute: typeof AuthenticatedAgencyModuleLoadingListViewLoadingListRoute
@@ -1132,8 +1132,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedAdminModuleOperationReverseRequestsRoute,
   AuthenticatedAdminModuleUserModuleAddModifiyUserRoute:
     AuthenticatedAdminModuleUserModuleAddModifiyUserRoute,
-  AuthenticatedAgencyModuleInvoiceActualInvoiceRoute:
-    AuthenticatedAgencyModuleInvoiceActualInvoiceRoute,
+  AuthenticatedAgencyModuleInvoiceInvoicesSummaryRoute:
+    AuthenticatedAgencyModuleInvoiceInvoicesSummaryRoute,
   AuthenticatedAgencyModuleInvoiceManualInvoiceRoute:
     AuthenticatedAgencyModuleInvoiceManualInvoiceRoute,
   AuthenticatedAgencyModuleInvoiceViewInvoiceRoute:

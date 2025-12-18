@@ -25,6 +25,7 @@ import type {
 import { Pencil } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatPrice } from '@/lib/format-price'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -47,6 +48,7 @@ import BookingInvoiceFilter, {
 import { CommonDialog } from '@/components/common-dialog'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { DataTableColumnHeader } from '@/components/data-table'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 const formatDate = (value?: string) => {
   if (!value || value === '0001-01-01') return '-'
@@ -347,12 +349,63 @@ const BookingInvoice = () => {
         ),
         cell: ({ row }) => {
           const status = row.getValue('status') as string
+          return (
+            <div className='flex justify-center'>
+              <span
+                className={cn('rounded-full px-2 py-1 text-xs font-semibold', {
+                  'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200':
+                    status === 'Booked',
+                  'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200':
+                    status === 'Actual',
+                  'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200':
+                    status === 'Late Delivery',
+                  'bg-rose-100 text-rose-800 dark:bg-rose-900/50 dark:text-rose-200':
+                    status === 'Reversed',
+                  'bg-slate-100 text-slate-800 dark:bg-slate-900/50 dark:text-slate-200':
+                    status === 'Pending',
+                })}
+              >
+                {status}
+              </span>
+            </div>
+          )
+        },
+        meta: { thClassName: 'text-center' },
+        sortingFn: (a, b) =>
+          deriveStatus(a.original).localeCompare(deriveStatus(b.original)),
+      },
+      {
+        id: 'actions',
+        header: () => <div className='text-center'>Action</div>,
+        enableSorting: false,
+        cell: ({ row }) => {
+          const status = row.getValue('status') as string
           const rowKey = String(row.original.id ?? row.original.invoiceNo)
           const isUpdating = Boolean(statusUpdatingMap[rowKey])
           const resetCounter = statusResetCounters[rowKey] ?? 0
-          if (status === 'Booked') {
-            return (
-              <div className='flex justify-center'>
+          const showStatusChanger = status === 'Booked'
+          return (
+            <div className='flex items-center justify-center gap-2'>
+              <Tooltip delayDuration={100}>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant='ghost'
+                    size='icon'
+                    className='size-8'
+                    onClick={() => {
+                      setSelectedInvoice(row.original)
+                      setInvoicePreviewOpen(true)
+                    }}
+                  >
+                    <Pencil className='h-4 w-4' />
+                    <span className='sr-only'>Edit</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side='top' align='center'>
+                  Click Edit Invoice
+                </TooltipContent>
+              </Tooltip>
+              {showStatusChanger ? (
                 <Select
                   key={`${rowKey}-${resetCounter}`}
                   disabled={isUpdating}
@@ -376,42 +429,17 @@ const BookingInvoice = () => {
                     size='sm'
                     className='min-w-[140px] justify-between'
                   >
-                    <SelectValue placeholder='Select action' />
+                    <SelectValue placeholder='Change Status' />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value='actual'>Actual</SelectItem>
                     <SelectItem value='late'>Late Delivery</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-            )
-          }
-          return null
+              ) : null}
+            </div>
+          )
         },
-        meta: { thClassName: 'text-center' },
-        sortingFn: (a, b) =>
-          deriveStatus(a.original).localeCompare(deriveStatus(b.original)),
-      },
-      {
-        id: 'actions',
-        header: () => <div className='text-center'>Action</div>,
-        enableSorting: false,
-        cell: ({ row }) => (
-          <div className='flex items-center justify-center gap-1'>
-            <Button
-              variant='ghost'
-              size='icon'
-              className='size-8'
-              onClick={() => {
-                setSelectedInvoice(row.original)
-                setInvoicePreviewOpen(true)
-              }}
-            >
-              <Pencil className='h-4 w-4' />
-              <span className='sr-only'>Edit</span>
-            </Button>
-          </div>
-        ),
         meta: { thClassName: 'text-center' },
       },
     ],

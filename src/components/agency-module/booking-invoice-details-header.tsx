@@ -30,8 +30,12 @@ export function BookingInvoiceDetailsHeader({
     { label: 'Booking Date', value: formatDate(invoice.dateBook) },
     { label: 'Actual Date', value: formatDate(invoice.dateActual) },
     {
-      label: 'Booking Value',
-      value: formatPrice(invoice.totalBookValue),
+      label: 'Invoice Grand Total',
+      value: formatPrice(
+        typeof invoice.totalBookFinalValue === 'number'
+          ? invoice.totalBookFinalValue
+          : invoice.totalBookValue
+      ),
     },
     {
       label: 'Discount Value',

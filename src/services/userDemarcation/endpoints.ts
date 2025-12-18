@@ -238,6 +238,12 @@ export function getAllOutlets() {
   return get<OutletDTO[]>(`${USER_DEMARC_BASE}/outlet`)
 }
 
+export function getAllOutletsByTerritoryId(territoryId: Id) {
+  return get<OutletDTO[]>(
+    `${USER_DEMARC_BASE}/outlet/getAllOutletsByTerritoryId/${territoryId}`
+  )
+}
+
 
 export function getAllAgency() {
   return get<AgencyDTO[]>(`${USER_DEMARC_BASE}/agency`)

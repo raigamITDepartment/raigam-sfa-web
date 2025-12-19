@@ -707,6 +707,12 @@ export default function HomeReportTable({
     return filtered.slice(start, start + rowsPerPage)
   }, [filtered, page, rowsPerPage])
 
+  // In fullscreen show every row; otherwise only the current page.
+  const visibleRows = useMemo(
+    () => (isFullScreen ? filtered : paginated),
+    [filtered, isFullScreen, paginated]
+  )
+
   const [currentMonthHeaders, pastMonthsHeaders] = useMemo(() => {
     if (headers.length === 0) return [[], []] as [string[], string[]]
     const pastColumnCount = PAST_MONTH_COLUMN_DEFS.length * 2
@@ -776,30 +782,30 @@ export default function HomeReportTable({
           </div>
           <div className='flex-1 overflow-auto'>
             {renderTable(
-              headers,
-              currentMonthHeaders,
-              pastMonthsHeaders,
-              monthKey,
-              paginated,
-              true
-            )}
-          </div>
+            headers,
+            currentMonthHeaders,
+            pastMonthsHeaders,
+            monthKey,
+            visibleRows,
+            true
+          )}
         </div>
-      )}
+      </div>
+    )}
 
       {/* Normal Table */}
       {!isFullScreen && (
         <div className='overflow-auto'>
           {renderTable(
-            headers,
-            currentMonthHeaders,
-            pastMonthsHeaders,
-            monthKey,
-            paginated,
-            false
-          )}
-        </div>
-      )}
+          headers,
+          currentMonthHeaders,
+          pastMonthsHeaders,
+          monthKey,
+          visibleRows,
+          false
+        )}
+      </div>
+    )}
 
       {!isFullScreen && (
         <div className=''>

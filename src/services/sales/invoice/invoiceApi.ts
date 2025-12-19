@@ -2,6 +2,8 @@ import { http } from '@/services/http'
 import type {
   BookingInvoicesByTerritoryResponse,
   CancelInvoiceResponse,
+  CreateInvoicePayload,
+  CreateInvoiceResponse,
   UpdateBookingInvoiceResponse,
   UpdateBookingInvoiceWithDetailsPayload,
 } from '@/types/invoice'
@@ -21,15 +23,54 @@ export async function cancelInvoice(
   invoiceId: number | string,
   userId: number | string
 ) {
-  const res = await http.delete<CancelInvoiceResponse>(`${INVOICE_BASE}/cancelInvoice/${invoiceId}`, {
-    params: { userId },
-  })
+  const res = await http.delete<CancelInvoiceResponse>(
+    `${INVOICE_BASE}/cancelInvoice/${invoiceId}`,
+    {
+      params: { userId },
+    }
+  )
   return res.data
 }
 
 export async function updateBookingInvoiceWithDetails(
   payload: UpdateBookingInvoiceWithDetailsPayload
 ) {
-  const res = await http.put<UpdateBookingInvoiceResponse>(INVOICE_BASE, payload)
+  const res = await http.put<UpdateBookingInvoiceResponse>(
+    INVOICE_BASE,
+    payload
+  )
+  return res.data
+}
+
+export async function createInvoice(payload: CreateInvoicePayload) {
+  const res = await http.post<CreateInvoiceResponse>(INVOICE_BASE, payload)
+  return res.data
+}
+
+export async function updateBookingInvoiceToLateDelivery(
+  invoiceId: number | string,
+  userId: number | string
+) {
+  const res = await http.put<UpdateBookingInvoiceResponse>(
+    `${INVOICE_BASE}/updateInvoiceHeaderForBookingToLateDeliveryScenario`,
+    null,
+    {
+      params: { invoiceId, userId },
+    }
+  )
+  return res.data
+}
+
+export async function updateBookingInvoiceToActual(
+  invoiceId: number | string,
+  userId: number | string
+) {
+  const res = await http.put<UpdateBookingInvoiceResponse>(
+    `${INVOICE_BASE}/updateBookingInvoiceWithDetailsToActualScenario`,
+    null,
+    {
+      params: { invoiceId, userId },
+    }
+  )
   return res.data
 }

@@ -193,7 +193,6 @@ export default function DistributorCreation() {
 
   const openEditModal = (distributor: DistributorDTO) => {
     setModalMode('update')
-    console.log('Distributor edit selection:', distributor)
     setActiveDistributor(distributor)
     setIsDialogOpen(true)
   }

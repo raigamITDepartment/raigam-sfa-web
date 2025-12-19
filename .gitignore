@@ -14,10 +14,12 @@ dist-ssr
 *.local
 
 .env
+.env.local
 
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
+.tanstack/temp/*
 .idea
 .DS_Store
 *.suo

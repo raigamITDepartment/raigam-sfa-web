@@ -27,25 +27,28 @@ async function refreshAccessToken(instance: AxiosInstance): Promise<string> {
   if (refreshPromise) return refreshPromise
 
   refreshPromise = (async () => {
-    const refreshToken = getRefreshToken()
-    if (!refreshToken) throw new Error('No refresh token')
+    try {
+      const refreshToken = getRefreshToken()
+      if (!refreshToken) throw new Error('No refresh token')
 
-    const res = await instance.post('/api/v1/auth/refresh', { refreshToken })
-    const payload = res.data?.payload
-    const newAccess = payload?.accessToken ?? payload?.token
+      const res = await instance.post('/api/v1/auth/refresh', { refreshToken })
+      const payload = res.data?.payload
+      const newAccess = payload?.accessToken ?? payload?.token
 
-    if (!newAccess) throw new Error('Invalid refresh payload')
+      if (!newAccess) throw new Error('Invalid refresh payload')
 
-    // Set new access token and optional expiry if provided
-    setAccessToken(newAccess, payload?.accessTokenExpiry)
+      // Set new access token and optional expiry if provided
+      setAccessToken(newAccess, payload?.accessTokenExpiry)
 
-    if (payload?.refreshToken && payload?.refreshTokenExpiry) {
-      const session = !getRememberPreference()
-      setRefreshToken(payload.refreshToken, payload.refreshTokenExpiry, session)
+      if (payload?.refreshToken && payload?.refreshTokenExpiry) {
+        const session = !getRememberPreference()
+        setRefreshToken(payload.refreshToken, payload.refreshTokenExpiry, session)
+      }
+
+      return newAccess as string
+    } finally {
+      refreshPromise = null
     }
-
-    refreshPromise = null
-    return newAccess as string
   })()
 
   return refreshPromise

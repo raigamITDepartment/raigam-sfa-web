@@ -222,10 +222,7 @@ export const sidebarData: SidebarData = {
               title: 'View Invoice',
               url: '/agency-module/invoice/view-invoice',
             },
-            {
-              title: 'Actual Invoice',
-              url: '/agency-module/invoice/actual-invoice',
-            },
+
             /*    {
               title: 'Post Invoice',
               url: '/agency-module/invoice/post-invoice',
@@ -233,6 +230,10 @@ export const sidebarData: SidebarData = {
             {
               title: 'Manual Invoice',
               url: '/agency-module/invoice/manual-invoice',
+            },
+            {
+              title: 'Invoices Summary',
+              url: '/agency-module/invoice/invoices-summary',
             },
           ],
         },

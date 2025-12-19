@@ -1,5 +1,8 @@
 import { useState } from 'react'
-import type { BookingInvoiceReportItem } from '@/types/invoice'
+import type {
+  BookingInvoiceDetailDTO,
+  BookingInvoiceReportItem,
+} from '@/types/invoice'
 import {
   PDFDocument,
   StandardFonts,
@@ -8,6 +11,7 @@ import {
   type PDFPage,
 } from 'pdf-lib'
 import Logo from '@/assets/logo.png'
+import { formatPrice } from '@/lib/format-price'
 import { Button } from '@/components/ui/button'
 import InvoiceNumber, { formatInvoiceNumber } from '@/components/InvoiceNumber'
 
@@ -414,15 +418,7 @@ async function renderInvoiceIntoDoc(
   y = infoStartY - usedRows * lineGap - 12
 
   // Items table (cleaned layout)
-  const formatNumber = (value?: number | null) => {
-    if (value === null || value === undefined || Number.isNaN(Number(value))) {
-      return '-'
-    }
-    return Number(value).toLocaleString('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })
-  }
+  const formatNumber = (value?: number | null) => formatPrice(value)
   const formatQty = (value?: number | null) => {
     if (value === null || value === undefined || Number.isNaN(Number(value))) {
       return '-'
@@ -437,14 +433,14 @@ async function renderInvoiceIntoDoc(
   const drawItemsTable = () => {
     const startX = margin
     const tableWidth = contentWidth
-    const maxRowsPerPage = 25
+    const maxRowsPerPage = 30
     let rowsOnPage = 0
     const headers = [
       'Item Description',
       'Qty',
-      'Unit Price',
+      'Unit Price(Rs.)',
       'Discount',
-      'Value',
+      'Value(Rs.)',
     ]
     const colWidths = [
       tableWidth * 0.46,
@@ -547,7 +543,12 @@ async function renderInvoiceIntoDoc(
 
     const drawRow = (
       values: Array<string | number>,
-      opts?: { bold?: boolean; shaded?: boolean; backgroundColor?: any }
+      opts?: {
+        bold?: boolean
+        shaded?: boolean
+        backgroundColor?: any
+        valueColor?: ReturnType<typeof rgb>
+      }
     ) => {
       ensureSpace()
       const rowFont = opts?.bold ? fontBold : font
@@ -571,12 +572,16 @@ async function renderInvoiceIntoDoc(
         const xPos = alignRight
           ? startX + offset + colWidths[i] - textWidth - 6
           : startX + offset + 6
+        const columnColor =
+          opts?.valueColor && alignRight && i === values.length - 1
+            ? opts.valueColor
+            : textColor
         page.drawText(text, {
           x: xPos,
           y: textY,
           size: 10,
           font: rowFont,
-          color: textColor,
+          color: columnColor,
         })
       })
       const bottomY = y - rowHeight
@@ -641,15 +646,23 @@ async function renderInvoiceIntoDoc(
       )
       shaded = !shaded
     })
+    // Add summary row after the main items list
+    drawRow(['Total', '', '', '', formatNumber(totalValue)], {
+      backgroundColor: rgb(0.93, 0.91, 0.86),
+      bold: true,
+    })
 
     const drawReturnSection = (
       title: string,
-      filteredItems: typeof items,
+      filteredItems: BookingInvoiceDetailDTO[],
       options: {
-        qtyKey: keyof (typeof items)[number]
-        priceKey?: keyof (typeof items)[number]
-        valueKey?: keyof (typeof items)[number]
+        qtyKey: keyof BookingInvoiceDetailDTO
+        deductQtyKey?: keyof BookingInvoiceDetailDTO
+        priceKey?: keyof BookingInvoiceDetailDTO
+        priceResolver?: (item: BookingInvoiceDetailDTO) => number | ''
+        valueKey?: keyof BookingInvoiceDetailDTO
         isFree?: boolean
+        showSectionTotal?: boolean
       }
     ) => {
       if (!filteredItems.length) return
@@ -658,23 +671,46 @@ async function renderInvoiceIntoDoc(
         bold: true,
         backgroundColor: sectionBgColor,
       })
+      let sectionValueTotal = 0
+      const returnTotalColor = rgb(0.82, 0.12, 0.12)
+      const returnTotalBgColor = rgb(0.87, 0.83, 0.76)
       filteredItems.forEach((item) => {
-        const qtyRaw = Number(item[options.qtyKey] ?? 0)
-        const qtyVal = Math.trunc(qtyRaw)
-        const price = options.priceKey
-          ? Number(item[options.priceKey] ?? 0)
-          : ''
-        const value = options.isFree
-          ? ''
-          : options.valueKey
-            ? Number(item[options.valueKey] ?? 0)
+        const deductQty = options.deductQtyKey
+          ? Number(item[options.deductQtyKey] ?? 0)
+          : 0
+        const qtyRaw = Number(item[options.qtyKey] ?? 0) - deductQty
+        const qtyVal = Math.trunc(Math.max(qtyRaw, 0))
+        const price = options.priceResolver
+          ? options.priceResolver(item)
+          : options.priceKey
+            ? Number(item[options.priceKey] ?? 0)
             : ''
+        const valueNumber =
+          options.isFree || !options.valueKey
+            ? null
+            : Number(item[options.valueKey] ?? 0)
+        const fallbackValue = qtyVal * (typeof price === 'number' ? price : 0)
+        const rowValueNumber = options.isFree
+          ? null
+          : (valueNumber ?? fallbackValue)
+        const value = rowValueNumber ?? ''
+        if (!options.isFree && typeof rowValueNumber === 'number') {
+          sectionValueTotal += rowValueNumber
+        }
         drawRow(
           [`• ${item.itemName ?? 'Item'}`, formatQty(qtyVal), price, '', value],
           { shaded, backgroundColor: sectionBgColor }
         )
         shaded = !shaded
       })
+      if (options.showSectionTotal) {
+        drawRow(['Total', '', '', '', formatNumber(-sectionValueTotal)], {
+          shaded: false,
+          bold: true,
+          backgroundColor: returnTotalBgColor,
+          valueColor: returnTotalColor,
+        })
+      }
     }
 
     drawReturnSection(
@@ -682,8 +718,17 @@ async function renderInvoiceIntoDoc(
       items.filter((item) => (item.marketReturnTotalQty ?? 0) > 0),
       {
         qtyKey: 'marketReturnTotalQty',
-        priceKey: 'marketReturnUnitPrice',
+        deductQtyKey: 'marketReturnFreeQty',
         valueKey: 'marketReturnTotalVal',
+        priceResolver: (item) =>
+          Number(
+            item.marketReturnAdjustedUnitPrice ??
+              item.marketReturnUnitPrice ??
+              item.sellUnitPrice ??
+              item.adjustedUnitPrice ??
+              0
+          ),
+        showSectionTotal: true,
       }
     )
 
@@ -701,8 +746,17 @@ async function renderInvoiceIntoDoc(
       items.filter((item) => (item.goodReturnTotalQty ?? 0) > 0),
       {
         qtyKey: 'goodReturnTotalQty',
-        priceKey: 'goodReturnUnitPrice',
+        deductQtyKey: 'goodReturnFreeQty',
         valueKey: 'goodReturnTotalVal',
+        priceResolver: (item) =>
+          Number(
+            item.goodReturnAdjustedUnitPrice ??
+              item.goodReturnUnitPrice ??
+              item.sellUnitPrice ??
+              item.adjustedUnitPrice ??
+              0
+          ),
+        showSectionTotal: true,
       }
     )
 
@@ -743,13 +797,15 @@ async function renderInvoiceIntoDoc(
     y -= 10
 
     // Ensure summary table is visible on the current page
-    const grossValue = invoice.totalBookFinalValue ?? totalValue
+    const grossValue =
+      invoice.totalBookFinalValue ?? invoice.totalBookValue ?? totalValue
     const lineDiscountValue = invoice.totalDiscountValue ?? 0
     const lineDiscountPct = invoice.discountPercentage ?? 0
+    const invoiceValue = Math.max(grossValue - lineDiscountValue, 0)
     const summaryRows: Array<[string, number | string]> = [
-      ['Gross Value', grossValue],
+      ['Gross Value(Rs.)', grossValue],
       [`Bill Discount (${formatNumber(lineDiscountPct)}%)`, lineDiscountValue],
-      ['Invoice Value', invoice.totalBookFinalValue ?? grossValue],
+      ['Invoice Value(Rs.)', formatPrice(invoiceValue)],
     ]
     const summaryRowHeight = 18
     const summaryTableHeight = summaryRows.length * summaryRowHeight
@@ -853,8 +909,8 @@ async function renderInvoiceIntoDoc(
       y -= 6
     }
 
-    const columnGap = 200
-    const lineLength = 120
+    const columnGap = 280
+    const lineLength = 170
     const dottedLine = '.'.repeat(40)
 
     page.drawText('Mode of payment :', {
@@ -864,7 +920,7 @@ async function renderInvoiceIntoDoc(
       font: fontBold,
       color: rgb(0.1, 0.1, 0.1),
     })
-    y -= 14
+    y -= 20
     page.drawText('Received the above article in good condition and order', {
       x: margin,
       y,
@@ -872,7 +928,7 @@ async function renderInvoiceIntoDoc(
       font,
       color: rgb(0.1, 0.1, 0.1),
     })
-    y -= 22
+    y -= 28
 
     page.drawText('Customer Signature', {
       x: margin,
@@ -888,7 +944,7 @@ async function renderInvoiceIntoDoc(
       font: fontBold,
       color: rgb(0.1, 0.1, 0.1),
     })
-    y -= 16
+    y -= 26
 
     // Dotted lines
     page.drawText(dottedLine, {
@@ -908,7 +964,7 @@ async function renderInvoiceIntoDoc(
         color: rgb(0.2, 0.2, 0.2),
       }
     )
-    y -= 12
+    y -= 20
   }
 
   drawAcknowledgement()

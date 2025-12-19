@@ -28,6 +28,7 @@ export type LoginResponsePayload = {
   agencyTerritoryId: number
   agencyWarehouseId: number
   agencyCode: number
+  routeCode?: number | null
   agencyName: string
   userName: string
   personalName: string

@@ -117,8 +117,12 @@ function HomeReportPage() {
     staleTime: 1000 * 60 * 5, // 5 minutes fresh
     gcTime: 1000 * 60 * 30, // keep cached for 30 minutes after unmount
     refetchOnWindowFocus: false,
-    placeholderData: (prev) => prev,
+    placeholderData: undefined,
   })
+
+  // Avoid showing stale table data while a new fetch is in-flight.
+  const isLoading = isFetching
+  const showTable = !isLoading && Boolean(data)
 
   const handleApply = (payload: FiltersPayload) => {
     // Persist filters so returning to the route can rehydrate without refetch delay.
@@ -172,8 +176,8 @@ function HomeReportPage() {
         />
       )}
       {(isFetching || isError || Boolean(data)) && (
-        <Card className='round-md overflow-auto p-2'>
-          {isFetching && (
+      <Card className='round-md overflow-auto p-2'>
+          {isLoading && (
             <div className='p-2'>
               <TableSkeleton
                 headerCols={16}
@@ -185,7 +189,7 @@ function HomeReportPage() {
             </div>
           )}
           {isError && <div>Failed to load data</div>}
-          {data && (
+          {showTable && data && (
             <HomeReportTable
               items={data.payload}
               periodLabel={

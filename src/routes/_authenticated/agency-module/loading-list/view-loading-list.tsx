@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { ensureRoleAccess, RoleId } from '@/lib/authz'
 import { Main } from '@/components/layout/main'
 import { PageHeader } from '@/components/layout/page-header'
+import { ComingSoon } from '@/components/coming-soon'
 
 export const Route = createFileRoute('/_authenticated/agency-module/loading-list/view-loading-list')({
   beforeLoad: () => ensureRoleAccess([RoleId.SystemAdmin, RoleId.OperationSales]),
@@ -16,7 +17,7 @@ export const Route = createFileRoute('/_authenticated/agency-module/loading-list
           { label: 'View Loading List' },
         ]}
       />
-      <div>Agency Module - Loading List - View Loading List</div>
+      <ComingSoon />
     </Main>
   ),
 })

@@ -2,6 +2,8 @@ import { http } from '@/services/http'
 import type {
   BookingInvoicesByTerritoryResponse,
   CancelInvoiceResponse,
+  CreateInvoicePayload,
+  CreateInvoiceResponse,
   UpdateBookingInvoiceResponse,
   UpdateBookingInvoiceWithDetailsPayload,
 } from '@/types/invoice'
@@ -37,6 +39,11 @@ export async function updateBookingInvoiceWithDetails(
     INVOICE_BASE,
     payload
   )
+  return res.data
+}
+
+export async function createInvoice(payload: CreateInvoicePayload) {
+  const res = await http.post<CreateInvoiceResponse>(INVOICE_BASE, payload)
   return res.data
 }
 

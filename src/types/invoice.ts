@@ -145,6 +145,7 @@ export type BookingInvoicesResponse = ApiResponse<BookingInvoiceReportItem[]>
 export type BookingInvoicesByTerritoryResponse = ApiResponse<BookingInvoice[]>
 export type CancelInvoiceResponse = ApiResponse<BookingInvoice | null>
 export type UpdateBookingInvoiceResponse = ApiResponse<BookingInvoice>
+export type CreateInvoiceResponse = ApiResponse<BookingInvoice>
 export type UpdateBookingInvoiceWithDetailsPayload = {
   id: number
   userId: number
@@ -196,13 +197,74 @@ export type UpdateBookingInvoiceWithDetailsPayload = {
     sellTotalPrice: number
     goodReturnPriceId: number | null
     goodReturnUnitPrice: number
-    goodReturnAdjustedUnitPrice?: number
+  goodReturnAdjustedUnitPrice?: number
     goodReturnFreeQty: number
     goodReturnTotalQty: number
     goodReturnTotalVal: number
     marketReturnPriceId: number | null
     marketReturnUnitPrice: number
     marketReturnAdjustedUnitPrice?: number
+    marketReturnFreeQty: number
+    marketReturnTotalQty: number
+    marketReturnTotalVal: number
+    finalTotalValue: number
+    isActive: boolean
+  }>
+}
+
+export type CreateInvoicePayload = {
+  userId: number
+  territoryId: number
+  agencyWarehouseId: number
+  routeId: number
+  rangeId: number
+  outletId: number
+  totalBookValue: number
+  totalBookSellValue: number
+  totalBookFinalValue: number
+  totalCancelValue: number
+  totalMarketReturnValue: number
+  totalGoodReturnValue: number
+  totalFreeValue: number
+  totalActualValue: number
+  totalDiscountValue: number
+  discountPercentage: number
+  invoiceType: InvoiceType | string
+  sourceApp: string
+  longitude: number
+  latitude: number
+  isReversed: boolean
+  isPrinted: boolean
+  isBook: boolean
+  isActual: boolean
+  isLateDelivery: boolean
+  invActualBy: number
+  invReversedBy: number
+  invUpdatedBy: number
+  isActive: boolean
+  appInvoiceNumber?: number
+  invoiceDetailDTOList: Array<{
+    itemId: number
+    sellPriceId: number | null
+    sellUnitPrice: number
+    totalBookQty: number
+    bookDiscountPercentage: number
+    totalBookDiscountValue: number
+    totalBookValue: number
+    totalBookSellValue: number
+    totalCancelQty: number
+    totalFreeQty: number
+    totalActualQty: number
+    totalDiscountValue: number
+    discountPercentage: number
+    sellTotalPrice: number
+    goodReturnPriceId: number | null
+    goodReturnUnitPrice: number
+    goodReturnFreeQty: number
+    goodReturnTotalQty: number
+    goodReturnTotalVal: number
+    marketReturnPriceId: number | null
+    marketReturnUnitPrice: number
     marketReturnFreeQty: number
     marketReturnTotalQty: number
     marketReturnTotalVal: number

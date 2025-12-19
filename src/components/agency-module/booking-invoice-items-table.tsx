@@ -27,12 +27,21 @@ import InvoiceItemsTableLayout, {
 } from './InvoiceItemsTableLayout'
 import { UpdateItemForm } from './UpdateItemForm'
 
+export type ManualSavePayload = {
+  invoice: BookingInvoiceReportItem
+  details: BookingInvoiceDetailDTO[]
+  totals: AggregatedTotals
+  discountPercentage: number
+}
+
 type BookingInvoiceItemsTableProps = {
   invoice: BookingInvoiceReportItem
   items: BookingInvoiceDetailDTO[]
   onUpdated?: (payload?: BookingInvoice | null) => void
   userId?: number | null
   onCancel?: () => void
+  mode?: 'edit' | 'manual'
+  onManualSave?: (payload: ManualSavePayload) => void | Promise<void>
 }
 
 const recalcDerivedValues = (item: BookingInvoiceDetailDTO) => {
@@ -104,6 +113,8 @@ export function BookingInvoiceItemsTable({
   onUpdated: _onUpdated,
   userId: _userId,
   onCancel: _onCancel,
+  mode = 'edit',
+  onManualSave,
 }: BookingInvoiceItemsTableProps) {
   const emptyDraft: ItemFormValues = {
     mainCatId: null,
@@ -288,7 +299,9 @@ export function BookingInvoiceItemsTable({
       totalBookSellValue,
       totalCancelQty: cancelQty,
       totalFreeQty: safeNumber(next.totalFreeQty),
-      totalActualQty: safeNumber(existing?.totalActualQty),
+      totalActualQty: existing
+        ? safeNumber(existing.totalActualQty)
+        : netQty,
       totalDiscountValue: totalBookDiscountValue,
       discountPercentage: discountPct,
       sellTotalPrice: totalBookSellValue,
@@ -412,6 +425,10 @@ export function BookingInvoiceItemsTable({
 
   const handleUpdate = async () => {
     try {
+      if (mode === 'manual' && localItems.length === 0) {
+        toast.error('Add at least one item before creating the invoice.')
+        return
+      }
       setIsUpdating(true)
       const storedUserId =
         typeof window !== 'undefined'
@@ -530,6 +547,31 @@ export function BookingInvoiceItemsTable({
         invUpdatedBy: (invoice.invUpdatedBy as number) ?? 0,
         isActive: invoice.isActive ?? true,
         invoiceDetailDTOList: details,
+      }
+
+      if (mode === 'manual') {
+        const manualResult: BookingInvoiceReportItem = {
+          ...invoice,
+          totalBookValue: aggregatedTotals.totalBookValue,
+          totalBookSellValue: aggregatedTotals.totalBookSellValue,
+          totalBookFinalValue: invoiceBookFinalValue,
+          totalCancelValue: aggregatedTotals.totalCancelValue,
+          totalMarketReturnValue: aggregatedTotals.totalMarketReturnValue,
+          totalGoodReturnValue: aggregatedTotals.totalGoodReturnValue,
+          totalFreeValue: aggregatedTotals.totalFreeValue,
+          totalActualValue: invoiceActualValue,
+          totalDiscountValue: invoiceDiscountValue,
+          discountPercentage: summaryDiscountPct ?? 0,
+          invoiceDetailDTOList: localItems,
+        }
+        await onManualSave?.({
+          invoice: manualResult,
+          details: localItems,
+          totals: aggregatedTotals,
+          discountPercentage: summaryDiscountPct ?? 0,
+        })
+        _onUpdated?.(manualResult as any)
+        return
       }
 
       const res = await updateBookingInvoiceWithDetails(payload as any)
@@ -718,6 +760,8 @@ export function BookingInvoiceItemsTable({
         onCancel={_onCancel}
         isUpdating={isUpdating}
         onRowClick={handleRowClick}
+        updateLabel={mode === 'manual' ? 'Create Invoice' : 'Update'}
+        updateDisabled={mode === 'manual' && tableRows.length === 0}
       />
       <Dialog open={addItemOpen} onOpenChange={setAddItemOpen}>
         <DialogContent className='max-h-[85vh] max-w-4xl overflow-y-auto'>

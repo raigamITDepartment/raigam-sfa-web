@@ -1,11 +1,11 @@
 import type { LoginRequest } from '@/services/authApi'
+import type { LoginResponsePayload } from '@/types/auth'
 import * as authApi from '@/services/authApi'
 import {
   setAccessToken,
   setRefreshToken,
   clearAllTokens,
   getRefreshToken,
-  getAccessToken,
   setRememberPreference,
   clearRememberPreference,
   getRememberPreference,
@@ -18,16 +18,7 @@ import {
 
 // Role-based mapping removed
 
-export type AuthUser = {
-  userId: number
-  userName: string
-  personalName: string
-  roleId?: number
-  role?: string
-  territoryId?: number
-  territoryName?: string
-  distributorName?: string
-}
+export type AuthUser = LoginResponsePayload
 
 type AuthState = {
   user: AuthUser | null
@@ -75,16 +66,6 @@ function clearLocalStorage() {
   }
 }
 
-function decodeJwt(token: string): unknown | null {
-  try {
-    const [, payload] = token.split('.')
-    const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'))
-    return JSON.parse(decodeURIComponent(escape(json)))
-  } catch {
-    return null
-  }
-}
-
 export const loginThunk = createAsyncThunk(
   'auth/login',
   async (payload: LoginRequest & { remember?: boolean }) => {
@@ -96,16 +77,7 @@ export const loginThunk = createAsyncThunk(
     setRememberPreference(!!payload.remember)
     // If remember is true, persist refresh cookie with API expiry; otherwise use session cookie
     setRefreshToken(p.refreshToken, p.refreshTokenExpiry, !payload.remember)
-    const user: AuthUser = {
-      userId: p.userId,
-      userName: p.userName,
-      personalName: p.personalName,
-      roleId: p.roleId,
-      role: p.role,
-      territoryId: p.territoryId,
-      territoryName: p.territoryName,
-      distributorName: p.distributorName,
-    }
+    const user: AuthUser = p
     setStoredUser(user)
     return { user }
   }
@@ -142,29 +114,12 @@ export const hydrateOnLoadThunk = createAsyncThunk(
       return null
     }
 
-    // Restore user from storage if available; else derive minimal from JWT
+    // Restore user from storage if available
     const stored = getStoredUser()
     if (stored) {
       return { user: stored }
     }
 
-    // Fallback: try to derive username from JWT 'sub'
-    // Note: This is best-effort and for UI only
-    const token = getAccessToken()
-    if (token) {
-      const info = decodeJwt(token) as { sub?: string } | null
-      const sub = info?.sub
-      if (sub) {
-        const user: AuthUser = {
-          userId: 0,
-          userName: sub,
-          personalName: sub,
-          role: undefined,
-        }
-        setStoredUser(user)
-        return { user }
-      }
-    }
     return null
   }
 )

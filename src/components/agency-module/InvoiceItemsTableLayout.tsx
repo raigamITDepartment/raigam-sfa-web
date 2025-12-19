@@ -75,6 +75,8 @@ type InvoiceItemsTableLayoutProps = {
   onCancel?: () => void
   isUpdating?: boolean
   onRowClick?: (rowIndex: number) => void
+  updateLabel?: string
+  updateDisabled?: boolean
 }
 
 export function InvoiceItemsTableLayout({
@@ -88,6 +90,8 @@ export function InvoiceItemsTableLayout({
   onCancel,
   isUpdating,
   onRowClick,
+  updateLabel = 'Update',
+  updateDisabled = false,
 }: InvoiceItemsTableLayoutProps) {
   const baseHeaderSurface = 'h-10 px-3 text-center'
   const headerTopClass = `${baseHeaderSurface} border border-slate-300 text-[11px] font-semibold dark:border-slate-800`
@@ -157,13 +161,10 @@ export function InvoiceItemsTableLayout({
     'Total',
   ]
 
-  if (!tableRows.length) {
-    return (
-      <div className='rounded-md border border-dashed border-slate-200 bg-slate-50/60 p-4 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-900/50 dark:text-slate-300'>
-        No line items available for this invoice.
-      </div>
-    )
-  }
+  const totalColumnCount = topHeaders.reduce(
+    (sum, header) => sum + (header.colSpan ?? 1),
+    0
+  )
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -222,6 +223,17 @@ export function InvoiceItemsTableLayout({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
+                  {tableRows.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={totalColumnCount}
+                        className='py-8 text-center text-sm text-slate-500 dark:text-slate-300'
+                      >
+                        No line items added yet. Use “Add Item” to start
+                        building the invoice.
+                      </TableCell>
+                    </TableRow>
+                  ) : null}
                   {tableRows.map((row, idx) => {
                     const rowContent = (
                       <TableRow
@@ -438,8 +450,12 @@ export function InvoiceItemsTableLayout({
           >
             Cancel
           </Button>
-          <Button className='w-46' onClick={onUpdate} disabled={isUpdating}>
-            {isUpdating ? 'Updating...' : 'Update'}
+          <Button
+            className='w-46'
+            onClick={onUpdate}
+            disabled={isUpdating || updateDisabled}
+          >
+            {isUpdating ? 'Saving...' : updateLabel}
           </Button>
         </div>
       </div>

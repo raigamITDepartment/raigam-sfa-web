@@ -26,6 +26,7 @@ import { cn } from '@/lib/utils'
 import InvoiceSummaryFilter, {
   type InvoiceSummaryFilterValues,
 } from './InvoiceSummaryFilter'
+import InvoiceSummaryStats from './InvoiceSummaryStats'
 import {
   DataTableColumnHeader,
   DataTablePagination,
@@ -41,9 +42,9 @@ import {
 } from '@/components/ui/table'
 import { CommonAlert } from '@/components/common-alert'
 import { Card, CardContent } from '@/components/ui/card'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { Badge } from '@/components/ui/badge'
 import FullWidthDialog from '@/components/FullWidthDialog'
 import InvoiceNumber from '@/components/InvoiceNumber'
 import BookingInvoiceDetailsHeader from '@/components/agency-module/booking-invoice-details-header'
@@ -82,7 +83,6 @@ const InvoiceSummary = () => {
     pageIndex: 0,
     pageSize: 10,
   })
-  const [rowSelection, setRowSelection] = useState({})
   const [invoicePreviewOpen, setInvoicePreviewOpen] = useState(false)
   const [selectedInvoice, setSelectedInvoice] =
     useState<BookingInvoiceReportItem | null>(null)
@@ -104,36 +104,6 @@ const InvoiceSummary = () => {
 
   const columns = useMemo<ColumnDef<BookingInvoice>[]>(
     () => [
-      {
-        id: 'select',
-        header: ({ table }) => (
-          <div className='flex items-center justify-center pr-2 pl-1'>
-            <Checkbox
-              checked={
-                table.getIsAllPageRowsSelected() ||
-                (table.getIsSomePageRowsSelected() && 'indeterminate')
-              }
-              onCheckedChange={(value) =>
-                table.toggleAllPageRowsSelected(!!value)
-              }
-              aria-label='Select all'
-            />
-          </div>
-        ),
-        cell: ({ row }) => (
-          <div className='flex items-center justify-center pr-2 pl-1'>
-            <Checkbox
-              checked={row.getIsSelected()}
-              onCheckedChange={(value) => row.toggleSelected(!!value)}
-              aria-label='Select row'
-            />
-          </div>
-        ),
-        enableSorting: false,
-        enableHiding: false,
-        meta: { thClassName: 'w-12 text-center' },
-        size: 48,
-      },
       {
         accessorKey: 'invoiceNo',
         header: ({ column }) => (
@@ -336,12 +306,9 @@ const InvoiceSummary = () => {
     state: {
       globalFilter,
       pagination,
-      rowSelection,
     },
     onGlobalFilterChange: setGlobalFilter,
     onPaginationChange: setPagination,
-    onRowSelectionChange: setRowSelection,
-    enableRowSelection: true,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -351,6 +318,8 @@ const InvoiceSummary = () => {
   })
 
   const tableRows = table.getRowModel().rows
+  const totalCount = table.getPreFilteredRowModel().rows.length
+  const filteredCount = table.getFilteredRowModel().rows.length
   const isLoading = invoicesMutation.isPending
   const isError = invoicesMutation.isError
   const error = invoicesMutation.error
@@ -409,7 +378,7 @@ const InvoiceSummary = () => {
 
   return (
     <Card className='space-y-4'>
-      <CardContent>
+      <CardContent className='space-y-4'>
         <InvoiceSummaryFilter
           initialStartDate={defaultDates.startDate}
           initialEndDate={defaultDates.endDate}
@@ -426,6 +395,10 @@ const InvoiceSummary = () => {
             })
           }}
         />
+        <p className='text-xs font-medium text-slate-500 dark:text-slate-300'>
+          Summary values reflect invoices within the selected date range.
+        </p>
+        <InvoiceSummaryStats rows={rows} />
         {!hasRequested ? (
           <CommonAlert
             variant='info'
@@ -485,8 +458,16 @@ const InvoiceSummary = () => {
                 columnId: 'status',
                 title: 'Status',
                 options: statusFilterOptions,
-              },
-            ]}
+                },
+              ]}
+            rightContent={
+              <Badge
+                variant='secondary'
+                className='rounded-full px-2.5 py-0.5 text-xs font-semibold text-slate-800 dark:text-slate-100'
+              >
+                {filteredCount}/{totalCount}
+              </Badge>
+            }
           />
             <div className='mt-4 mb-4 rounded-md border'>
               <Table className='text-xs'>

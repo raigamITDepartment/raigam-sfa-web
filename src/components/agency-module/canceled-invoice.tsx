@@ -14,9 +14,16 @@ import type {
   BookingInvoiceReportItem,
   InvoiceTypeParam,
 } from '@/types/invoice'
+import { Eye } from 'lucide-react'
 import { formatPrice } from '@/lib/format-price'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import FullWidthDialog from '@/components/FullWidthDialog'
 import InvoiceNumber from '@/components/InvoiceNumber'
 import BookingInvoiceDetailsHeader from '@/components/agency-module/booking-invoice-details-header'
@@ -273,6 +280,33 @@ const CanceledInvoice = () => {
         meta: { thClassName: 'text-center' },
         sortingFn: (a, b) =>
           deriveStatus(a.original).localeCompare(deriveStatus(b.original)),
+      },
+      {
+        id: 'actions',
+        header: () => <div className='text-center'>Action</div>,
+        enableSorting: false,
+        cell: ({ row }) => (
+          <div className='flex items-center justify-center'>
+            <Tooltip delayDuration={100}>
+              <TooltipTrigger asChild>
+                <Button
+                  variant='ghost'
+                  size='icon'
+                  className='size-8'
+                  onClick={() => openInvoiceById(row.original)}
+                  disabled={isDetailLoading}
+                >
+                  <Eye className='h-4 w-4' />
+                  <span className='sr-only'>View Invoice Details</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side='top' align='center'>
+                View Invoice Details
+              </TooltipContent>
+            </Tooltip>
+          </div>
+        ),
+        meta: { thClassName: 'text-center' },
       },
     ],
     [isDetailLoading, openInvoiceById]

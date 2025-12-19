@@ -1,10 +1,14 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { ensureRoleAccess, RoleId } from '@/lib/authz'
+import InvoiceSummary from '@/components/agency-module/invoice-summary/InvoiceSummary'
 import { Main } from '@/components/layout/main'
 import { PageHeader } from '@/components/layout/page-header'
 
-export const Route = createFileRoute('/_authenticated/agency-module/invoice/invoices-summary')({
-  beforeLoad: () => ensureRoleAccess([RoleId.SystemAdmin, RoleId.OperationSales]),
+export const Route = createFileRoute(
+  '/_authenticated/agency-module/invoice/invoices-summary'
+)({
+  beforeLoad: () =>
+    ensureRoleAccess([RoleId.SystemAdmin, RoleId.OperationSales]),
   component: () => (
     <Main>
       <PageHeader
@@ -16,7 +20,9 @@ export const Route = createFileRoute('/_authenticated/agency-module/invoice/invo
           { label: 'Invoices Summary' },
         ]}
       />
-      <div>Agency Module - Invoice - Invoices Summary</div>
+      <div className='mt-4'>
+        <InvoiceSummary />
+      </div>
     </Main>
   ),
 })

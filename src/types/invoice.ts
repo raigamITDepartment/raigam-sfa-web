@@ -12,6 +12,13 @@ export type BookingInvoiceParams = {
   invoiceType: InvoiceTypeParam
 }
 
+export type ActiveInvoicesByTerritoryParams = {
+  territoryId?: number
+  userId?: number
+  startDate: string
+  endDate: string
+}
+
 export type InvoiceStatusParams = BookingInvoiceParams & {
   invoiceStatus: string
 }

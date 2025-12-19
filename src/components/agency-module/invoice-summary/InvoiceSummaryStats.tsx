@@ -9,14 +9,6 @@ type InvoiceSummaryStatsProps = {
 const toAmount = (value?: number | null) =>
   typeof value === 'number' && Number.isFinite(value) ? value : 0
 
-const deriveStatus = (row: BookingInvoice) => {
-  if (row.isReversed) return 'Reversed'
-  if (row.isLateDelivery) return 'Late Delivery'
-  if (row.isActual) return 'Actual'
-  if (row.isBook) return 'Booked'
-  return 'Pending'
-}
-
 export default function InvoiceSummaryStats({
   rows,
 }: InvoiceSummaryStatsProps) {
@@ -26,6 +18,7 @@ export default function InvoiceSummaryStats({
     let bookingValueTotal = 0
     let actualCount = 0
     let actualValueTotal = 0
+    let lateDeliveryCount = 0
 
     rows.forEach((row) => {
       totalInvoiceCount += 1
@@ -33,10 +26,10 @@ export default function InvoiceSummaryStats({
         typeof row.totalBookFinalValue === 'number'
           ? row.totalBookFinalValue
           : toAmount(row.totalBookValue)
-      const cancelValue = toAmount(row.totalCancelValue)
       const isBookedOnly =
-        row.isBook === true && row.isActual === false && row.isLateDelivery === false
-      const status = deriveStatus(row)
+        row.isBook === true &&
+        row.isActual === false &&
+        row.isLateDelivery === false
 
       if (isBookedOnly) {
         bookingCount += 1
@@ -45,6 +38,9 @@ export default function InvoiceSummaryStats({
       if (row.isActual === true) {
         actualCount += 1
         actualValueTotal += toAmount(row.totalActualValue)
+      }
+      if (row.isLateDelivery === true) {
+        lateDeliveryCount += 1
       }
 
     })
@@ -55,6 +51,7 @@ export default function InvoiceSummaryStats({
       bookingValueTotal,
       actualCount,
       actualValueTotal,
+      lateDeliveryCount,
     }
   }, [rows])
 
@@ -88,6 +85,12 @@ export default function InvoiceSummaryStats({
       value: formatPrice(summary.actualValueTotal),
       className:
         'border-emerald-200/70 bg-emerald-50/70 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200',
+    },
+    {
+      label: 'Late Delivery Invoice Count',
+      value: String(summary.lateDeliveryCount),
+      className:
+        'border-amber-200/70 bg-amber-50/70 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200',
     },
   ]
 

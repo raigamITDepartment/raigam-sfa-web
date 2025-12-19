@@ -58,14 +58,6 @@ function clearStoredUser() {
   }
 }
 
-function clearLocalStorage() {
-  try {
-    localStorage.clear()
-  } catch {
-    /* noop */
-  }
-}
-
 export const loginThunk = createAsyncThunk(
   'auth/login',
   async (payload: LoginRequest & { remember?: boolean }) => {
@@ -132,7 +124,6 @@ const authSlice = createSlice({
       clearAllTokens()
       clearRememberPreference()
       clearStoredUser()
-      clearLocalStorage()
       state.user = null
       state.status = 'idle'
       state.effectivePermissions = []

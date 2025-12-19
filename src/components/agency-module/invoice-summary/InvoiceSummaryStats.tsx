@@ -57,37 +57,37 @@ export default function InvoiceSummaryStats({
 
   const items = [
     {
-      label: 'Total Invoice',
+      label: 'Total Invoice Count',
       value: String(summary.totalInvoiceCount),
       className:
         'border-slate-200/70 bg-slate-50/70 text-slate-700 dark:border-slate-500/30 dark:bg-slate-500/10 dark:text-slate-200',
     },
     {
-      label: 'Total Booking Invoice Count',
+      label: 'Total Booking Count',
       value: String(summary.bookingCount),
       className:
         'border-blue-200/70 bg-blue-50/70 text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-200',
     },
     {
-      label: 'Total Booking Invoice Value',
+      label: 'Total Booking Value',
       value: formatPrice(summary.bookingValueTotal),
       className:
         'border-blue-200/70 bg-blue-50/70 text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-200',
     },
     {
-      label: 'Total Actual Invoice Count',
+      label: 'Total Actual Count',
       value: String(summary.actualCount),
       className:
         'border-emerald-200/70 bg-emerald-50/70 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200',
     },
     {
-      label: 'Total Actual Invoice Value',
+      label: 'Total Actual Value',
       value: formatPrice(summary.actualValueTotal),
       className:
         'border-emerald-200/70 bg-emerald-50/70 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200',
     },
     {
-      label: 'Late Delivery Invoice Count',
+      label: 'Late Delivery Count',
       value: String(summary.lateDeliveryCount),
       className:
         'border-amber-200/70 bg-amber-50/70 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200',

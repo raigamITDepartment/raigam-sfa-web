@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import {
   flexRender,
@@ -101,6 +101,32 @@ const InvoiceSummary = () => {
     () => (invoicesMutation.data?.payload ?? []) as BookingInvoice[],
     [invoicesMutation.data]
   )
+
+  const openInvoiceById = useCallback(async (invoice: BookingInvoice) => {
+    setDetailError(null)
+    setIsDetailLoading(true)
+    try {
+      const invoiceId =
+        typeof invoice.id === 'number' && Number.isFinite(invoice.id)
+          ? invoice.id
+          : Number(invoice.invoiceNo) || 0
+      if (!invoiceId) throw new Error('Invalid invoice id')
+      const res = await getInvoiceDetailsById(invoiceId)
+      const payload =
+        (res as { payload?: BookingInvoiceReportItem })?.payload ?? res
+      const merged = payload
+        ? { ...(invoice as BookingInvoice), ...payload }
+        : invoice
+      setSelectedInvoice(merged as BookingInvoiceReportItem)
+      setInvoicePreviewOpen(true)
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Failed to load invoice details'
+      setDetailError(message)
+    } finally {
+      setIsDetailLoading(false)
+    }
+  }, [])
 
   const columns = useMemo<ColumnDef<BookingInvoice>[]>(
     () => [
@@ -266,7 +292,7 @@ const InvoiceSummary = () => {
         meta: { thClassName: 'text-center' },
       },
     ],
-    []
+    [isDetailLoading, openInvoiceById]
   )
 
   const selectedInvoiceFresh = useMemo(() => {
@@ -275,30 +301,6 @@ const InvoiceSummary = () => {
     if (!refreshed) return selectedInvoice
     return { ...refreshed, ...selectedInvoice }
   }, [rows, selectedInvoice])
-
-  const openInvoiceById = async (invoice: BookingInvoice) => {
-    setDetailError(null)
-    setIsDetailLoading(true)
-    try {
-      const invoiceId =
-        typeof invoice.id === 'number' && Number.isFinite(invoice.id)
-          ? invoice.id
-          : Number(invoice.invoiceNo) || 0
-      if (!invoiceId) throw new Error('Invalid invoice id')
-      const res = await getInvoiceDetailsById(invoiceId)
-      const payload =
-        (res as { payload?: BookingInvoiceReportItem })?.payload ?? res
-      const merged = payload ? { ...(invoice as BookingInvoice), ...payload } : invoice
-      setSelectedInvoice(merged as BookingInvoiceReportItem)
-      setInvoicePreviewOpen(true)
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : 'Failed to load invoice details'
-      setDetailError(message)
-    } finally {
-      setIsDetailLoading(false)
-    }
-  }
 
   const table = useReactTable({
     data: rows,

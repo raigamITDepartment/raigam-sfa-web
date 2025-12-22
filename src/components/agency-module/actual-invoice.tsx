@@ -38,6 +38,7 @@ import BookingInvoiceTableSection from '@/components/agency-module/booking-invoi
 import BookingInvoiceFilter, {
   type BookingInvoiceFilters,
 } from '@/components/agency-module/filter'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { CommonDialog } from '@/components/common-dialog'
 import { DataTableColumnHeader } from '@/components/data-table'
 
@@ -86,6 +87,8 @@ const ActualInvoice = () => {
   const [previewError, setPreviewError] = useState<string | null>(null)
   const [detailError, setDetailError] = useState<string | null>(null)
   const [isDetailLoading, setIsDetailLoading] = useState(false)
+  const [pendingReverseInvoice, setPendingReverseInvoice] =
+    useState<BookingInvoiceReportItem | null>(null)
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: [
@@ -311,7 +314,7 @@ const ActualInvoice = () => {
                   variant='ghost'
                   size='icon'
                   className='size-8'
-                  onClick={() => openInvoiceById(row.original)}
+                  onClick={() => setPendingReverseInvoice(row.original)}
                   disabled={isDetailLoading}
                 >
                   <RotateCcw className='h-4 w-4 text-red-700' />
@@ -567,6 +570,37 @@ const ActualInvoice = () => {
   return (
     <Card className='space-y-4'>
       <CardContent>
+        <ConfirmDialog
+          open={Boolean(pendingReverseInvoice)}
+          destructive
+          onOpenChange={(open) => {
+            if (!open) {
+              setPendingReverseInvoice(null)
+            }
+          }}
+          title='Confirm Reverse'
+          desc={
+            pendingReverseInvoice ? (
+              <div className='flex flex-wrap items-center gap-1'>
+                <span>Do you want to reverse invoice</span>
+                <InvoiceNumber
+                  invoiceId={
+                    pendingReverseInvoice.invoiceNo ?? pendingReverseInvoice.id
+                  }
+                  className='font-semibold text-slate-900 dark:text-slate-50'
+                />
+                <span>?</span>
+              </div>
+            ) : (
+              ''
+            )
+          }
+          cancelBtnText='No'
+          confirmText='Yes'
+          handleConfirm={() => {
+            setPendingReverseInvoice(null)
+          }}
+        />
         <BookingInvoiceFilter
           initialStartDate={defaultDates.startDate}
           initialEndDate={defaultDates.endDate}

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { updateBookingInvoiceWithDetails } from '@/services/sales/invoice/invoiceApi'
-import { findItemPriceById } from '@/services/sales/itemPriceApi'
+import { findItemPriceById } from '@/services/sales/itemApi'
 import type {
   BookingInvoice,
   BookingInvoiceDetailDTO,
@@ -299,9 +299,7 @@ export function BookingInvoiceItemsTable({
       totalBookSellValue,
       totalCancelQty: cancelQty,
       totalFreeQty: safeNumber(next.totalFreeQty),
-      totalActualQty: existing
-        ? safeNumber(existing.totalActualQty)
-        : netQty,
+      totalActualQty: existing ? safeNumber(existing.totalActualQty) : netQty,
       totalDiscountValue: totalBookDiscountValue,
       discountPercentage: discountPct,
       sellTotalPrice: totalBookSellValue,

@@ -1,8 +1,11 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { Main } from '@/components/layout/main'
 import { PageHeader } from '@/components/layout/page-header'
+import ViewItemRangeWise from '@/components/sales/sales-details/ViewItemRangeWise'
 
-export const Route = createFileRoute('/_authenticated/sales/sales-details/view-item-range-wise')({
+export const Route = createFileRoute(
+  '/_authenticated/sales/sales-details/view-item-range-wise'
+)({
   component: () => (
     <Main>
       <PageHeader
@@ -14,7 +17,9 @@ export const Route = createFileRoute('/_authenticated/sales/sales-details/view-i
           { label: 'View Item Range Wise' },
         ]}
       />
-      <div>Sales Details - View Item Range Wise</div>
+      <div className='mt-4'>
+        <ViewItemRangeWise />
+      </div>
     </Main>
   ),
 })

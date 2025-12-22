@@ -3,7 +3,7 @@ import {
   getItemMainCategories,
   getItemsGroupedByMainCategory,
   findItemPriceByItemId,
-} from '@/services/sales/itemPriceApi'
+} from '@/services/sales/itemApi'
 import type { ItemFormValues } from '@/types/itemForm'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'

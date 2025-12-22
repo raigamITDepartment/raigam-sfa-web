@@ -4,6 +4,7 @@ import type { ApiResponse, Id } from '@/types/common'
 export const ITEM_PRICE_BASE = '/api/v1/sales/itemPrice'
 export const ITEM_MAIN_CATEGORY_BASE = '/api/v1/sales/itemMainCategory'
 export const ITEM_GROUPED_BASE = '/api/v1/sales/item'
+export const ITEM_SEQUENCE_BASE = '/api/v1/sales/itemSequence'
 
 export type ItemPrice = {
   id: number
@@ -43,14 +44,33 @@ export type GroupedItemByMainCategory = {
 }
 export type GroupedItemsByMainCategoryResponse = GroupedItemByMainCategory[]
 
-export async function findItemPriceById(priceId: Id): Promise<FindItemPriceResponse> {
+export type ItemSequence = {
+  userId: number | null
+  id: number
+  channelId: number
+  channelName: string
+  subChannelId: number
+  subChannelName: string
+  itemId: number
+  itemName: string
+  itemSequence: number
+  isActive: boolean
+  shortName: string
+}
+export type ItemSequenceResponse = ApiResponse<ItemSequence[]>
+
+export async function findItemPriceById(
+  priceId: Id
+): Promise<FindItemPriceResponse> {
   const res = await http.get<FindItemPriceResponse>(
     `${ITEM_PRICE_BASE}/findById/${priceId}`
   )
   return res.data
 }
 
-export async function findItemPriceByItemId(itemId: Id): Promise<FindItemPriceByItemResponse> {
+export async function findItemPriceByItemId(
+  itemId: Id
+): Promise<FindItemPriceByItemResponse> {
   const res = await http.get<FindItemPriceByItemResponse>(
     `${ITEM_PRICE_BASE}/findByItemId/${itemId}`
   )
@@ -68,5 +88,10 @@ export async function getItemsGroupedByMainCategory(
   const res = await http.get<GroupedItemsByMainCategoryResponse>(
     `${ITEM_GROUPED_BASE}/grouped-by-main-category-list/${mainCatId}`
   )
+  return res.data
+}
+
+export async function getAllItemsSequence(): Promise<ItemSequenceResponse> {
+  const res = await http.get<ItemSequenceResponse>(ITEM_SEQUENCE_BASE)
   return res.data
 }

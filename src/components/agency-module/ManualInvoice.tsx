@@ -395,7 +395,6 @@ const ManualInvoice = () => {
           effectiveUser?.userId ?? null,
           selectedOutlet
         )
-        setPayloadPreview(JSON.stringify(requestPayload, null, 2))
         const response = await createInvoice(requestPayload)
         const successMessage =
           response?.message ?? 'Manual invoice created successfully.'

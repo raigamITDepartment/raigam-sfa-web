@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
-import { findItemPriceByItemId } from '@/services/sales/itemPriceApi'
+import { findItemPriceByItemId } from '@/services/sales/itemApi'
+import type { ItemFormValues } from '@/types/itemForm'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -7,11 +10,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { GoodReturnSection, MarketReturnSection } from './ItemFormReturnSections'
-import type { ItemFormValues } from '@/types/itemForm'
 import type { ItemFormProps as BaseItemFormProps } from './AddItemForm'
+import {
+  GoodReturnSection,
+  MarketReturnSection,
+} from './ItemFormReturnSections'
 
 export type UpdateItemFormProps = BaseItemFormProps
 
@@ -52,7 +55,9 @@ export const UpdateItemForm = ({
     finalTotalValue: null,
   }
 
-  const [priceOptions, setPriceOptions] = useState<{ id: number; label: string; price: number }[]>([])
+  const [priceOptions, setPriceOptions] = useState<
+    { id: number; label: string; price: number }[]
+  >([])
   const [isLoadingPrices, setIsLoadingPrices] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [useGoodReturn, setUseGoodReturn] = useState(false)
@@ -62,7 +67,9 @@ export const UpdateItemForm = ({
   const formatMoney = (n?: number | null) =>
     typeof n === 'number' && Number.isFinite(n) ? n.toFixed(2) : '-'
   const formatNegative = (n?: number | null) =>
-    typeof n === 'number' && Number.isFinite(n) ? `-${Math.abs(n).toFixed(2)}` : ''
+    typeof n === 'number' && Number.isFinite(n)
+      ? `-${Math.abs(n).toFixed(2)}`
+      : ''
 
   const toggleGoodReturn = (checked: boolean) => {
     setUseGoodReturn(checked)
@@ -109,17 +116,24 @@ export const UpdateItemForm = ({
   const validate = () => {
     const nextErrors: Record<string, string> = {}
     if (!value.itemId) nextErrors.itemId = 'Item Name is required'
-    if (!value.sellUnitPrice) nextErrors.sellUnitPrice = 'Select Item Price is required'
-    if (value.totalBookQty === null || value.totalBookQty === undefined) nextErrors.totalBookQty = 'Quantity is required'
+    if (!value.sellUnitPrice)
+      nextErrors.sellUnitPrice = 'Select Item Price is required'
+    if (value.totalBookQty === null || value.totalBookQty === undefined)
+      nextErrors.totalBookQty = 'Quantity is required'
 
     if (useGoodReturn) {
-      if (!value.goodReturnUnitPrice) nextErrors.goodReturnUnitPrice = 'Good Return Unit Price is required'
-      if (!value.goodReturnTotalQty) nextErrors.goodReturnTotalQty = 'Good Return Qty is required'
+      if (!value.goodReturnUnitPrice)
+        nextErrors.goodReturnUnitPrice = 'Good Return Unit Price is required'
+      if (!value.goodReturnTotalQty)
+        nextErrors.goodReturnTotalQty = 'Good Return Qty is required'
     }
 
     if (useMarketReturn) {
-      if (!value.marketReturnUnitPrice) nextErrors.marketReturnUnitPrice = 'Market Return Unit Price is required'
-      if (!value.marketReturnTotalQty) nextErrors.marketReturnTotalQty = 'Market Return Qty is required'
+      if (!value.marketReturnUnitPrice)
+        nextErrors.marketReturnUnitPrice =
+          'Market Return Unit Price is required'
+      if (!value.marketReturnTotalQty)
+        nextErrors.marketReturnTotalQty = 'Market Return Qty is required'
     }
 
     setErrors(nextErrors)
@@ -139,9 +153,7 @@ export const UpdateItemForm = ({
         ? (bookingTotal * discountPct) / 100
         : null
     const totalBookSellValue =
-      bookingTotal !== null
-        ? bookingTotal - (discountValue ?? 0)
-        : null
+      bookingTotal !== null ? bookingTotal - (discountValue ?? 0) : null
 
     const next: Partial<ItemFormValues> = {}
 
@@ -214,7 +226,10 @@ export const UpdateItemForm = ({
       return
     }
     const next = Number(computed.toFixed(2))
-    if (!Number.isFinite(current) || Math.abs((current as number) - next) > 0.0001) {
+    if (
+      !Number.isFinite(current) ||
+      Math.abs((current as number) - next) > 0.0001
+    ) {
       onChange({ ...value, goodReturnTotalVal: next })
     }
   }, [
@@ -244,7 +259,10 @@ export const UpdateItemForm = ({
       return
     }
     const next = Number(computed.toFixed(2))
-    if (!Number.isFinite(current) || Math.abs((current as number) - next) > epsilon) {
+    if (
+      !Number.isFinite(current) ||
+      Math.abs((current as number) - next) > epsilon
+    ) {
       onChange({ ...value, marketReturnTotalVal: next })
     }
   }, [
@@ -265,7 +283,10 @@ export const UpdateItemForm = ({
       afterDiscount - goodReturnTotalVal - marketReturnTotalVal
     const next = Number(computedFinal.toFixed(2))
     const current = value.finalTotalValue ?? null
-    if (!Number.isFinite(current) || Math.abs((current as number) - next) > epsilon) {
+    if (
+      !Number.isFinite(current) ||
+      Math.abs((current as number) - next) > epsilon
+    ) {
       onChange({ ...value, finalTotalValue: next })
     }
   }, [
@@ -356,7 +377,11 @@ export const UpdateItemForm = ({
               priceOptions.find((opt) => opt.id === value.sellPriceId)
                 ? String(value.sellPriceId)
                 : priceOptions.find((opt) => opt.price === value.sellUnitPrice)
-                  ? String(priceOptions.find((opt) => opt.price === value.sellUnitPrice)?.id)
+                  ? String(
+                      priceOptions.find(
+                        (opt) => opt.price === value.sellUnitPrice
+                      )?.id
+                    )
                   : ''
             }
             onValueChange={(val) => {
@@ -562,7 +587,7 @@ export const UpdateItemForm = ({
 
       <div className='rounded-lg border border-blue-100 bg-gradient-to-r from-blue-50 to-indigo-50 p-4 shadow-sm dark:border-slate-700 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800'>
         <div className='flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between'>
-          <span className='text-xs uppercase tracking-wide text-slate-600 dark:text-slate-300'>
+          <span className='text-xs tracking-wide text-slate-600 uppercase dark:text-slate-300'>
             Total (Rs.)
           </span>
           <span className='text-2xl font-bold text-blue-700 dark:text-blue-300'>
@@ -598,7 +623,7 @@ export const UpdateItemForm = ({
             }}
             disabled={isSubmitting}
           >
-            {isSubmitting ? 'Saving...' : submitLabel ?? 'Update Item'}
+            {isSubmitting ? 'Saving...' : (submitLabel ?? 'Update Item')}
           </Button>
         </div>
       ) : null}

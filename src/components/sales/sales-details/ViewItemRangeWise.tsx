@@ -13,11 +13,10 @@ import {
   type PaginationState,
   type SortingState,
 } from '@tanstack/react-table'
-import { getAllItemsSequence, type ItemSequence } from '@/services/sales/itemApi'
 import {
-  ExcelExportButton,
-  type ExcelExportColumn,
-} from '@/components/excel-export-button'
+  getAllItemsSequence,
+  type ItemSequence,
+} from '@/services/sales/itemApi'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -33,6 +32,10 @@ import {
   DataTablePagination,
   DataTableToolbar,
 } from '@/components/data-table'
+import {
+  ExcelExportButton,
+  type ExcelExportColumn,
+} from '@/components/excel-export-button'
 
 const formatValue = (value?: string | number | null) => {
   if (value === null || value === undefined || `${value}`.trim() === '') {
@@ -241,11 +244,8 @@ const ViewItemRangeWise = () => {
     <Card>
       <CardHeader className='flex flex-row items-center justify-between gap-2'>
         <CardTitle className='flex items-center gap-2 text-base font-semibold'>
-          All Items Range Wise
-          <Badge
-            variant='secondary'
-            className='text-xs font-medium uppercase'
-          >
+          View All Items
+          <Badge variant='secondary' className='text-xs font-medium uppercase'>
             {filteredCount}/{rows.length}
           </Badge>
         </CardTitle>
@@ -290,7 +290,9 @@ const ViewItemRangeWise = () => {
                   {headerGroup.headers.map((header) => (
                     <TableHead
                       key={header.id}
-                      className={header.column.columnDef.meta?.thClassName ?? ''}
+                      className={
+                        header.column.columnDef.meta?.thClassName ?? ''
+                      }
                     >
                       {header.isPlaceholder
                         ? null

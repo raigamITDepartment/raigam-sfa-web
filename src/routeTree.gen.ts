@@ -44,8 +44,8 @@ import { Route as AuthenticatedSalesSalesOperationsItemMasterRouteImport } from 
 import { Route as AuthenticatedSalesSalesOperationsItemAddRouteImport } from './routes/_authenticated/sales/sales-operations/item-add'
 import { Route as AuthenticatedSalesSalesOperationsFreeIssueRouteImport } from './routes/_authenticated/sales/sales-operations/free-issue'
 import { Route as AuthenticatedSalesSalesOperationsCategoryAddRouteImport } from './routes/_authenticated/sales/sales-operations/category-add'
-import { Route as AuthenticatedSalesSalesDetailsViewItemRangeWiseRouteImport } from './routes/_authenticated/sales/sales-details/view-item-range-wise'
 import { Route as AuthenticatedSalesSalesDetailsViewInvoicesRouteImport } from './routes/_authenticated/sales/sales-details/view-invoices'
+import { Route as AuthenticatedSalesSalesDetailsViewAllItemsRouteImport } from './routes/_authenticated/sales/sales-details/view-all-items'
 import { Route as AuthenticatedSalesSalesDetailsStockRouteImport } from './routes/_authenticated/sales/sales-details/stock'
 import { Route as AuthenticatedSalesSalesDetailsMarketReturnRouteImport } from './routes/_authenticated/sales/sales-details/market-return'
 import { Route as AuthenticatedAgencyModuleStockViewStockRouteImport } from './routes/_authenticated/agency-module/stock/view-stock'
@@ -258,16 +258,16 @@ const AuthenticatedSalesSalesOperationsCategoryAddRoute =
     path: '/sales/sales-operations/category-add',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedSalesSalesDetailsViewItemRangeWiseRoute =
-  AuthenticatedSalesSalesDetailsViewItemRangeWiseRouteImport.update({
-    id: '/sales/sales-details/view-item-range-wise',
-    path: '/sales/sales-details/view-item-range-wise',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
 const AuthenticatedSalesSalesDetailsViewInvoicesRoute =
   AuthenticatedSalesSalesDetailsViewInvoicesRouteImport.update({
     id: '/sales/sales-details/view-invoices',
     path: '/sales/sales-details/view-invoices',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedSalesSalesDetailsViewAllItemsRoute =
+  AuthenticatedSalesSalesDetailsViewAllItemsRouteImport.update({
+    id: '/sales/sales-details/view-all-items',
+    path: '/sales/sales-details/view-all-items',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedSalesSalesDetailsStockRoute =
@@ -390,8 +390,8 @@ export interface FileRoutesByFullPath {
   '/agency-module/stock/view-stock': typeof AuthenticatedAgencyModuleStockViewStockRoute
   '/sales/sales-details/market-return': typeof AuthenticatedSalesSalesDetailsMarketReturnRoute
   '/sales/sales-details/stock': typeof AuthenticatedSalesSalesDetailsStockRoute
+  '/sales/sales-details/view-all-items': typeof AuthenticatedSalesSalesDetailsViewAllItemsRoute
   '/sales/sales-details/view-invoices': typeof AuthenticatedSalesSalesDetailsViewInvoicesRoute
-  '/sales/sales-details/view-item-range-wise': typeof AuthenticatedSalesSalesDetailsViewItemRangeWiseRoute
   '/sales/sales-operations/category-add': typeof AuthenticatedSalesSalesOperationsCategoryAddRoute
   '/sales/sales-operations/free-issue': typeof AuthenticatedSalesSalesOperationsFreeIssueRoute
   '/sales/sales-operations/item-add': typeof AuthenticatedSalesSalesOperationsItemAddRoute
@@ -440,8 +440,8 @@ export interface FileRoutesByTo {
   '/agency-module/stock/view-stock': typeof AuthenticatedAgencyModuleStockViewStockRoute
   '/sales/sales-details/market-return': typeof AuthenticatedSalesSalesDetailsMarketReturnRoute
   '/sales/sales-details/stock': typeof AuthenticatedSalesSalesDetailsStockRoute
+  '/sales/sales-details/view-all-items': typeof AuthenticatedSalesSalesDetailsViewAllItemsRoute
   '/sales/sales-details/view-invoices': typeof AuthenticatedSalesSalesDetailsViewInvoicesRoute
-  '/sales/sales-details/view-item-range-wise': typeof AuthenticatedSalesSalesDetailsViewItemRangeWiseRoute
   '/sales/sales-operations/category-add': typeof AuthenticatedSalesSalesOperationsCategoryAddRoute
   '/sales/sales-operations/free-issue': typeof AuthenticatedSalesSalesOperationsFreeIssueRoute
   '/sales/sales-operations/item-add': typeof AuthenticatedSalesSalesOperationsItemAddRoute
@@ -493,8 +493,8 @@ export interface FileRoutesById {
   '/_authenticated/agency-module/stock/view-stock': typeof AuthenticatedAgencyModuleStockViewStockRoute
   '/_authenticated/sales/sales-details/market-return': typeof AuthenticatedSalesSalesDetailsMarketReturnRoute
   '/_authenticated/sales/sales-details/stock': typeof AuthenticatedSalesSalesDetailsStockRoute
+  '/_authenticated/sales/sales-details/view-all-items': typeof AuthenticatedSalesSalesDetailsViewAllItemsRoute
   '/_authenticated/sales/sales-details/view-invoices': typeof AuthenticatedSalesSalesDetailsViewInvoicesRoute
-  '/_authenticated/sales/sales-details/view-item-range-wise': typeof AuthenticatedSalesSalesDetailsViewItemRangeWiseRoute
   '/_authenticated/sales/sales-operations/category-add': typeof AuthenticatedSalesSalesOperationsCategoryAddRoute
   '/_authenticated/sales/sales-operations/free-issue': typeof AuthenticatedSalesSalesOperationsFreeIssueRoute
   '/_authenticated/sales/sales-operations/item-add': typeof AuthenticatedSalesSalesOperationsItemAddRoute
@@ -545,8 +545,8 @@ export interface FileRouteTypes {
     | '/agency-module/stock/view-stock'
     | '/sales/sales-details/market-return'
     | '/sales/sales-details/stock'
+    | '/sales/sales-details/view-all-items'
     | '/sales/sales-details/view-invoices'
-    | '/sales/sales-details/view-item-range-wise'
     | '/sales/sales-operations/category-add'
     | '/sales/sales-operations/free-issue'
     | '/sales/sales-operations/item-add'
@@ -595,8 +595,8 @@ export interface FileRouteTypes {
     | '/agency-module/stock/view-stock'
     | '/sales/sales-details/market-return'
     | '/sales/sales-details/stock'
+    | '/sales/sales-details/view-all-items'
     | '/sales/sales-details/view-invoices'
-    | '/sales/sales-details/view-item-range-wise'
     | '/sales/sales-operations/category-add'
     | '/sales/sales-operations/free-issue'
     | '/sales/sales-operations/item-add'
@@ -647,8 +647,8 @@ export interface FileRouteTypes {
     | '/_authenticated/agency-module/stock/view-stock'
     | '/_authenticated/sales/sales-details/market-return'
     | '/_authenticated/sales/sales-details/stock'
+    | '/_authenticated/sales/sales-details/view-all-items'
     | '/_authenticated/sales/sales-details/view-invoices'
-    | '/_authenticated/sales/sales-details/view-item-range-wise'
     | '/_authenticated/sales/sales-operations/category-add'
     | '/_authenticated/sales/sales-operations/free-issue'
     | '/_authenticated/sales/sales-operations/item-add'
@@ -914,18 +914,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSalesSalesOperationsCategoryAddRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/sales/sales-details/view-item-range-wise': {
-      id: '/_authenticated/sales/sales-details/view-item-range-wise'
-      path: '/sales/sales-details/view-item-range-wise'
-      fullPath: '/sales/sales-details/view-item-range-wise'
-      preLoaderRoute: typeof AuthenticatedSalesSalesDetailsViewItemRangeWiseRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/sales/sales-details/view-invoices': {
       id: '/_authenticated/sales/sales-details/view-invoices'
       path: '/sales/sales-details/view-invoices'
       fullPath: '/sales/sales-details/view-invoices'
       preLoaderRoute: typeof AuthenticatedSalesSalesDetailsViewInvoicesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/sales/sales-details/view-all-items': {
+      id: '/_authenticated/sales/sales-details/view-all-items'
+      path: '/sales/sales-details/view-all-items'
+      fullPath: '/sales/sales-details/view-all-items'
+      preLoaderRoute: typeof AuthenticatedSalesSalesDetailsViewAllItemsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/sales/sales-details/stock': {
@@ -1083,8 +1083,8 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAgencyModuleStockViewStockRoute: typeof AuthenticatedAgencyModuleStockViewStockRoute
   AuthenticatedSalesSalesDetailsMarketReturnRoute: typeof AuthenticatedSalesSalesDetailsMarketReturnRoute
   AuthenticatedSalesSalesDetailsStockRoute: typeof AuthenticatedSalesSalesDetailsStockRoute
+  AuthenticatedSalesSalesDetailsViewAllItemsRoute: typeof AuthenticatedSalesSalesDetailsViewAllItemsRoute
   AuthenticatedSalesSalesDetailsViewInvoicesRoute: typeof AuthenticatedSalesSalesDetailsViewInvoicesRoute
-  AuthenticatedSalesSalesDetailsViewItemRangeWiseRoute: typeof AuthenticatedSalesSalesDetailsViewItemRangeWiseRoute
   AuthenticatedSalesSalesOperationsCategoryAddRoute: typeof AuthenticatedSalesSalesOperationsCategoryAddRoute
   AuthenticatedSalesSalesOperationsFreeIssueRoute: typeof AuthenticatedSalesSalesOperationsFreeIssueRoute
   AuthenticatedSalesSalesOperationsItemAddRoute: typeof AuthenticatedSalesSalesOperationsItemAddRoute
@@ -1152,10 +1152,10 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedSalesSalesDetailsMarketReturnRoute,
   AuthenticatedSalesSalesDetailsStockRoute:
     AuthenticatedSalesSalesDetailsStockRoute,
+  AuthenticatedSalesSalesDetailsViewAllItemsRoute:
+    AuthenticatedSalesSalesDetailsViewAllItemsRoute,
   AuthenticatedSalesSalesDetailsViewInvoicesRoute:
     AuthenticatedSalesSalesDetailsViewInvoicesRoute,
-  AuthenticatedSalesSalesDetailsViewItemRangeWiseRoute:
-    AuthenticatedSalesSalesDetailsViewItemRangeWiseRoute,
   AuthenticatedSalesSalesOperationsCategoryAddRoute:
     AuthenticatedSalesSalesOperationsCategoryAddRoute,
   AuthenticatedSalesSalesOperationsFreeIssueRoute:

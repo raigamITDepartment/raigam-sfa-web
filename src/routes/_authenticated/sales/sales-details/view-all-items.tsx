@@ -4,17 +4,17 @@ import { PageHeader } from '@/components/layout/page-header'
 import ViewItemRangeWise from '@/components/sales/sales-details/ViewItemRangeWise'
 
 export const Route = createFileRoute(
-  '/_authenticated/sales/sales-details/view-item-range-wise'
+  '/_authenticated/sales/sales-details/view-all-items'
 )({
   component: () => (
     <Main>
       <PageHeader
-        title='View Item Range Wise'
+        title='View All Items'
         breadcrumbs={[
           { label: 'Home', to: '/dashboard/overview' },
           { label: 'Sales' },
           { label: 'Sales Details' },
-          { label: 'View Item Range Wise' },
+          { label: 'View All Items' },
         ]}
       />
       <div className='mt-4'>

@@ -94,8 +94,8 @@ export const sidebarData: SidebarData = {
           icon: ReceiptText,
           items: [
             {
-              title: 'View Item Range Wise',
-              url: '/sales/sales-details/view-item-range-wise',
+              title: 'View All Items',
+              url: '/sales/sales-details/view-all-items',
             },
             { title: 'Stock', url: '/sales/sales-details/stock' },
             {

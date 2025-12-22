@@ -98,10 +98,10 @@ export const sidebarData: SidebarData = {
               url: '/sales/sales-details/view-all-items',
             },
             { title: 'Stock', url: '/sales/sales-details/stock' },
-            {
+            /* {
               title: 'View Invoices',
               url: '/sales/sales-details/view-invoices',
-            },
+            }, */
             {
               title: 'Market Return',
               url: '/sales/sales-details/market-return',
@@ -113,8 +113,8 @@ export const sidebarData: SidebarData = {
           icon: BriefcaseBusiness,
           items: [
             {
-              title: 'Category Add',
-              url: '/sales/sales-operations/category-add',
+              title: 'Manage Category',
+              url: '/sales/sales-operations/manage-category',
             },
             {
               title: 'Item Master',

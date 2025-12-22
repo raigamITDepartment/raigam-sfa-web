@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { Main } from '@/components/layout/main'
 import { PageHeader } from '@/components/layout/page-header'
+import { ComingSoon } from '@/components/coming-soon'
 
 export const Route = createFileRoute('/_authenticated/sales/sales-details/market-return')({
   component: () => (
@@ -14,7 +15,7 @@ export const Route = createFileRoute('/_authenticated/sales/sales-details/market
           { label: 'Market Return' },
         ]}
       />
-      <div>Sales Details - Market Return</div>
+      <ComingSoon />
     </Main>
   ),
 })

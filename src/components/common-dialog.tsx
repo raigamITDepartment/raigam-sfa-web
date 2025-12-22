@@ -71,7 +71,11 @@ export function CommonDialog(props: CommonDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent showCloseButton={!hideCloseButton} className={contentClassName}>
+      <DialogContent
+        showCloseButton={!hideCloseButton}
+        className={contentClassName}
+        {...(description ? {} : { 'aria-describedby': undefined })}
+      >
         {(title || description) && (
           <DialogHeader className={headerClassName}>
             {title && <DialogTitle>{title}</DialogTitle>}

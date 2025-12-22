@@ -33,6 +33,9 @@ export const Route = createFileRoute(
         <CommonTabs
           defaultValue={DEFAULT_DEMARCATION_TAB}
           storageKey={DEMARCATION_STORAGE_KEY}
+          listClassName='rounded-lg border bg-white px-2 py-1 shadow-sm dark:bg-slate-900'
+          triggerClassName='rounded-md px-3 py-1.5 text-sm font-semibold text-slate-700 data-[state=active]:bg-slate-100 data-[state=active]:text-slate-900 dark:text-slate-200 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-slate-50'
+          contentClassName='mt-4'
           items={[
             {
               value: 'channel',

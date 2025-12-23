@@ -137,7 +137,7 @@ export const sidebarData: SidebarData = {
         { title: 'Outlets', url: '/outlet-module/outlets', icon: Store },
         {
           title: 'Route',
-          url: '/outlet-module/route',
+          url: '/outlet-module/routes',
           icon: RouteIcon,
         },
       ],

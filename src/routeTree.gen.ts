@@ -19,11 +19,11 @@ import { Route as errors404RouteImport } from './routes/(errors)/404'
 import { Route as errors403RouteImport } from './routes/(errors)/403'
 import { Route as errors401RouteImport } from './routes/(errors)/401'
 import { Route as authSignInRouteImport } from './routes/(auth)/sign-in'
-import { Route as AuthenticatedOutletModuleRouteRouteImport } from './routes/_authenticated/outlet-module/route'
 import { Route as AuthenticatedReportsTerritoryWiseSalesReportRouteImport } from './routes/_authenticated/reports/territory-wise-sales-report'
 import { Route as AuthenticatedReportsTerritoryWiseItemsReportRouteImport } from './routes/_authenticated/reports/territory-wise-items-report'
 import { Route as AuthenticatedReportsAreaWiseSalesReportRouteImport } from './routes/_authenticated/reports/area-wise-sales-report'
 import { Route as AuthenticatedReportsAchievementCategoryWiseRouteImport } from './routes/_authenticated/reports/achievement-category-wise'
+import { Route as AuthenticatedOutletModuleRoutesRouteImport } from './routes/_authenticated/outlet-module/routes'
 import { Route as AuthenticatedOutletModuleOutletsRouteImport } from './routes/_authenticated/outlet-module/outlets'
 import { Route as AuthenticatedMasterSettingsFinalGeographyMappingRouteImport } from './routes/_authenticated/master-settings/final-geography-mapping'
 import { Route as AuthenticatedMasterSettingsDistributorMappingRouteImport } from './routes/_authenticated/master-settings/distributor-mapping'
@@ -38,7 +38,6 @@ import { Route as AuthenticatedErrorsForbiddenRouteImport } from './routes/_auth
 import { Route as AuthenticatedDashboardOverviewRouteImport } from './routes/_authenticated/dashboard/overview'
 import { Route as AuthenticatedDashboardHomeReportRouteImport } from './routes/_authenticated/dashboard/home-report'
 import { Route as AuthenticatedDashboardHeartCountRouteImport } from './routes/_authenticated/dashboard/heart-count'
-import { Route as AuthenticatedOutletModuleRouteIndexRouteImport } from './routes/_authenticated/outlet-module/route/index'
 import { Route as AuthenticatedSalesSalesOperationsWorkingDayRouteImport } from './routes/_authenticated/sales/sales-operations/working-day'
 import { Route as AuthenticatedSalesSalesOperationsTargetRouteImport } from './routes/_authenticated/sales/sales-operations/target'
 import { Route as AuthenticatedSalesSalesOperationsManageCategoryRouteImport } from './routes/_authenticated/sales/sales-operations/manage-category'
@@ -109,12 +108,6 @@ const authSignInRoute = authSignInRouteImport.update({
   path: '/sign-in',
   getParentRoute: () => authRouteRoute,
 } as any)
-const AuthenticatedOutletModuleRouteRoute =
-  AuthenticatedOutletModuleRouteRouteImport.update({
-    id: '/outlet-module',
-    path: '/outlet-module',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
 const AuthenticatedReportsTerritoryWiseSalesReportRoute =
   AuthenticatedReportsTerritoryWiseSalesReportRouteImport.update({
     id: '/reports/territory-wise-sales-report',
@@ -139,11 +132,17 @@ const AuthenticatedReportsAchievementCategoryWiseRoute =
     path: '/reports/achievement-category-wise',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedOutletModuleRoutesRoute =
+  AuthenticatedOutletModuleRoutesRouteImport.update({
+    id: '/outlet-module/routes',
+    path: '/outlet-module/routes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedOutletModuleOutletsRoute =
   AuthenticatedOutletModuleOutletsRouteImport.update({
-    id: '/outlets',
-    path: '/outlets',
-    getParentRoute: () => AuthenticatedOutletModuleRouteRoute,
+    id: '/outlet-module/outlets',
+    path: '/outlet-module/outlets',
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedMasterSettingsFinalGeographyMappingRoute =
   AuthenticatedMasterSettingsFinalGeographyMappingRouteImport.update({
@@ -222,12 +221,6 @@ const AuthenticatedDashboardHeartCountRoute =
     id: '/dashboard/heart-count',
     path: '/dashboard/heart-count',
     getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedOutletModuleRouteIndexRoute =
-  AuthenticatedOutletModuleRouteIndexRouteImport.update({
-    id: '/route/',
-    path: '/route/',
-    getParentRoute: () => AuthenticatedOutletModuleRouteRoute,
   } as any)
 const AuthenticatedSalesSalesOperationsWorkingDayRoute =
   AuthenticatedSalesSalesOperationsWorkingDayRouteImport.update({
@@ -357,7 +350,6 @@ const AuthenticatedAdminModuleOperationManualBillQuotaRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
-  '/outlet-module': typeof AuthenticatedOutletModuleRouteRouteWithChildren
   '/sign-in': typeof authSignInRoute
   '/401': typeof errors401Route
   '/403': typeof errors403Route
@@ -380,6 +372,7 @@ export interface FileRoutesByFullPath {
   '/master-settings/distributor-mapping': typeof AuthenticatedMasterSettingsDistributorMappingRoute
   '/master-settings/final-geography-mapping': typeof AuthenticatedMasterSettingsFinalGeographyMappingRoute
   '/outlet-module/outlets': typeof AuthenticatedOutletModuleOutletsRoute
+  '/outlet-module/routes': typeof AuthenticatedOutletModuleRoutesRoute
   '/reports/achievement-category-wise': typeof AuthenticatedReportsAchievementCategoryWiseRoute
   '/reports/area-wise-sales-report': typeof AuthenticatedReportsAreaWiseSalesReportRoute
   '/reports/territory-wise-items-report': typeof AuthenticatedReportsTerritoryWiseItemsReportRoute
@@ -405,10 +398,8 @@ export interface FileRoutesByFullPath {
   '/sales/sales-operations/manage-category': typeof AuthenticatedSalesSalesOperationsManageCategoryRoute
   '/sales/sales-operations/target': typeof AuthenticatedSalesSalesOperationsTargetRoute
   '/sales/sales-operations/working-day': typeof AuthenticatedSalesSalesOperationsWorkingDayRoute
-  '/outlet-module/route': typeof AuthenticatedOutletModuleRouteIndexRoute
 }
 export interface FileRoutesByTo {
-  '/outlet-module': typeof AuthenticatedOutletModuleRouteRouteWithChildren
   '/sign-in': typeof authSignInRoute
   '/401': typeof errors401Route
   '/403': typeof errors403Route
@@ -431,6 +422,7 @@ export interface FileRoutesByTo {
   '/master-settings/distributor-mapping': typeof AuthenticatedMasterSettingsDistributorMappingRoute
   '/master-settings/final-geography-mapping': typeof AuthenticatedMasterSettingsFinalGeographyMappingRoute
   '/outlet-module/outlets': typeof AuthenticatedOutletModuleOutletsRoute
+  '/outlet-module/routes': typeof AuthenticatedOutletModuleRoutesRoute
   '/reports/achievement-category-wise': typeof AuthenticatedReportsAchievementCategoryWiseRoute
   '/reports/area-wise-sales-report': typeof AuthenticatedReportsAreaWiseSalesReportRoute
   '/reports/territory-wise-items-report': typeof AuthenticatedReportsTerritoryWiseItemsReportRoute
@@ -456,13 +448,11 @@ export interface FileRoutesByTo {
   '/sales/sales-operations/manage-category': typeof AuthenticatedSalesSalesOperationsManageCategoryRoute
   '/sales/sales-operations/target': typeof AuthenticatedSalesSalesOperationsTargetRoute
   '/sales/sales-operations/working-day': typeof AuthenticatedSalesSalesOperationsWorkingDayRoute
-  '/outlet-module/route': typeof AuthenticatedOutletModuleRouteIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/(auth)': typeof authRouteRouteWithChildren
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
-  '/_authenticated/outlet-module': typeof AuthenticatedOutletModuleRouteRouteWithChildren
   '/(auth)/sign-in': typeof authSignInRoute
   '/(errors)/401': typeof errors401Route
   '/(errors)/403': typeof errors403Route
@@ -485,6 +475,7 @@ export interface FileRoutesById {
   '/_authenticated/master-settings/distributor-mapping': typeof AuthenticatedMasterSettingsDistributorMappingRoute
   '/_authenticated/master-settings/final-geography-mapping': typeof AuthenticatedMasterSettingsFinalGeographyMappingRoute
   '/_authenticated/outlet-module/outlets': typeof AuthenticatedOutletModuleOutletsRoute
+  '/_authenticated/outlet-module/routes': typeof AuthenticatedOutletModuleRoutesRoute
   '/_authenticated/reports/achievement-category-wise': typeof AuthenticatedReportsAchievementCategoryWiseRoute
   '/_authenticated/reports/area-wise-sales-report': typeof AuthenticatedReportsAreaWiseSalesReportRoute
   '/_authenticated/reports/territory-wise-items-report': typeof AuthenticatedReportsTerritoryWiseItemsReportRoute
@@ -510,12 +501,10 @@ export interface FileRoutesById {
   '/_authenticated/sales/sales-operations/manage-category': typeof AuthenticatedSalesSalesOperationsManageCategoryRoute
   '/_authenticated/sales/sales-operations/target': typeof AuthenticatedSalesSalesOperationsTargetRoute
   '/_authenticated/sales/sales-operations/working-day': typeof AuthenticatedSalesSalesOperationsWorkingDayRoute
-  '/_authenticated/outlet-module/route/': typeof AuthenticatedOutletModuleRouteIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/outlet-module'
     | '/sign-in'
     | '/401'
     | '/403'
@@ -538,6 +527,7 @@ export interface FileRouteTypes {
     | '/master-settings/distributor-mapping'
     | '/master-settings/final-geography-mapping'
     | '/outlet-module/outlets'
+    | '/outlet-module/routes'
     | '/reports/achievement-category-wise'
     | '/reports/area-wise-sales-report'
     | '/reports/territory-wise-items-report'
@@ -563,10 +553,8 @@ export interface FileRouteTypes {
     | '/sales/sales-operations/manage-category'
     | '/sales/sales-operations/target'
     | '/sales/sales-operations/working-day'
-    | '/outlet-module/route'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/outlet-module'
     | '/sign-in'
     | '/401'
     | '/403'
@@ -589,6 +577,7 @@ export interface FileRouteTypes {
     | '/master-settings/distributor-mapping'
     | '/master-settings/final-geography-mapping'
     | '/outlet-module/outlets'
+    | '/outlet-module/routes'
     | '/reports/achievement-category-wise'
     | '/reports/area-wise-sales-report'
     | '/reports/territory-wise-items-report'
@@ -614,12 +603,10 @@ export interface FileRouteTypes {
     | '/sales/sales-operations/manage-category'
     | '/sales/sales-operations/target'
     | '/sales/sales-operations/working-day'
-    | '/outlet-module/route'
   id:
     | '__root__'
     | '/(auth)'
     | '/_authenticated'
-    | '/_authenticated/outlet-module'
     | '/(auth)/sign-in'
     | '/(errors)/401'
     | '/(errors)/403'
@@ -642,6 +629,7 @@ export interface FileRouteTypes {
     | '/_authenticated/master-settings/distributor-mapping'
     | '/_authenticated/master-settings/final-geography-mapping'
     | '/_authenticated/outlet-module/outlets'
+    | '/_authenticated/outlet-module/routes'
     | '/_authenticated/reports/achievement-category-wise'
     | '/_authenticated/reports/area-wise-sales-report'
     | '/_authenticated/reports/territory-wise-items-report'
@@ -667,7 +655,6 @@ export interface FileRouteTypes {
     | '/_authenticated/sales/sales-operations/manage-category'
     | '/_authenticated/sales/sales-operations/target'
     | '/_authenticated/sales/sales-operations/working-day'
-    | '/_authenticated/outlet-module/route/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -752,13 +739,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof authSignInRouteImport
       parentRoute: typeof authRouteRoute
     }
-    '/_authenticated/outlet-module': {
-      id: '/_authenticated/outlet-module'
-      path: '/outlet-module'
-      fullPath: '/outlet-module'
-      preLoaderRoute: typeof AuthenticatedOutletModuleRouteRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/reports/territory-wise-sales-report': {
       id: '/_authenticated/reports/territory-wise-sales-report'
       path: '/reports/territory-wise-sales-report'
@@ -787,12 +767,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedReportsAchievementCategoryWiseRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/outlet-module/routes': {
+      id: '/_authenticated/outlet-module/routes'
+      path: '/outlet-module/routes'
+      fullPath: '/outlet-module/routes'
+      preLoaderRoute: typeof AuthenticatedOutletModuleRoutesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/outlet-module/outlets': {
       id: '/_authenticated/outlet-module/outlets'
-      path: '/outlets'
+      path: '/outlet-module/outlets'
       fullPath: '/outlet-module/outlets'
       preLoaderRoute: typeof AuthenticatedOutletModuleOutletsRouteImport
-      parentRoute: typeof AuthenticatedOutletModuleRouteRoute
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/master-settings/final-geography-mapping': {
       id: '/_authenticated/master-settings/final-geography-mapping'
@@ -884,13 +871,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/dashboard/heart-count'
       preLoaderRoute: typeof AuthenticatedDashboardHeartCountRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/outlet-module/route/': {
-      id: '/_authenticated/outlet-module/route/'
-      path: '/route'
-      fullPath: '/outlet-module/route'
-      preLoaderRoute: typeof AuthenticatedOutletModuleRouteIndexRouteImport
-      parentRoute: typeof AuthenticatedOutletModuleRouteRoute
     }
     '/_authenticated/sales/sales-operations/working-day': {
       id: '/_authenticated/sales/sales-operations/working-day'
@@ -1054,26 +1034,7 @@ const authRouteRouteWithChildren = authRouteRoute._addFileChildren(
   authRouteRouteChildren,
 )
 
-interface AuthenticatedOutletModuleRouteRouteChildren {
-  AuthenticatedOutletModuleOutletsRoute: typeof AuthenticatedOutletModuleOutletsRoute
-  AuthenticatedOutletModuleRouteIndexRoute: typeof AuthenticatedOutletModuleRouteIndexRoute
-}
-
-const AuthenticatedOutletModuleRouteRouteChildren: AuthenticatedOutletModuleRouteRouteChildren =
-  {
-    AuthenticatedOutletModuleOutletsRoute:
-      AuthenticatedOutletModuleOutletsRoute,
-    AuthenticatedOutletModuleRouteIndexRoute:
-      AuthenticatedOutletModuleRouteIndexRoute,
-  }
-
-const AuthenticatedOutletModuleRouteRouteWithChildren =
-  AuthenticatedOutletModuleRouteRoute._addFileChildren(
-    AuthenticatedOutletModuleRouteRouteChildren,
-  )
-
 interface AuthenticatedRouteRouteChildren {
-  AuthenticatedOutletModuleRouteRoute: typeof AuthenticatedOutletModuleRouteRouteWithChildren
   AuthenticatedRestRoute: typeof AuthenticatedRestRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedDashboardHeartCountRoute: typeof AuthenticatedDashboardHeartCountRoute
@@ -1089,6 +1050,8 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedMasterSettingsDemarcationRoute: typeof AuthenticatedMasterSettingsDemarcationRoute
   AuthenticatedMasterSettingsDistributorMappingRoute: typeof AuthenticatedMasterSettingsDistributorMappingRoute
   AuthenticatedMasterSettingsFinalGeographyMappingRoute: typeof AuthenticatedMasterSettingsFinalGeographyMappingRoute
+  AuthenticatedOutletModuleOutletsRoute: typeof AuthenticatedOutletModuleOutletsRoute
+  AuthenticatedOutletModuleRoutesRoute: typeof AuthenticatedOutletModuleRoutesRoute
   AuthenticatedReportsAchievementCategoryWiseRoute: typeof AuthenticatedReportsAchievementCategoryWiseRoute
   AuthenticatedReportsAreaWiseSalesReportRoute: typeof AuthenticatedReportsAreaWiseSalesReportRoute
   AuthenticatedReportsTerritoryWiseItemsReportRoute: typeof AuthenticatedReportsTerritoryWiseItemsReportRoute
@@ -1117,8 +1080,6 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedOutletModuleRouteRoute:
-    AuthenticatedOutletModuleRouteRouteWithChildren,
   AuthenticatedRestRoute: AuthenticatedRestRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedDashboardHeartCountRoute: AuthenticatedDashboardHeartCountRoute,
@@ -1141,6 +1102,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedMasterSettingsDistributorMappingRoute,
   AuthenticatedMasterSettingsFinalGeographyMappingRoute:
     AuthenticatedMasterSettingsFinalGeographyMappingRoute,
+  AuthenticatedOutletModuleOutletsRoute: AuthenticatedOutletModuleOutletsRoute,
+  AuthenticatedOutletModuleRoutesRoute: AuthenticatedOutletModuleRoutesRoute,
   AuthenticatedReportsAchievementCategoryWiseRoute:
     AuthenticatedReportsAchievementCategoryWiseRoute,
   AuthenticatedReportsAreaWiseSalesReportRoute:

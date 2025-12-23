@@ -115,16 +115,8 @@ export const RoleAccess: Record<string, RoleIdValue[]> = {
   ],
 
   // Outlet Module
-  '/outlet-module/outlet': [
-    RoleId.SystemAdmin,
-    RoleId.SeniorManagerSales,
-    RoleId.ExecutiveSales,
-  ],
-  '/outlet-module/route': [
-    RoleId.SystemAdmin,
-    RoleId.SeniorManagerSales,
-    RoleId.ExecutiveSales,
-  ],
+  '/outlet-module/outlets': [RoleId.SystemAdmin, RoleId.ManagerSales],
+  '/outlet-module/route': [RoleId.SystemAdmin, RoleId.ManagerSales],
 
   // Reports
   '/reports/achievement-category-wise': [

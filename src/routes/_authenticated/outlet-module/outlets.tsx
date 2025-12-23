@@ -9,6 +9,7 @@ export const Route = createFileRoute('/_authenticated/outlet-module/outlets')({
     ensureRoleAccess([
       RoleId.SystemAdmin,
       RoleId.SeniorManagerSales,
+      RoleId.ManagerSales,
       RoleId.ExecutiveSales,
     ]),
   component: () => (

@@ -40,6 +40,20 @@ const asText = (value: unknown) => {
   return String(value)
 }
 
+const getLoggedTerritoryName = () => {
+  if (typeof window === 'undefined') return ''
+  try {
+    const raw = window.localStorage.getItem('auth_user')
+    if (!raw) return ''
+    const parsed = JSON.parse(raw) as { territoryName?: string }
+    return typeof parsed?.territoryName === 'string'
+      ? parsed.territoryName.trim()
+      : ''
+  } catch {
+    return ''
+  }
+}
+
 export function InvoicePdfButton({
   invoice,
   extraDetails,
@@ -163,6 +177,7 @@ async function renderInvoiceIntoDoc(
     extraDetails && typeof extraDetails === 'object'
       ? (extraDetails as Record<string, unknown>)
       : {}
+  const loggedTerritoryName = getLoggedTerritoryName()
 
   const normalize = (value: unknown) => {
     const text = asText(value)
@@ -216,6 +231,7 @@ async function renderInvoiceIntoDoc(
   const routeCodeVal = getExtraString('routeCode')
   const shopCodeVal = getExtraString('shopCode')
   const territoryText =
+    loggedTerritoryName ||
     territoryCodeVal ||
     normalize((invoice as any).territory) ||
     (invoice.territoryId ? String(invoice.territoryId) : '-') ||

@@ -207,6 +207,10 @@ export function getAllRoutes() {
   return get<RouteDTO[]>(`${USER_DEMARC_BASE}/route`)
 }
 
+export function getRoutesByTerritoryId(territoryId: Id) {
+  return get<RouteDTO[]>(`${USER_DEMARC_BASE}/route/byTerritoryId/${territoryId}`)
+}
+
 
 
 export function createRoute(body: CreateRouteRequest) {
@@ -242,6 +246,44 @@ export function getAllOutletsByTerritoryId(territoryId: Id) {
   return get<OutletDTO[]>(
     `${USER_DEMARC_BASE}/outlet/getAllOutletsByTerritoryId/${territoryId}`
   )
+}
+
+export function getAllOutletsByRouteId(routeId: Id) {
+  return get<OutletDTO[]>(
+    `${USER_DEMARC_BASE}/outlet/getAllOutletsByRouteId/${routeId}`
+  )
+}
+
+export function findOutletById(outletId: Id) {
+  return get<OutletDTO>(`${USER_DEMARC_BASE}/outlet/findById/${outletId}`)
+}
+
+export type UpdateOutletRequest = {
+  id: Id
+  userId: Id
+  outletCategoryId: Id
+  routeId: Id
+  rangeId: Id
+  outletName: string
+  address1: string
+  address2?: string
+  address3?: string
+  ownerName: string
+  mobileNo: string
+  latitude: number | string
+  longitude: number | string
+  displayOrder: number | string
+  openTime: string
+  closeTime: string
+  isNew: boolean
+  isApproved: boolean
+  isClose: boolean
+  vatNum?: string | number
+  outletSequence?: number | string
+}
+
+export function updateOutlet(body: UpdateOutletRequest) {
+  return put<OutletDTO, UpdateOutletRequest>(`${USER_DEMARC_BASE}/outlet`, body)
 }
 
 

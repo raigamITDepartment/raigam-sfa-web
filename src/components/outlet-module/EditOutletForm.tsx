@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 type EditOutletFormValues = {
   id?: number | string
@@ -42,6 +43,8 @@ export function EditOutletForm({ outlet, onSubmit }: EditOutletFormProps) {
   const [formValues, setFormValues] = useState<EditOutletFormValues>(() => ({
     ...outlet,
   }))
+  const [imageOpen, setImageOpen] = useState(false)
+  const [imageLoading, setImageLoading] = useState(Boolean(outlet.imagePath))
 
   const outletIdText = useMemo(
     () => (outlet.id !== null && outlet.id !== undefined ? outlet.id : '-'),
@@ -75,19 +78,34 @@ export function EditOutletForm({ outlet, onSubmit }: EditOutletFormProps) {
       <div className='grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)]'>
         <div className='space-y-4'>
           <Card className='flex flex-col items-center gap-3 p-4 shadow-sm'>
-            <div className='relative h-44 w-full overflow-hidden rounded-md border bg-slate-50'>
+            <button
+              type='button'
+              className='relative h-44 w-full overflow-hidden rounded-md border bg-slate-50 transition hover:opacity-90 disabled:cursor-default'
+              onClick={() => {
+                if (outlet.imagePath) setImageOpen(true)
+              }}
+              disabled={!outlet.imagePath}
+              aria-label='View outlet image'
+            >
+              {imageLoading && (
+                <div className='absolute inset-0 flex items-center justify-center bg-white/70 text-xs text-slate-500'>
+                  Loading image...
+                </div>
+              )}
               {outlet.imagePath ? (
                 <img
                   src={outlet.imagePath}
                   alt={outlet.outletName ?? 'Outlet image'}
                   className='h-full w-full object-cover'
+                  onLoad={() => setImageLoading(false)}
+                  onError={() => setImageLoading(false)}
                 />
               ) : (
                 <div className='flex h-full items-center justify-center text-xs text-slate-400'>
                   Outlet Image
                 </div>
               )}
-            </div>
+            </button>
             <span className='text-xs text-slate-500'>Outlet Image</span>
           </Card>
 
@@ -349,6 +367,22 @@ export function EditOutletForm({ outlet, onSubmit }: EditOutletFormProps) {
           Update Outlet
         </Button>
       </div>
+      <Dialog open={imageOpen} onOpenChange={setImageOpen}>
+        <DialogContent className='max-w-5xl p-0'>
+          <DialogHeader className='border-b px-6 py-4'>
+            <DialogTitle>Outlet Image</DialogTitle>
+          </DialogHeader>
+          <div className='max-h-[75vh] overflow-auto bg-black/95 p-4'>
+            {outlet.imagePath ? (
+              <img
+                src={outlet.imagePath}
+                alt={outlet.outletName ?? 'Outlet image'}
+                className='mx-auto max-h-[70vh] w-auto max-w-full object-contain'
+              />
+            ) : null}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -17,6 +17,7 @@ import type {
 import { Eye } from 'lucide-react'
 import { formatPrice } from '@/lib/format-price'
 import { cn } from '@/lib/utils'
+import { SubRoleId } from '@/lib/authz'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import {
@@ -33,6 +34,7 @@ import BookingInvoiceFilter, {
   type BookingInvoiceFilters,
 } from '@/components/agency-module/filter'
 import { DataTableColumnHeader } from '@/components/data-table'
+import { getTerritoriesByAreaId } from '@/services/userDemarcation/endpoints'
 
 const formatDate = (value?: string) => {
   if (!value || value === '0001-01-01') return '-'
@@ -53,6 +55,13 @@ const CanceledInvoice = () => {
   const user = useAppSelector((s) => s.auth.user)
   const queryClient = useQueryClient()
   const toIso = (d: Date) => d.toISOString().slice(0, 10)
+  const baseTerritoryId = Number(
+    user?.territoryId ?? user?.agencyTerritoryId ?? 0
+  )
+  const roleId = Number(user?.subRoleId ?? user?.roleId)
+  const isAreaRole =
+    roleId === SubRoleId.AreaSalesManager ||
+    roleId === SubRoleId.AreaSalesExecutive
   const defaultDates = useMemo(() => {
     const today = new Date()
     const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
@@ -61,29 +70,55 @@ const CanceledInvoice = () => {
       endDate: toIso(today),
     }
   }, [])
-
   const [filters, setFilters] = useState<BookingInvoiceFilters>({
     startDate: defaultDates.startDate,
     endDate: defaultDates.endDate,
     invoiceType: 'ALL',
+    territoryId: isAreaRole
+      ? undefined
+      : baseTerritoryId > 0
+        ? baseTerritoryId
+        : undefined,
   })
   const [invoicePreviewOpen, setInvoicePreviewOpen] = useState(false)
   const [selectedInvoice, setSelectedInvoice] =
     useState<BookingInvoiceReportItem | null>(null)
   const [detailError, setDetailError] = useState<string | null>(null)
   const [isDetailLoading, setIsDetailLoading] = useState(false)
+  const areaId = user?.areaIds?.[0]
+  const { data: territoryList } = useQuery({
+    queryKey: ['territories-by-area', areaId],
+    enabled: isAreaRole && Boolean(areaId),
+    queryFn: () => getTerritoriesByAreaId(areaId as number),
+  })
+  const territoryOptions = useMemo(() => {
+    const list = Array.isArray(territoryList)
+      ? territoryList
+      : territoryList?.payload
+    const safeList = Array.isArray(list) ? list : []
+    return safeList.map((territory) => ({
+      value: Number(territory.id),
+      label:
+        territory.territoryName ??
+        territory.name ??
+        String(territory.id),
+    }))
+  }, [territoryList])
+  const effectiveTerritoryId = Number(
+    filters.territoryId ?? baseTerritoryId
+  )
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: [
       'canceled-invoices',
-      user?.territoryId,
+      effectiveTerritoryId,
       filters.startDate,
       filters.endDate,
       filters.invoiceType,
       defaultDates.startDate,
       defaultDates.endDate,
     ],
-    enabled: Boolean(user?.territoryId),
+    enabled: effectiveTerritoryId > 0,
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 10,
     refetchOnMount: (query) => query.state.data === undefined,
@@ -95,7 +130,7 @@ const CanceledInvoice = () => {
           : (filters.invoiceType as InvoiceTypeParam)
       const payload = {
         invoiceStatus: 'CANCEL',
-        territoryId: user?.territoryId ?? 0,
+        territoryId: effectiveTerritoryId,
         startDate: filters.startDate ?? defaultDates.startDate,
         endDate: filters.endDate ?? defaultDates.endDate,
         invoiceType: invoiceTypeParam,
@@ -335,6 +370,8 @@ const CanceledInvoice = () => {
           initialStartDate={defaultDates.startDate}
           initialEndDate={defaultDates.endDate}
           initialInvoiceType='ALL'
+          initialTerritoryId={isAreaRole ? undefined : filters.territoryId}
+          territoryOptions={isAreaRole ? territoryOptions : undefined}
           onApply={(next) => {
             setFilters(next)
           }}
@@ -343,6 +380,11 @@ const CanceledInvoice = () => {
               startDate: defaultDates.startDate,
               endDate: defaultDates.endDate,
               invoiceType: 'ALL',
+              territoryId: isAreaRole
+                ? undefined
+                : baseTerritoryId > 0
+                  ? baseTerritoryId
+                  : undefined,
             }
             setFilters(defaults)
           }}
@@ -395,7 +437,7 @@ const CanceledInvoice = () => {
                     queryClient.invalidateQueries({
                       queryKey: [
                         'canceled-invoices',
-                        user?.territoryId,
+                        effectiveTerritoryId,
                         filters.startDate,
                         filters.endDate,
                         filters.invoiceType,

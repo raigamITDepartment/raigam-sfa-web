@@ -27,6 +27,7 @@ export type BookingInvoiceFilters = {
   startDate?: string
   endDate?: string
   invoiceType: InvoiceType
+  territoryId?: number
 }
 
 export type BookingInvoiceDetailDTO = {
@@ -97,6 +98,7 @@ export type BookingInvoiceReportItem = {
   isBook: boolean
   isActual: boolean
   isLateDelivery: boolean
+  isReverseReqRep?: boolean | null
   invActualBy: number
   invReversedBy: number
   invUpdatedBy: number

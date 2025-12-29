@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import { ensureRoleAccess, RoleId } from '@/lib/authz'
+import { ensureRoleAccess, RoleId, SubRoleId } from '@/lib/authz'
 import ActualInvoice from '@/components/agency-module/actual-invoice'
 import BookingInvoice from '@/components/agency-module/booking-invoice'
 import CanceledInvoice from '@/components/agency-module/canceled-invoice'
@@ -100,6 +100,11 @@ export const Route = createFileRoute(
   '/_authenticated/agency-module/invoice/view-invoice'
 )({
   beforeLoad: () =>
-    ensureRoleAccess([RoleId.SystemAdmin, RoleId.OperationSales]),
+    ensureRoleAccess([
+      RoleId.SystemAdmin,
+      RoleId.OperationSales,
+      SubRoleId.AreaSalesManager,
+      SubRoleId.AreaSalesExecutive,
+    ]),
   component: ViewInvoicePage,
 })

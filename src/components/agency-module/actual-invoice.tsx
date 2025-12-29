@@ -18,9 +18,11 @@ import type {
   BookingInvoiceReportItem,
   InvoiceTypeParam,
 } from '@/types/invoice'
-import { Eye, RotateCcw } from 'lucide-react'
+import { toast } from 'sonner'
+import { Check, Eye, RotateCcw } from 'lucide-react'
 import { formatPrice } from '@/lib/format-price'
 import { cn } from '@/lib/utils'
+import { SubRoleId } from '@/lib/authz'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -29,6 +31,17 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { Textarea } from '@/components/ui/textarea'
+import {
+  approveInvoiceReverseASM,
+  reverseApprovalOfActualInvoice,
+} from '@/services/sales/invoice/invoiceApi'
+import {
+  sendReverseApprovalNotification,
+  sendReverseCompletedNotification,
+  sendReverseRequestNotification,
+} from '@/services/notifications'
+import { getTerritoriesByAreaId } from '@/services/userDemarcation/endpoints'
 import FullWidthDialog from '@/components/FullWidthDialog'
 import InvoiceNumber from '@/components/InvoiceNumber'
 import { createCombinedInvoicesPdf } from '@/components/agency-module/InvoicePdfButton'
@@ -50,6 +63,7 @@ const formatDate = (value?: string) => {
 }
 
 const deriveStatus = (row: BookingInvoiceReportItem) => {
+  if (row.isReverseReqRep) return 'Reverse Pending'
   if (row.isReversed) return 'Reversed'
   if (row.isLateDelivery) return 'Late Delivery'
   if (row.isActual) return 'Actual'
@@ -61,6 +75,17 @@ const ActualInvoice = () => {
   const user = useAppSelector((s) => s.auth.user)
   const queryClient = useQueryClient()
   const toIso = (d: Date) => d.toISOString().slice(0, 10)
+  const baseTerritoryId = Number(
+    user?.territoryId ?? user?.agencyTerritoryId ?? 0
+  )
+  const roleId = Number(user?.subRoleId ?? user?.roleId)
+  const isAgent = roleId === SubRoleId.Agent
+  const isRep = roleId === SubRoleId.Representative
+  const isAreaRole =
+    roleId === SubRoleId.AreaSalesManager ||
+    roleId === SubRoleId.AreaSalesExecutive
+  const isAsm = roleId === SubRoleId.AreaSalesManager
+  const isAse = roleId === SubRoleId.AreaSalesExecutive
   const defaultDates = useMemo(() => {
     const today = new Date()
     const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
@@ -69,11 +94,15 @@ const ActualInvoice = () => {
       endDate: toIso(today),
     }
   }, [])
-
   const [filters, setFilters] = useState<BookingInvoiceFilters>({
     startDate: defaultDates.startDate,
     endDate: defaultDates.endDate,
     invoiceType: 'ALL',
+    territoryId: isAreaRole
+      ? undefined
+      : baseTerritoryId > 0
+        ? baseTerritoryId
+        : undefined,
   })
   const [rowSelection, setRowSelection] = useState({})
   const [invoicePreviewOpen, setInvoicePreviewOpen] = useState(false)
@@ -89,18 +118,49 @@ const ActualInvoice = () => {
   const [isDetailLoading, setIsDetailLoading] = useState(false)
   const [pendingReverseInvoice, setPendingReverseInvoice] =
     useState<BookingInvoiceReportItem | null>(null)
+  const [isReverseSubmitting, setIsReverseSubmitting] = useState(false)
+  const [pendingApproveInvoice, setPendingApproveInvoice] =
+    useState<BookingInvoiceReportItem | null>(null)
+  const [isApproveSubmitting, setIsApproveSubmitting] = useState(false)
+  const [approveActor, setApproveActor] = useState<'agent' | 'asm' | 'ase'>(
+    'agent'
+  )
+  const [asmRemark, setAsmRemark] = useState('')
+
+  const areaId = user?.areaIds?.[0]
+  const { data: territoryList } = useQuery({
+    queryKey: ['territories-by-area', areaId],
+    enabled: isAreaRole && Boolean(areaId),
+    queryFn: () => getTerritoriesByAreaId(areaId as number),
+  })
+  const territoryOptions = useMemo(() => {
+    const list = Array.isArray(territoryList)
+      ? territoryList
+      : territoryList?.payload
+    const safeList = Array.isArray(list) ? list : []
+    return safeList.map((territory) => ({
+      value: Number(territory.id),
+      label:
+        territory.territoryName ??
+        territory.name ??
+        String(territory.id),
+    }))
+  }, [territoryList])
+  const effectiveTerritoryId = Number(
+    filters.territoryId ?? baseTerritoryId
+  )
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: [
       'actual-invoices',
-      user?.territoryId,
+      effectiveTerritoryId,
       filters.startDate,
       filters.endDate,
       filters.invoiceType,
       defaultDates.startDate,
       defaultDates.endDate,
     ],
-    enabled: Boolean(user?.territoryId),
+    enabled: effectiveTerritoryId > 0,
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 10,
     refetchOnMount: (query) => query.state.data === undefined,
@@ -110,13 +170,13 @@ const ActualInvoice = () => {
         filters.invoiceType === 'ALL'
           ? ''
           : (filters.invoiceType as InvoiceTypeParam)
-      const payload = {
-        invoiceStatus: 'ACTUAL',
-        territoryId: user?.territoryId ?? 0,
-        startDate: filters.startDate ?? defaultDates.startDate,
-        endDate: filters.endDate ?? defaultDates.endDate,
-        invoiceType: invoiceTypeParam,
-      }
+        const payload = {
+          invoiceStatus: 'ACTUAL',
+          territoryId: effectiveTerritoryId,
+          startDate: filters.startDate ?? defaultDates.startDate,
+          endDate: filters.endDate ?? defaultDates.endDate,
+          invoiceType: invoiceTypeParam,
+        }
       return getInvoiceDetailsByStatus(payload)
     },
   })
@@ -272,6 +332,8 @@ const ActualInvoice = () => {
                     status === 'Actual',
                   'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200':
                     status === 'Late Delivery',
+                  'bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-200':
+                    status === 'Reverse Pending',
                   'bg-rose-100 text-rose-800 dark:bg-rose-900/50 dark:text-rose-200':
                     status === 'Reversed',
                 })}
@@ -308,29 +370,57 @@ const ActualInvoice = () => {
                 View Invoice Details
               </TooltipContent>
             </Tooltip>
-            <Tooltip delayDuration={100}>
-              <TooltipTrigger asChild>
-                <Button
-                  variant='ghost'
-                  size='icon'
-                  className='size-8'
-                  onClick={() => setPendingReverseInvoice(row.original)}
-                  disabled={isDetailLoading}
-                >
-                  <RotateCcw className='h-4 w-4 text-red-700' />
-                  <span className='sr-only'>Reverse</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side='top' align='center'>
-                Reverse this invoice
-              </TooltipContent>
-            </Tooltip>
+            {isAgent || isAsm || isAse ? (
+              row.original.isReverseReqRep && !row.original.isReversed ? (
+                <Tooltip delayDuration={100}>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant='ghost'
+                      size='icon'
+                      className='size-8'
+                      onClick={() => {
+                        setPendingApproveInvoice(row.original)
+                        setApproveActor(isAsm ? 'asm' : isAse ? 'ase' : 'agent')
+                        setAsmRemark('')
+                      }}
+                      disabled={isDetailLoading}
+                    >
+                      <Check className='h-4 w-4 text-emerald-700' />
+                      <span className='sr-only'>Approve Reverse</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side='top' align='center'>
+                    Approve reverse request
+                  </TooltipContent>
+                </Tooltip>
+              ) : null
+            ) : isRep &&
+              !row.original.isReverseReqRep &&
+              !row.original.isReversed ? (
+              <Tooltip delayDuration={100}>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant='ghost'
+                    size='icon'
+                    className='size-8'
+                    onClick={() => setPendingReverseInvoice(row.original)}
+                    disabled={isDetailLoading}
+                  >
+                    <RotateCcw className='h-4 w-4 text-red-700' />
+                    <span className='sr-only'>Reverse</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side='top' align='center'>
+                  Reverse this invoice
+                </TooltipContent>
+              </Tooltip>
+            ) : null}
           </div>
         ),
         meta: { thClassName: 'text-center' },
       },
     ],
-    []
+    [isAgent, isDetailLoading, isRep]
   )
 
   const rows = useMemo(
@@ -411,8 +501,8 @@ const ActualInvoice = () => {
               typeof invoice.id === 'number' && Number.isFinite(invoice.id)
                 ? invoice.id
                 : Number(invoice.invoiceNo) || 0
-            const res = await findInvoicePrintExtraDetailsByRequiredArgs({
-              territoryId: invoice.territoryId ?? user?.territoryId ?? 0,
+              const res = await findInvoicePrintExtraDetailsByRequiredArgs({
+              territoryId: invoice.territoryId ?? effectiveTerritoryId,
               routeId: invoice.routeId ?? 0,
               outletId: invoice.outletId ?? 0,
               invoiceId,
@@ -436,7 +526,7 @@ const ActualInvoice = () => {
       }
     }
     loadExtras()
-  }, [printDialogOpen, selectedInvoices, user?.territoryId, user?.userId])
+  }, [printDialogOpen, selectedInvoices, effectiveTerritoryId, user?.userId])
 
   const revokePreviewUrl = () => {
     setPdfPreviewUrl((prev) => {
@@ -596,15 +686,179 @@ const ActualInvoice = () => {
             )
           }
           cancelBtnText='No'
-          confirmText='Yes'
-          handleConfirm={() => {
-            setPendingReverseInvoice(null)
+          confirmText={isReverseSubmitting ? 'Submitting...' : 'Yes'}
+          isLoading={isReverseSubmitting}
+          handleConfirm={async () => {
+            if (!pendingReverseInvoice || !user?.userId) return
+            try {
+              setIsReverseSubmitting(true)
+              const res = await reverseApprovalOfActualInvoice({
+                invoiceId:
+                  pendingReverseInvoice.id ?? pendingReverseInvoice.invoiceNo,
+                userId: user.userId,
+                isRepRequest: true,
+                isAgentRequest: false,
+              })
+              if (pendingReverseInvoice.invActualBy) {
+                await sendReverseRequestNotification({
+                  invoice: pendingReverseInvoice,
+                  senderUserId: user.userId,
+                  recipientUserId: pendingReverseInvoice.invActualBy,
+                  recipientSubRoleId: SubRoleId.Agent,
+                })
+              }
+              toast.success(res?.message ?? 'Reverse request sent')
+              setPendingReverseInvoice(null)
+              refetch()
+            } catch (err) {
+              const message =
+                err instanceof Error
+                  ? err.message
+                  : 'Failed to submit reverse request'
+              setDetailError(message)
+              toast.error(message)
+            } finally {
+              setIsReverseSubmitting(false)
+            }
           }}
         />
+        <ConfirmDialog
+          open={Boolean(pendingApproveInvoice)}
+          onOpenChange={(open) => {
+            if (!open) {
+              setPendingApproveInvoice(null)
+              setAsmRemark('')
+            }
+          }}
+          title={
+            approveActor === 'agent'
+              ? 'Approve Reverse Request'
+              : 'Confirm Reverse Invoice'
+          }
+          desc={
+            pendingApproveInvoice ? (
+              <div className='flex flex-wrap items-center gap-1'>
+                <span>
+                  {approveActor === 'agent'
+                    ? 'Approve reverse for invoice'
+                    : 'Confirm reverse for invoice'}
+                </span>
+                <InvoiceNumber
+                  invoiceId={
+                    pendingApproveInvoice.invoiceNo ??
+                    pendingApproveInvoice.id
+                  }
+                  className='font-semibold text-slate-900 dark:text-slate-50'
+                />
+                <span>?</span>
+              </div>
+            ) : (
+              ''
+            )
+          }
+          cancelBtnText='Cancel'
+          confirmText={
+            isApproveSubmitting
+              ? approveActor === 'agent'
+                ? 'Approving...'
+                : 'Reversing...'
+              : approveActor === 'agent'
+                ? 'Approve'
+                : 'Confirm'
+          }
+          isLoading={isApproveSubmitting}
+          disabled={
+            approveActor !== 'agent' && !asmRemark.trim().length
+          }
+          handleConfirm={async () => {
+            if (!pendingApproveInvoice || !user?.userId) return
+            try {
+              setIsApproveSubmitting(true)
+              const invoiceId =
+                pendingApproveInvoice.id ?? pendingApproveInvoice.invoiceNo
+              const res =
+                approveActor !== 'agent'
+                  ? await approveInvoiceReverseASM(
+                      invoiceId,
+                      user.userId,
+                      asmRemark.trim()
+                    )
+                  : await reverseApprovalOfActualInvoice({
+                      invoiceId,
+                      userId: user.userId,
+                      isRepRequest: true,
+                      isAgentRequest: true,
+                    })
+              if (pendingApproveInvoice.userId) {
+                if (approveActor === 'agent') {
+                  await sendReverseApprovalNotification({
+                    invoice: pendingApproveInvoice,
+                    senderUserId: user.userId,
+                    recipientUserId: pendingApproveInvoice.userId,
+                    recipientSubRoleId: SubRoleId.Representative,
+                    message: 'Agent approved reverse request.',
+                  })
+                } else {
+                  await sendReverseCompletedNotification({
+                    invoice: pendingApproveInvoice,
+                    senderUserId: user.userId,
+                    recipientUserId: pendingApproveInvoice.userId,
+                    recipientSubRoleId: SubRoleId.Representative,
+                  })
+                }
+              }
+              if (approveActor === 'agent') {
+                await sendReverseApprovalNotification({
+                  invoice: pendingApproveInvoice,
+                  senderUserId: user.userId,
+                  recipientSubRoleId: SubRoleId.AreaSalesManager,
+                  message: 'Agent approved reverse request.',
+                })
+                await sendReverseApprovalNotification({
+                  invoice: pendingApproveInvoice,
+                  senderUserId: user.userId,
+                  recipientSubRoleId: SubRoleId.AreaSalesExecutive,
+                  message: 'Agent approved reverse request.',
+                })
+              }
+              toast.success(res?.message ?? 'Reverse request approved')
+              setPendingApproveInvoice(null)
+              setAsmRemark('')
+              refetch()
+            } catch (err) {
+              const message =
+                err instanceof Error
+                  ? err.message
+                  : 'Failed to approve reverse request'
+              setDetailError(message)
+              toast.error(message)
+            } finally {
+              setIsApproveSubmitting(false)
+            }
+          }}
+          className={approveActor === 'agent' ? undefined : 'sm:max-w-md'}
+        >
+          {approveActor !== 'agent' ? (
+            <div className='mt-3'>
+              <label className='text-sm font-medium text-slate-700 dark:text-slate-200'>
+                Reverse reason
+              </label>
+              <Textarea
+                className='mt-2'
+                placeholder='Add reverse reason...'
+                value={asmRemark}
+                onChange={(event) => setAsmRemark(event.target.value)}
+                rows={3}
+              />
+            </div>
+          ) : null}
+        </ConfirmDialog>
         <BookingInvoiceFilter
           initialStartDate={defaultDates.startDate}
           initialEndDate={defaultDates.endDate}
           initialInvoiceType='ALL'
+          initialTerritoryId={isAreaRole ? undefined : filters.territoryId}
+          territoryOptions={isAreaRole ? territoryOptions : undefined}
           onApply={(next) => {
             setFilters(next)
           }}
@@ -613,6 +867,11 @@ const ActualInvoice = () => {
               startDate: defaultDates.startDate,
               endDate: defaultDates.endDate,
               invoiceType: 'ALL',
+              territoryId: isAreaRole
+                ? undefined
+                : baseTerritoryId > 0
+                  ? baseTerritoryId
+                  : undefined,
             }
             setFilters(defaults)
           }}
@@ -669,7 +928,7 @@ const ActualInvoice = () => {
                     queryClient.invalidateQueries({
                       queryKey: [
                         'actual-invoices',
-                        user?.territoryId,
+                        effectiveTerritoryId,
                         filters.startDate,
                         filters.endDate,
                         filters.invoiceType,

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { BookingInvoiceFilters, InvoiceType } from '@/types/invoice'
 import { CalendarIcon } from 'lucide-react'
 import type { DateRange } from 'react-day-picker'
@@ -22,6 +22,8 @@ type FilterProps = {
   initialStartDate?: string
   initialEndDate?: string
   initialInvoiceType?: InvoiceType
+  initialTerritoryId?: number
+  territoryOptions?: Array<{ label: string; value: number }>
   onApply?: (filters: BookingInvoiceFilters) => void
   onReset?: () => void
 }
@@ -41,6 +43,8 @@ export default function BookingInvoiceFilter({
   initialStartDate,
   initialEndDate,
   initialInvoiceType = 'ALL',
+  initialTerritoryId,
+  territoryOptions,
   onApply,
   onReset,
 }: FilterProps) {
@@ -50,6 +54,13 @@ export default function BookingInvoiceFilter({
   })
   const [invoiceType, setInvoiceType] =
     useState<InvoiceType>(initialInvoiceType)
+  const [territoryId, setTerritoryId] = useState<number | undefined>(
+    initialTerritoryId
+  )
+
+  useEffect(() => {
+    setTerritoryId(initialTerritoryId)
+  }, [initialTerritoryId])
 
   const hasChanges = useMemo(() => {
     const initialRange: DateRange | undefined =
@@ -59,7 +70,8 @@ export default function BookingInvoiceFilter({
     return (
       toIsoDate(range?.from) !== toIsoDate(initialRange?.from) ||
       toIsoDate(range?.to) !== toIsoDate(initialRange?.to) ||
-      invoiceType !== initialInvoiceType
+      invoiceType !== initialInvoiceType ||
+      territoryId !== initialTerritoryId
     )
   }, [
     range?.from,
@@ -68,6 +80,8 @@ export default function BookingInvoiceFilter({
     initialStartDate,
     initialEndDate,
     initialInvoiceType,
+    territoryId,
+    initialTerritoryId,
   ])
 
   const handleApply = () => {
@@ -75,17 +89,20 @@ export default function BookingInvoiceFilter({
       startDate: toIsoDate(range?.from),
       endDate: toIsoDate(range?.to),
       invoiceType,
+      territoryId,
     })
   }
 
   const handleReset = () => {
     setRange(undefined)
     setInvoiceType('ALL')
+    setTerritoryId(undefined)
     onReset?.()
     onApply?.({
       startDate: undefined,
       endDate: undefined,
       invoiceType: 'ALL',
+      territoryId: undefined,
     })
   }
 
@@ -150,6 +167,34 @@ export default function BookingInvoiceFilter({
           </SelectContent>
         </Select>
       </div>
+      {territoryOptions?.length ? (
+        <div className='flex min-w-[220px] flex-col gap-2'>
+          <Label className='text-xs font-semibold text-slate-600 uppercase dark:text-slate-300'>
+            Territory
+          </Label>
+          <Select
+            value={territoryId ? String(territoryId) : ''}
+            onValueChange={(value) => {
+              const parsed = Number(value)
+              setTerritoryId(Number.isNaN(parsed) ? undefined : parsed)
+            }}
+          >
+            <SelectTrigger className='w-[240px]'>
+              <SelectValue placeholder='Select territory' />
+            </SelectTrigger>
+            <SelectContent>
+              {territoryOptions.map((territory) => (
+                <SelectItem
+                  key={territory.value}
+                  value={String(territory.value)}
+                >
+                  {territory.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      ) : null}
       <div className='flex items-center gap-2'>
         <Button onClick={handleApply}>Apply Filters</Button>
         <Button variant='outline' onClick={handleReset} disabled={!hasChanges}>

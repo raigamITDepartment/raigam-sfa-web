@@ -34,6 +34,9 @@ export type LoginResponsePayload = {
   personalName: string
   gpsStatus: boolean
   serverTime: string
+  firebaseCustomToken?: string
+  firebaseToken?: string
+  customToken?: string
 }
 
 export type LoginResponse = ApiResponse<LoginResponsePayload>

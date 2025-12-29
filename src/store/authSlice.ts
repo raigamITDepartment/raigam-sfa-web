@@ -1,6 +1,8 @@
 import type { LoginRequest } from '@/services/authApi'
 import type { LoginResponsePayload } from '@/types/auth'
 import * as authApi from '@/services/authApi'
+import { getFirebaseAuth } from '@/services/firebase'
+import { signInWithCustomToken, signInWithEmailAndPassword, signOut } from 'firebase/auth'
 import {
   setAccessToken,
   setRefreshToken,
@@ -71,6 +73,38 @@ export const loginThunk = createAsyncThunk(
     setRefreshToken(p.refreshToken, p.refreshTokenExpiry, !payload.remember)
     const user: AuthUser = p
     setStoredUser(user)
+    const firebaseToken =
+      p.firebaseCustomToken ?? p.firebaseToken ?? p.customToken
+    if (firebaseToken) {
+      await signInWithCustomToken(getFirebaseAuth(), firebaseToken)
+    } else {
+      const auth = getFirebaseAuth()
+      const fixedEmail = import.meta.env.VITE_FIREBASE_LOGIN_EMAIL
+      const fixedPassword = import.meta.env.VITE_FIREBASE_LOGIN_PASSWORD
+      const fallbackDomain = import.meta.env.VITE_FIREBASE_LOGIN_DOMAIN
+      const email =
+        fixedEmail ||
+        (payload.userName.includes('@')
+          ? payload.userName
+          : fallbackDomain
+            ? `${payload.userName}@${fallbackDomain}`
+            : null)
+      if (email) {
+        try {
+          await signInWithEmailAndPassword(
+            auth,
+            email,
+            fixedPassword ?? payload.password
+          )
+        } catch (err) {
+          console.warn('Firebase email/password sign-in failed', err)
+        }
+      } else {
+        console.warn(
+          'Firebase sign-in skipped: no custom token and username is not an email.'
+        )
+      }
+    }
     return { user }
   }
 )
@@ -124,6 +158,7 @@ const authSlice = createSlice({
       clearAllTokens()
       clearRememberPreference()
       clearStoredUser()
+      void signOut(getFirebaseAuth())
       state.user = null
       state.status = 'idle'
       state.effectivePermissions = []

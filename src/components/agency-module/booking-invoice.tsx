@@ -13,6 +13,7 @@ import {
   getAllAvailableBookingInvoices,
 } from '@/services/reports/invoiceReports'
 import {
+  cancelInvoiceWithRemark,
   updateBookingInvoiceToActual,
   updateBookingInvoiceToLateDelivery,
 } from '@/services/sales/invoice/invoiceApi'
@@ -26,6 +27,7 @@ import { Pencil, Printer } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatPrice } from '@/lib/format-price'
 import { cn } from '@/lib/utils'
+import { SubRoleId } from '@/lib/authz'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -47,8 +49,10 @@ import BookingInvoiceFilter, {
 } from '@/components/agency-module/filter'
 import { CommonDialog } from '@/components/common-dialog'
 import { ConfirmDialog } from '@/components/confirm-dialog'
+import { Textarea } from '@/components/ui/textarea'
 import { DataTableColumnHeader } from '@/components/data-table'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { getTerritoriesByAreaId } from '@/services/userDemarcation/endpoints'
 
 const formatDate = (value?: string) => {
   if (!value || value === '0001-01-01') return '-'
@@ -71,6 +75,13 @@ const BookingInvoice = () => {
   const dispatch = useAppDispatch()
   const queryClient = useQueryClient()
   const toIso = (d: Date) => d.toISOString().slice(0, 10)
+  const baseTerritoryId = Number(
+    user?.territoryId ?? user?.agencyTerritoryId ?? 0
+  )
+  const roleId = Number(user?.subRoleId ?? user?.roleId)
+  const isAreaRole =
+    roleId === SubRoleId.AreaSalesManager ||
+    roleId === SubRoleId.AreaSalesExecutive
   const defaultDates = useMemo(() => {
     const today = new Date()
     const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
@@ -79,15 +90,26 @@ const BookingInvoice = () => {
       endDate: toIso(today),
     }
   }, [])
-
   const [filters, setFilters] = useState<BookingInvoiceFilters>(() => {
-    return (
-      savedFilters ?? {
-        startDate: defaultDates.startDate,
-        endDate: defaultDates.endDate,
-        invoiceType: 'ALL',
+    if (savedFilters) {
+      return {
+        ...savedFilters,
+        territoryId: isAreaRole
+          ? savedFilters.territoryId
+          : savedFilters.territoryId ??
+              (baseTerritoryId > 0 ? baseTerritoryId : undefined),
       }
-    )
+    }
+    return {
+      startDate: defaultDates.startDate,
+      endDate: defaultDates.endDate,
+      invoiceType: 'ALL',
+      territoryId: isAreaRole
+        ? undefined
+        : baseTerritoryId > 0
+          ? baseTerritoryId
+          : undefined,
+    }
   })
   const [rowSelection, setRowSelection] = useState({})
   const [invoicePreviewOpen, setInvoicePreviewOpen] = useState(false)
@@ -101,10 +123,33 @@ const BookingInvoice = () => {
   const [previewError, setPreviewError] = useState<string | null>(null)
   const [pendingBulkStatus, setPendingBulkStatus] = useState<{
     invoices: BookingInvoiceReportItem[]
-    nextStatus: 'ACTUAL' | 'LATE_DELIVERY'
+    nextStatus: 'ACTUAL' | 'LATE_DELIVERY' | 'CANCEL'
   } | null>(null)
   const [isBulkStatusUpdating, setIsBulkStatusUpdating] = useState(false)
   const [statusSelectResetCounter, setStatusSelectResetCounter] = useState(0)
+  const [cancelRemark, setCancelRemark] = useState('')
+  const areaId = user?.areaIds?.[0]
+  const { data: territoryList } = useQuery({
+    queryKey: ['territories-by-area', areaId],
+    enabled: isAreaRole && Boolean(areaId),
+    queryFn: () => getTerritoriesByAreaId(areaId as number),
+  })
+  const territoryOptions = useMemo(() => {
+    const list = Array.isArray(territoryList)
+      ? territoryList
+      : territoryList?.payload
+    const safeList = Array.isArray(list) ? list : []
+    return safeList.map((territory) => ({
+      value: Number(territory.id),
+      label:
+        territory.territoryName ??
+        territory.name ??
+        String(territory.id),
+    }))
+  }, [territoryList])
+  const effectiveTerritoryId = Number(
+    filters.territoryId ?? baseTerritoryId
+  )
 
   const invalidateRelatedTabs = useCallback(
     async (status: 'ACTUAL' | 'LATE_DELIVERY') => {
@@ -119,14 +164,14 @@ const BookingInvoice = () => {
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: [
       'booking-invoices',
-      user?.territoryId,
+      effectiveTerritoryId,
       filters.startDate,
       filters.endDate,
       filters.invoiceType,
       defaultDates.startDate,
       defaultDates.endDate,
     ],
-    enabled: Boolean(user?.territoryId),
+    enabled: effectiveTerritoryId > 0,
     staleTime: 1000 * 60 * 5, // cache for 5 minutes to avoid unnecessary reloads
     gcTime: 1000 * 60 * 10, // retain data for 10 minutes between navigations
     refetchOnMount: (query) => query.state.data === undefined,
@@ -137,7 +182,7 @@ const BookingInvoice = () => {
           ? ''
           : (filters.invoiceType as InvoiceTypeParam)
       const payload = {
-        territoryId: user?.territoryId ?? 0,
+        territoryId: effectiveTerritoryId,
         startDate: filters.startDate ?? defaultDates.startDate,
         endDate: filters.endDate ?? defaultDates.endDate,
         invoiceType: invoiceTypeParam,
@@ -149,7 +194,8 @@ const BookingInvoice = () => {
   const handleBulkStatusChange = useCallback(
     async (
       invoices: BookingInvoiceReportItem[],
-      nextStatus: 'ACTUAL' | 'LATE_DELIVERY'
+      nextStatus: 'ACTUAL' | 'LATE_DELIVERY' | 'CANCEL',
+      remark?: string
     ) => {
       if (!invoices.length) {
         toast.error('Select at least one invoice to update')
@@ -160,11 +206,12 @@ const BookingInvoice = () => {
         toast.error('Unable to update invoices without user context')
         return
       }
-      const fn =
+      const label =
         nextStatus === 'ACTUAL'
-          ? updateBookingInvoiceToActual
-          : updateBookingInvoiceToLateDelivery
-      const label = nextStatus === 'ACTUAL' ? 'Actual' : 'Late Delivery'
+          ? 'Actual'
+          : nextStatus === 'LATE_DELIVERY'
+            ? 'Late Delivery'
+            : 'Canceled'
       let successCount = 0
       let failureCount = 0
       for (const invoice of invoices) {
@@ -180,7 +227,17 @@ const BookingInvoice = () => {
           continue
         }
         try {
-          await fn(invoiceId, userId)
+          if (nextStatus === 'CANCEL') {
+            await cancelInvoiceWithRemark(
+              invoiceId,
+              userId,
+              remark ?? ''
+            )
+          } else if (nextStatus === 'ACTUAL') {
+            await updateBookingInvoiceToActual(invoiceId, userId)
+          } else {
+            await updateBookingInvoiceToLateDelivery(invoiceId, userId)
+          }
           successCount += 1
         } catch (err) {
           failureCount += 1
@@ -200,13 +257,19 @@ const BookingInvoice = () => {
             : `${successCount} invoices updated to ${label}.`
         toast.success(summary)
         await refetch()
-        await invalidateRelatedTabs(nextStatus)
+        if (nextStatus === 'ACTUAL' || nextStatus === 'LATE_DELIVERY') {
+          await invalidateRelatedTabs(nextStatus)
+        } else {
+          await queryClient.invalidateQueries({
+            queryKey: ['canceled-invoices'],
+          })
+        }
       }
       if (!successCount && failureCount) {
         toast.error('Failed to update the selected invoices.')
       }
     },
-    [invalidateRelatedTabs, refetch, user?.userId]
+    [invalidateRelatedTabs, refetch, user?.userId, queryClient]
   )
 
   const columns = useMemo<ColumnDef<BookingInvoiceReportItem>[]>(
@@ -440,9 +503,7 @@ const BookingInvoice = () => {
     })
   }, [rowSelection, rows])
   const isPrintDisabled = selectedInvoices.length === 0
-  const hasEligibleStatusChange = selectedInvoices.some(
-    (invoice) => deriveStatus(invoice) === 'Booked'
-  )
+  const hasEligibleStatusChange = selectedInvoices.length > 0
 
   const handlePrintSelected = useCallback(() => {
     setPrintDialogOpen(true)
@@ -465,7 +526,7 @@ const BookingInvoice = () => {
         key={`bulk-status-${statusSelectResetCounter}`}
         disabled={!hasEligibleStatusChange || isBulkStatusUpdating}
         onValueChange={(value) => {
-          if (value === 'actual' || value === 'late') {
+          if (value === 'actual' || value === 'late' || value === 'cancel') {
             triggerBulkStatusChange(value)
           }
         }}
@@ -479,6 +540,7 @@ const BookingInvoice = () => {
         <SelectContent>
           <SelectItem value='actual'>Actual</SelectItem>
           <SelectItem value='late'>Late Delivery</SelectItem>
+          <SelectItem value='cancel'>Cancel</SelectItem>
         </SelectContent>
       </Select>
     </div>
@@ -496,7 +558,7 @@ const BookingInvoice = () => {
                 ? invoice.id
                 : Number(invoice.invoiceNo) || 0
             const res = await findInvoicePrintExtraDetailsByRequiredArgs({
-              territoryId: invoice.territoryId ?? user?.territoryId ?? 0,
+              territoryId: invoice.territoryId ?? effectiveTerritoryId,
               routeId: invoice.routeId ?? 0,
               outletId: invoice.outletId ?? 0,
               invoiceId,
@@ -520,7 +582,7 @@ const BookingInvoice = () => {
       }
     }
     loadExtras()
-  }, [printDialogOpen, selectedInvoices, user?.territoryId, user?.userId])
+  }, [printDialogOpen, selectedInvoices, effectiveTerritoryId, user?.userId])
 
   const revokePreviewUrl = () => {
     setPdfPreviewUrl((prev) => {
@@ -538,25 +600,25 @@ const BookingInvoice = () => {
   )
 
   const triggerBulkStatusChange = useCallback(
-    (value: 'actual' | 'late') => {
+    (value: 'actual' | 'late' | 'cancel') => {
       const selected = getFreshSelected()
       if (!selected.length) {
         toast.error('Select at least one invoice to update')
         setStatusSelectResetCounter((prev) => prev + 1)
         return
       }
-      const eligible = selected.filter(
-        (invoice) => deriveStatus(invoice) === 'Booked'
-      )
-      if (!eligible.length) {
-        toast.error('Only booked invoices can change status')
-        setStatusSelectResetCounter((prev) => prev + 1)
-        return
-      }
       setPendingBulkStatus({
-        invoices: eligible,
-        nextStatus: value === 'actual' ? 'ACTUAL' : 'LATE_DELIVERY',
+        invoices: selected,
+        nextStatus:
+          value === 'actual'
+            ? 'ACTUAL'
+            : value === 'late'
+              ? 'LATE_DELIVERY'
+              : 'CANCEL',
       })
+      if (value === 'cancel') {
+        setCancelRemark('')
+      }
       setStatusSelectResetCounter((prev) => prev + 1)
     },
     [getFreshSelected]
@@ -669,6 +731,7 @@ const BookingInvoice = () => {
           onOpenChange={(open) => {
             if (!open) {
               setPendingBulkStatus(null)
+              setCancelRemark('')
             }
           }}
           title='Confirm Status Update'
@@ -684,7 +747,9 @@ const BookingInvoice = () => {
                   as{' '}
                   {pendingBulkStatus.nextStatus === 'ACTUAL'
                     ? 'Actual'
-                    : 'Late Delivery'}
+                    : pendingBulkStatus.nextStatus === 'LATE_DELIVERY'
+                      ? 'Late Delivery'
+                      : 'Canceled'}
                   ?
                 </span>
               </div>
@@ -694,25 +759,48 @@ const BookingInvoice = () => {
           }
           cancelBtnText='No'
           confirmText='Yes'
+          disabled={
+            pendingBulkStatus?.nextStatus === 'CANCEL' &&
+            !cancelRemark.trim().length
+          }
           handleConfirm={async () => {
             if (!pendingBulkStatus) return
             setIsBulkStatusUpdating(true)
             try {
               await handleBulkStatusChange(
                 pendingBulkStatus.invoices,
-                pendingBulkStatus.nextStatus
+                pendingBulkStatus.nextStatus,
+                cancelRemark.trim()
               )
             } finally {
               setIsBulkStatusUpdating(false)
               setPendingBulkStatus(null)
+              setCancelRemark('')
             }
           }}
           isLoading={isBulkStatusUpdating}
-        />
+        >
+          {pendingBulkStatus?.nextStatus === 'CANCEL' ? (
+            <div className='mt-3'>
+              <label className='text-sm font-medium text-slate-700 dark:text-slate-200'>
+                Why cancel this invoice?
+              </label>
+              <Textarea
+                className='mt-2'
+                placeholder='Add cancel reason...'
+                value={cancelRemark}
+                onChange={(event) => setCancelRemark(event.target.value)}
+                rows={3}
+              />
+            </div>
+          ) : null}
+        </ConfirmDialog>
         <BookingInvoiceFilter
           initialStartDate={defaultDates.startDate}
           initialEndDate={defaultDates.endDate}
           initialInvoiceType='ALL'
+          initialTerritoryId={isAreaRole ? undefined : filters.territoryId}
+          territoryOptions={isAreaRole ? territoryOptions : undefined}
           onApply={(next) => {
             setFilters(next)
             dispatch(setStoredFilters(next))
@@ -722,6 +810,11 @@ const BookingInvoice = () => {
               startDate: defaultDates.startDate,
               endDate: defaultDates.endDate,
               invoiceType: 'ALL',
+              territoryId: isAreaRole
+                ? undefined
+                : baseTerritoryId > 0
+                  ? baseTerritoryId
+                  : undefined,
             }
             setFilters(defaults)
             dispatch(setStoredFilters(defaults))
@@ -760,15 +853,15 @@ const BookingInvoice = () => {
                 invoice={selectedInvoiceFresh}
                 items={selectedInvoiceFresh.invoiceDetailDTOList ?? []}
                 onUpdated={() => {
-                  queryClient.invalidateQueries({
-                    queryKey: [
-                      'booking-invoices',
-                      user?.territoryId,
-                      filters.startDate,
-                      filters.endDate,
-                      filters.invoiceType,
-                      defaultDates.startDate,
-                      defaultDates.endDate,
+                    queryClient.invalidateQueries({
+                      queryKey: [
+                        'booking-invoices',
+                        effectiveTerritoryId,
+                        filters.startDate,
+                        filters.endDate,
+                        filters.invoiceType,
+                        defaultDates.startDate,
+                        defaultDates.endDate,
                     ],
                   })
                   setInvoicePreviewOpen(false)

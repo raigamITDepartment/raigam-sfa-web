@@ -40,19 +40,22 @@ export function NavGroup({ title, items }: NavGroupProps) {
   const { state, isMobile } = useSidebar()
   const href = useLocation({ select: (location) => location.href })
   const roleId = useSelector((s: RootState) => s.auth.user?.roleId)
+  const subRoleId = useSelector((s: RootState) => s.auth.user?.subRoleId)
 
   // Filter items by role using centralized rules
   const visibleItems = useMemo(() => {
     return items
       .map((it) => {
         if (it.items) {
-          const sub = it.items.filter((s) => isPathAllowedForRole(s.url, roleId))
+          const sub = it.items.filter((s) =>
+            isPathAllowedForRole(s.url, roleId, subRoleId)
+          )
           return sub.length ? { ...it, items: sub } : null
         }
-        return isPathAllowedForRole(it.url, roleId) ? it : null
+        return isPathAllowedForRole(it.url, roleId, subRoleId) ? it : null
       })
       .filter(Boolean) as typeof items
-  }, [items, roleId])
+  }, [items, roleId, subRoleId])
 
   // Single-open accordion behavior within a group
   const initialOpenKey = useMemo(() => {

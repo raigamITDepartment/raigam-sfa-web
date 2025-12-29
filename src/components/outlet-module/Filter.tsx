@@ -30,16 +30,22 @@ type OutletFilterProps = {
   onReset?: () => void
 }
 
+const ALL_FILTER_VALUE = 'all'
+
 export function OutletFilter({
   initialValues,
   onApply,
   onReset,
 }: OutletFilterProps) {
-  const [area, setArea] = useState<string | undefined>(initialValues?.areaId)
-  const [territory, setTerritory] = useState<string | undefined>(
-    initialValues?.territoryId
+  const [area, setArea] = useState<string | undefined>(
+    initialValues?.areaId ?? ALL_FILTER_VALUE
   )
-  const [route, setRoute] = useState<string | undefined>(initialValues?.routeId)
+  const [territory, setTerritory] = useState<string | undefined>(
+    initialValues?.territoryId ?? ALL_FILTER_VALUE
+  )
+  const [route, setRoute] = useState<string | undefined>(
+    initialValues?.routeId ?? ALL_FILTER_VALUE
+  )
 
   const { data: areas = [], isLoading: isAreaLoading } = useQuery({
     queryKey: ['user-demarcation', 'areas'],
@@ -51,7 +57,7 @@ export function OutletFilter({
 
   const { data: territories = [], isLoading: isTerritoryLoading } = useQuery({
     queryKey: ['user-demarcation', 'territories', area],
-    enabled: !!area,
+    enabled: !!area && area !== ALL_FILTER_VALUE,
     queryFn: async () => {
       const res = (await getTerritoriesByAreaId(area!)) as ApiResponse<
         TerritoryDTO[]
@@ -62,7 +68,7 @@ export function OutletFilter({
 
   const { data: routes = [], isLoading: isRouteLoading } = useQuery({
     queryKey: ['user-demarcation', 'routes', territory],
-    enabled: !!territory,
+    enabled: !!territory && territory !== ALL_FILTER_VALUE,
     queryFn: async () => {
       const res = (await getRoutesByTerritoryId(territory!)) as ApiResponse<
         RouteDTO[]
@@ -80,14 +86,14 @@ export function OutletFilter({
   }
 
   const handleReset = () => {
-    setArea(undefined)
-    setTerritory(undefined)
-    setRoute(undefined)
+    setArea(ALL_FILTER_VALUE)
+    setTerritory(ALL_FILTER_VALUE)
+    setRoute(ALL_FILTER_VALUE)
     onReset?.()
     onApply?.({
-      areaId: undefined,
-      territoryId: undefined,
-      routeId: undefined,
+      areaId: ALL_FILTER_VALUE,
+      territoryId: ALL_FILTER_VALUE,
+      routeId: ALL_FILTER_VALUE,
     })
   }
 
@@ -99,14 +105,19 @@ export function OutletFilter({
             value={area}
             onValueChange={(value) => {
               setArea(value)
-              setTerritory(undefined)
-              setRoute(undefined)
+              setTerritory(
+                value === ALL_FILTER_VALUE ? ALL_FILTER_VALUE : undefined
+              )
+              setRoute(
+                value === ALL_FILTER_VALUE ? ALL_FILTER_VALUE : undefined
+              )
             }}
           >
             <SelectTrigger className='h-11 w-full rounded-sm'>
               <SelectValue placeholder='Select Area' />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value={ALL_FILTER_VALUE}>All</SelectItem>
               {isAreaLoading ? (
                 <SelectItem value='loading' disabled>
                   Loading...
@@ -127,14 +138,17 @@ export function OutletFilter({
             value={territory}
             onValueChange={(value) => {
               setTerritory(value)
-              setRoute(undefined)
+              setRoute(
+                value === ALL_FILTER_VALUE ? ALL_FILTER_VALUE : undefined
+              )
             }}
-            disabled={!area}
+            disabled={!area || area === ALL_FILTER_VALUE}
           >
             <SelectTrigger className='h-11 w-full rounded-sm'>
               <SelectValue placeholder='Select Territory' />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value={ALL_FILTER_VALUE}>All</SelectItem>
               {isTerritoryLoading ? (
                 <SelectItem value='loading' disabled>
                   Loading...
@@ -154,12 +168,13 @@ export function OutletFilter({
           <Select
             value={route}
             onValueChange={setRoute}
-            disabled={!territory}
+            disabled={!territory || territory === ALL_FILTER_VALUE}
           >
             <SelectTrigger className='h-11 w-full rounded-sm'>
               <SelectValue placeholder='Select Route' />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value={ALL_FILTER_VALUE}>All</SelectItem>
               {isRouteLoading ? (
                 <SelectItem value='loading' disabled>
                   Loading...

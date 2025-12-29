@@ -16,6 +16,31 @@ export const RoleId = {
   OperationCompany: 12,
 } as const
 
+export const SubRoleId = {
+  Admin: 1,
+  MD: 2,
+  GM: 3,
+  DGM: 4,
+  ChannelHead: 5,
+  SubChannelHead: 6,
+  RegionSalesManager: 7,
+  AreaSalesManager: 8,
+  AreaSalesExecutive: 9,
+  Representative: 10,
+  Agent: 11,
+  TNC: 12,
+  Sales: 13,
+  CCU: 14,
+  Finance: 15,
+  Brand: 16,
+  HR: 17,
+  RMS: 18,
+  Wayaba: 19,
+  InternalAudits: 20,
+  AutoMobile: 21,
+  RnD: 22,
+} as const
+
 export type RoleIdValue = number
 type Permission = string
 
@@ -174,10 +199,14 @@ export const RoleAccess: Record<string, RoleIdValue[]> = {
   '/agency-module/invoice/invoices-summary': [
     RoleId.SystemAdmin,
     RoleId.OperationSales,
+    SubRoleId.AreaSalesManager,
+    SubRoleId.AreaSalesExecutive,
   ],
   '/agency-module/invoice/post-invoice': [
     RoleId.SystemAdmin,
     RoleId.OperationSales,
+    SubRoleId.AreaSalesManager,
+    SubRoleId.AreaSalesExecutive,
   ],
   '/agency-module/invoice/manual-invoice': [
     RoleId.SystemAdmin,
@@ -186,6 +215,8 @@ export const RoleAccess: Record<string, RoleIdValue[]> = {
   '/agency-module/invoice/view-invoice': [
     RoleId.SystemAdmin,
     RoleId.OperationSales,
+    SubRoleId.AreaSalesManager,
+    SubRoleId.AreaSalesExecutive,
   ],
   '/agency-module/loading-list/view-loading-list': [
     RoleId.SystemAdmin,
@@ -244,6 +275,27 @@ export function getEffectiveRoleId(): number | undefined {
   return undefined
 }
 
+export function getEffectiveSubRoleId(): number | undefined {
+  const u = store.getState().auth.user
+  if (u?.subRoleId != null) return u.subRoleId
+
+  try {
+    const raw = localStorage.getItem('auth_user')
+    if (raw) {
+      const parsed = JSON.parse(raw) as { subRoleId?: unknown }
+      const rid = (parsed?.subRoleId as number | string | undefined) ?? undefined
+      if (typeof rid === 'number') return rid
+      if (typeof rid === 'string') {
+        const n = Number(rid)
+        if (!Number.isNaN(n)) return n
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return undefined
+}
+
 function longestMatchingRule(pathname: string): RoleIdValue[] | undefined {
   const keys = Object.keys(RoleAccess)
   // Sort by length desc to find the most specific match first
@@ -258,13 +310,16 @@ function longestMatchingRule(pathname: string): RoleIdValue[] | undefined {
 
 export function isPathAllowedForRole(
   pathname: string | undefined,
-  roleId?: number
+  roleId?: number,
+  subRoleId?: number
 ): boolean {
   if (!pathname) return false
   const allowed = longestMatchingRule(pathname)
   if (!allowed) return true // no rule means allowed
-  if (!roleId) return false
-  return allowed.includes(roleId)
+  if (!roleId && !subRoleId) return false
+  if (roleId && allowed.includes(roleId)) return true
+  if (subRoleId && allowed.includes(subRoleId)) return true
+  return false
 }
 
 // Simple permission flags, reserved for future use
@@ -284,8 +339,12 @@ export async function ensureCan(
 export async function ensureRoleAccess(allowed: RoleIdValue[]): Promise<void> {
   if (!allowed || allowed.length === 0) return
   const roleId = getEffectiveRoleId()
+  const subRoleId = getEffectiveSubRoleId()
+  const hasRole =
+    (roleId != null && allowed.includes(roleId)) ||
+    (subRoleId != null && allowed.includes(subRoleId))
 
-  if (!roleId || !allowed.includes(roleId)) {
+  if (!hasRole) {
     throw redirect({ to: '/errors/unauthorized', replace: true })
   }
 }

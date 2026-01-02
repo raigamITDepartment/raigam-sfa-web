@@ -200,10 +200,6 @@ export const sidebarData: SidebarData = {
           icon: UserRoundCog,
           items: [
             {
-              title: 'Reverse Requests',
-              url: '/admin-module/operation/reverse-requests',
-            },
-            {
               title: 'Manual Bill Quota',
               url: '/admin-module/operation/manual-bill-quota',
             },

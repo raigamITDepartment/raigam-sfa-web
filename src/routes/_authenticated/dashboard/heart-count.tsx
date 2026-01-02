@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { ComingSoon } from '@/components/coming-soon'
 import { Main } from '@/components/layout/main'
 import { PageHeader } from '@/components/layout/page-header'
 
@@ -13,7 +14,7 @@ export const Route = createFileRoute('/_authenticated/dashboard/heart-count')({
           { label: 'Heart Count' },
         ]}
       />
-      <div>Heart Count</div>
+      <ComingSoon />
     </Main>
   ),
 })

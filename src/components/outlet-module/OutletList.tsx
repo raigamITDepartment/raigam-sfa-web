@@ -51,6 +51,8 @@ type OutletRecord = {
   agencyCode?: number | string
   routeCode?: number | string
   shopCode?: number | string
+  channelName?: string
+  areaName?: string
   routeName?: string
   range?: string
   rangeName?: string
@@ -130,6 +132,17 @@ const normalizeBool = (value: unknown) => {
   return Boolean(value)
 }
 
+const buildFacetOptions = (values: (string | undefined | null)[]) => {
+  const normalized = values
+    .map((value) => (typeof value === 'string' ? value.trim() : ''))
+    .filter((value): value is string => value !== '')
+
+  return Array.from(new Set(normalized)).map((value) => ({
+    label: value,
+    value,
+  }))
+}
+
 const parseCreatedDate = (value: unknown) => {
   if (!value) return undefined
   if (value instanceof Date) return isValid(value) ? value : undefined
@@ -190,6 +203,9 @@ export const OutletList = () => {
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 })
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
     uniqueCode: false,
+    channelName: false,
+    areaName: false,
+    route: false,
   })
   const [createdRange, setCreatedRange] = useState<DateRange | undefined>()
   const [pendingRange, setPendingRange] = useState<DateRange | undefined>()
@@ -289,6 +305,33 @@ export const OutletList = () => {
               'category',
             ])
           ),
+      },
+      {
+        id: 'channelName',
+        accessorFn: (row) => row.channelName,
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title='Channel' />
+        ),
+        cell: ({ row }) => (
+          <span className='capitalize'>
+            {formatValue(row.original.channelName)}
+          </span>
+        ),
+      },
+      {
+        id: 'areaName',
+        accessorFn: (row) =>
+          pickFirstValue(row, ['areaName', 'rangeName', 'range']),
+        header: ({ column }) => (
+          <DataTableColumnHeader column={column} title='Area' />
+        ),
+        cell: ({ row }) => (
+          <span className='capitalize'>
+            {formatValue(
+              pickFirstValue(row.original, ['areaName', 'rangeName', 'range'])
+            )}
+          </span>
+        ),
       },
       {
         id: 'route',
@@ -488,6 +531,26 @@ export const OutletList = () => {
     }))
   }, [filteredData])
 
+  const channelFilterOptions = useMemo(
+    () => buildFacetOptions(filteredData.map((row) => row.channelName)),
+    [filteredData]
+  )
+
+  const areaFilterOptions = useMemo(
+    () =>
+      buildFacetOptions(
+        filteredData.map((row) =>
+          pickFirstValue(row, ['areaName', 'rangeName', 'range'])
+        )
+      ),
+    [filteredData]
+  )
+
+  const routeFilterOptions = useMemo(
+    () => buildFacetOptions(filteredData.map((row) => row.routeName)),
+    [filteredData]
+  )
+
   const approvedFilterOptions = useMemo(
     () => [
       { label: 'Yes', value: 'true' },
@@ -636,6 +699,21 @@ export const OutletList = () => {
                   columnId: 'category',
                   title: 'Category',
                   options: categoryFilterOptions,
+                },
+                {
+                  columnId: 'channelName',
+                  title: 'Channel',
+                  options: channelFilterOptions,
+                },
+                {
+                  columnId: 'areaName',
+                  title: 'Area',
+                  options: areaFilterOptions,
+                },
+                {
+                  columnId: 'route',
+                  title: 'Route',
+                  options: routeFilterOptions,
                 },
                 {
                   columnId: 'approved',

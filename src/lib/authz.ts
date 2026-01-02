@@ -192,7 +192,6 @@ export const RoleAccess: Record<string, RoleIdValue[]> = {
 
   // Admin Module
   '/admin-module/user-module/add-modifiy-user': [RoleId.SystemAdmin],
-  '/admin-module/operation/reverse-requests': [RoleId.SystemAdmin],
   '/admin-module/operation/manual-bill-quota': [RoleId.SystemAdmin],
 
   // Agency Module

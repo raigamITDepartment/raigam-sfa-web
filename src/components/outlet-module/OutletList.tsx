@@ -34,7 +34,7 @@ import { EditOutletForm } from '@/components/outlet-module/EditOutletForm'
 import { Calendar } from '@/components/ui/calendar'
 import type { DateRange } from 'react-day-picker'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { getAllOutlets, getAllOutletsByRouteId } from '@/services/userDemarcation/endpoints'
+import { getAllOutletsByChannelId } from '@/services/userDemarcation/endpoints'
 import type { ApiResponse } from '@/types/common'
 import type { Id } from '@/types/common'
 
@@ -43,17 +43,20 @@ type OutletRecord = {
   name?: string
   outletId?: Id
   outletCode?: string
+  outletCategoryId?: Id
   uniqueCode?: string
   outletName?: string
   outletCategory?: string
   outletCategoryName?: string
   category?: string
   agencyCode?: number | string
+  routeId?: Id
   routeCode?: number | string
   shopCode?: number | string
   channelName?: string
   areaName?: string
   routeName?: string
+  rangeId?: Id
   range?: string
   rangeName?: string
   owner?: string
@@ -74,17 +77,15 @@ type OutletRecord = {
   isClose?: boolean
   isNew?: boolean
   displayOrder?: number
+  outletSequence?: number | string
   created?: string
   imagePath?: string | null
 }
 
 const FILTER_STORAGE_KEY = 'outlet-list-filters'
-const ALL_FILTER_VALUE = 'all'
 
 type OutletFilterState = {
-  areaId?: string
-  territoryId?: string
-  routeId?: string
+  channelId?: string
 }
 
 const readStoredFilters = (): OutletFilterState => {
@@ -195,9 +196,8 @@ const formatRangeLabel = (range?: DateRange) => {
 
 export const OutletList = () => {
   const storedFilters = readStoredFilters()
-  const [routeId, setRouteId] = useState<string | undefined>(
-    storedFilters.routeId ?? ALL_FILTER_VALUE
-  )
+  const storedChannelId = storedFilters.channelId?.trim() ?? ''
+  const [channelId, setChannelId] = useState<string>(storedChannelId)
   const [editOutlet, setEditOutlet] = useState<OutletRecord | null>(null)
   const [globalFilter, setGlobalFilter] = useState('')
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 })
@@ -215,19 +215,19 @@ export const OutletList = () => {
     queryKey: [
       'user-demarcation',
       'outlets',
-      routeId === ALL_FILTER_VALUE ? 'all' : 'by-route',
-      routeId,
+      'by-channel',
+      channelId,
     ],
+    enabled: Boolean(channelId),
     queryFn: async () => {
-      const res =
-        routeId === ALL_FILTER_VALUE || !routeId
-          ? ((await getAllOutlets()) as ApiResponse<OutletRecord[]>)
-          : ((await getAllOutletsByRouteId(routeId)) as ApiResponse<
-              OutletRecord[]
-            >)
+      const res = (await getAllOutletsByChannelId(channelId)) as ApiResponse<
+        OutletRecord[]
+      >
       return res.payload ?? []
     },
   })
+
+  const outletRows = channelId ? rows : []
 
   const columns = useMemo<ColumnDef<OutletRecord>[]>(
     () => [
@@ -468,14 +468,14 @@ export const OutletList = () => {
 
   const filteredData = useMemo(() => {
     if (!createdRange?.from) {
-      return rows
+      return outletRows
     }
     if (!createdRange.to) {
       const target = new Date(createdRange.from)
       target.setHours(0, 0, 0, 0)
       const end = new Date(createdRange.from)
       end.setHours(23, 59, 59, 999)
-      return rows.filter((row) => {
+      return outletRows.filter((row) => {
         const created = parseCreatedDate(row.created)
         if (!created) return false
         return created >= target && created <= end
@@ -483,8 +483,8 @@ export const OutletList = () => {
     }
     const from = createdRange.from
     const to = createdRange.to
-    if (!from || !to) return rows
-    return rows.filter((row) => {
+    if (!from || !to) return outletRows
+    return outletRows.filter((row) => {
       const created = parseCreatedDate(row.created)
       if (!created) return false
       const start = new Date(from)
@@ -493,7 +493,7 @@ export const OutletList = () => {
       end.setHours(23, 59, 59, 999)
       return created >= start && created <= end
     })
-  }, [rows, createdRange])
+  }, [outletRows, createdRange])
 
   const table = useReactTable({
     data: filteredData,
@@ -569,7 +569,7 @@ export const OutletList = () => {
   const filteredRows = table.getFilteredRowModel().rows
   const filteredCount = filteredRows.length
   const exportRows = filteredRows.map((row) => row.original)
-  const showFilterAlert = applyError
+  const showFilterAlert = applyError || !channelId
   const exportColumns = useMemo<ExcelExportColumn<OutletRecord>[]>(
     () => [
       {
@@ -630,227 +630,209 @@ export const OutletList = () => {
       <OutletFilter
         initialValues={storedFilters}
         onApply={(filters) => {
-          let areaId = filters.areaId ?? ALL_FILTER_VALUE
-          let territoryId = filters.territoryId ?? ALL_FILTER_VALUE
-          let nextRouteId = filters.routeId ?? ALL_FILTER_VALUE
-          if (areaId === ALL_FILTER_VALUE) {
-            territoryId = ALL_FILTER_VALUE
-            nextRouteId = ALL_FILTER_VALUE
-          }
-          const needsTerritory = areaId !== ALL_FILTER_VALUE
-          const needsRoute =
-            needsTerritory && territoryId !== ALL_FILTER_VALUE
-          if (needsTerritory && territoryId === ALL_FILTER_VALUE) {
-            setApplyError(true)
-            return
-          }
-          if (needsRoute && nextRouteId === ALL_FILTER_VALUE) {
+          const nextChannelId = filters.channelId?.trim() ?? ''
+          if (!nextChannelId) {
             setApplyError(true)
             return
           }
           setApplyError(false)
-          writeStoredFilters({
-            areaId,
-            territoryId,
-            routeId: nextRouteId,
-          })
-          setRouteId(nextRouteId)
+          writeStoredFilters({ channelId: nextChannelId })
+          setChannelId(nextChannelId)
         }}
         onReset={() => {
           setApplyError(false)
-          writeStoredFilters({
-            areaId: ALL_FILTER_VALUE,
-            territoryId: ALL_FILTER_VALUE,
-            routeId: ALL_FILTER_VALUE,
-          })
-          setRouteId(ALL_FILTER_VALUE)
+          writeStoredFilters(null)
+          setChannelId('')
         }}
       />
       {showFilterAlert && (
         <CommonAlert
           variant='warning'
-          title='Select required filters'
-          description='Please select Area, Territory, and Route to view outlets.'
+          title='Select a channel'
+          description='Please select a channel to view outlets.'
         />
       )}
-      <Card>
-        <CardHeader className='flex items-center justify-between gap-2'>
-          <CardTitle className='text-base font-semibold'>
-            Outlet List{' '}
-            <Badge variant='secondary' className='text-xs font-medium uppercase'>
-              {filteredCount}/{rows.length}
-            </Badge>
-          </CardTitle>
-          <ExcelExportButton
-            data={exportRows}
-            columns={exportColumns}
-            fileName='outlet-list'
-            variant='outline'
-            className='h-9 gap-2 rounded-sm border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-          />
-        </CardHeader>
-        <CardContent className='space-y-3'>
-          <div className='flex flex-wrap items-center justify-between gap-3'>
-            <DataTableToolbar
-              table={table}
-              searchPlaceholder='Search outlets...'
-              filters={[
-                {
-                  columnId: 'category',
-                  title: 'Category',
-                  options: categoryFilterOptions,
-                },
-                {
-                  columnId: 'channelName',
-                  title: 'Channel',
-                  options: channelFilterOptions,
-                },
-                {
-                  columnId: 'areaName',
-                  title: 'Area',
-                  options: areaFilterOptions,
-                },
-                {
-                  columnId: 'route',
-                  title: 'Route',
-                  options: routeFilterOptions,
-                },
-                {
-                  columnId: 'approved',
-                  title: 'Approved',
-                  options: approvedFilterOptions,
-                },
-                {
-                  columnId: 'status',
-                  title: 'Status',
-                  options: statusFilterOptions,
-                },
-              ]}
+      {channelId ? (
+        <Card>
+          <CardHeader className='flex items-center justify-between gap-2'>
+            <CardTitle className='text-base font-semibold'>
+              Outlet List{' '}
+              <Badge
+                variant='secondary'
+                className='text-xs font-medium uppercase'
+              >
+                {filteredCount}/{outletRows.length}
+              </Badge>
+            </CardTitle>
+            <ExcelExportButton
+              data={exportRows}
+              columns={exportColumns}
+              fileName='outlet-list'
+              variant='outline'
+              className='h-9 gap-2 rounded-sm border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
             />
-            <div className='flex flex-wrap items-center gap-2'>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant='outline'
-                    className='h-9 min-w-[220px] justify-start'
-                  >
-                    <span className='truncate'>
-                      {formatRangeLabel(createdRange)}
-                    </span>
-                    <CalendarIcon className='ms-auto h-4 w-4 opacity-50' />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className='w-auto p-0' align='end'>
-                  <div className='p-3'>
-                    <Calendar
-                      mode='range'
-                      selected={pendingRange ?? createdRange}
-                      onSelect={(range) => {
-                        setPendingRange(range)
-                      }}
-                      numberOfMonths={2}
-                    />
-                    <div className='mt-3 flex justify-end gap-2'>
-                      <Button
-                        variant='ghost'
-                        size='sm'
-                        onClick={() => setPendingRange(undefined)}
-                      >
-                        Clear
-                      </Button>
-                      <Button
-                        size='sm'
-                        onClick={() => {
-                          if (!pendingRange?.from) return
-                          const nextRange = pendingRange.to
-                            ? pendingRange
-                            : { from: pendingRange.from, to: pendingRange.from }
-                          setCreatedRange(nextRange)
-                          setPendingRange(undefined)
-                        }}
-                      >
-                        Apply
-                      </Button>
-                    </div>
-                  </div>
-                </PopoverContent>
-              </Popover>
-              {(createdRange?.from || createdRange?.to) && (
-                <Button
-                  variant='ghost'
-                  className='h-9 px-3'
-                  onClick={() => {
-                    setCreatedRange(undefined)
-                    setPendingRange(undefined)
-                  }}
-                >
-                  Clear dates
-                </Button>
-              )}
-            </div>
-          </div>
-          <div className='rounded-md border'>
-            <Table className='text-xs'>
-              <TableHeader>
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => (
-                      <TableHead
-                        key={header.id}
-                        className='text-muted-foreground bg-gray-100 px-3 text-xs font-semibold tracking-wide uppercase dark:bg-gray-900'
-                      >
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableLoadingRows columns={columns.length} />
-                ) : isError ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={columns.length}
-                      className='text-destructive h-20 text-center'
+          </CardHeader>
+          <CardContent className='space-y-3'>
+            <div className='flex flex-wrap items-center justify-between gap-3'>
+              <DataTableToolbar
+                table={table}
+                searchPlaceholder='Search outlets...'
+                filters={[
+                  {
+                    columnId: 'category',
+                    title: 'Category',
+                    options: categoryFilterOptions,
+                  },
+                  {
+                    columnId: 'areaName',
+                    title: 'Area',
+                    options: areaFilterOptions,
+                  },
+                  {
+                    columnId: 'route',
+                    title: 'Route',
+                    options: routeFilterOptions,
+                  },
+                  {
+                    columnId: 'approved',
+                    title: 'Approved',
+                    options: approvedFilterOptions,
+                  },
+                  {
+                    columnId: 'status',
+                    title: 'Status',
+                    options: statusFilterOptions,
+                  },
+                ]}
+              />
+              <div className='flex flex-wrap items-center gap-2'>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant='outline'
+                      className='h-9 min-w-[220px] justify-start'
                     >
-                      {(error as Error)?.message ?? 'Failed to load outlets'}
-                    </TableCell>
-                  </TableRow>
-                ) : table.getRowModel().rows.length ? (
-                  table.getRowModel().rows.map((row) => (
-                    <TableRow key={row.id}>
-                      {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id} className='px-3 py-2'>
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext()
-                          )}
-                        </TableCell>
+                      <span className='truncate'>
+                        {formatRangeLabel(createdRange)}
+                      </span>
+                      <CalendarIcon className='ms-auto h-4 w-4 opacity-50' />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className='w-auto p-0' align='end'>
+                    <div className='p-3'>
+                      <Calendar
+                        mode='range'
+                        selected={pendingRange ?? createdRange}
+                        onSelect={(range) => {
+                          setPendingRange(range)
+                        }}
+                        numberOfMonths={2}
+                      />
+                      <div className='mt-3 flex justify-end gap-2'>
+                        <Button
+                          variant='ghost'
+                          size='sm'
+                          onClick={() => setPendingRange(undefined)}
+                        >
+                          Clear
+                        </Button>
+                        <Button
+                          size='sm'
+                          onClick={() => {
+                            if (!pendingRange?.from) return
+                            const nextRange = pendingRange.to
+                              ? pendingRange
+                              : {
+                                  from: pendingRange.from,
+                                  to: pendingRange.from,
+                                }
+                            setCreatedRange(nextRange)
+                            setPendingRange(undefined)
+                          }}
+                        >
+                          Apply
+                        </Button>
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+                {(createdRange?.from || createdRange?.to) && (
+                  <Button
+                    variant='ghost'
+                    className='h-9 px-3'
+                    onClick={() => {
+                      setCreatedRange(undefined)
+                      setPendingRange(undefined)
+                    }}
+                  >
+                    Clear dates
+                  </Button>
+                )}
+              </div>
+            </div>
+            <div className='rounded-md border'>
+              <Table className='text-xs'>
+                <TableHeader>
+                  {table.getHeaderGroups().map((headerGroup) => (
+                    <TableRow key={headerGroup.id}>
+                      {headerGroup.headers.map((header) => (
+                        <TableHead
+                          key={header.id}
+                          className='text-muted-foreground bg-gray-100 px-3 text-xs font-semibold tracking-wide uppercase dark:bg-gray-900'
+                        >
+                          {header.isPlaceholder
+                            ? null
+                            : flexRender(
+                                header.column.columnDef.header,
+                                header.getContext()
+                              )}
+                        </TableHead>
                       ))}
                     </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell
-                      colSpan={columns.length}
-                      className='h-20 text-center text-slate-500'
-                    >
-                      No outlets found for the selected filters.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-          <DataTablePagination table={table} />
-        </CardContent>
-      </Card>
+                  ))}
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    <TableLoadingRows columns={columns.length} />
+                  ) : isError ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={columns.length}
+                        className='text-destructive h-20 text-center'
+                      >
+                        {(error as Error)?.message ?? 'Failed to load outlets'}
+                      </TableCell>
+                    </TableRow>
+                  ) : table.getRowModel().rows.length ? (
+                    table.getRowModel().rows.map((row) => (
+                      <TableRow key={row.id}>
+                        {row.getVisibleCells().map((cell) => (
+                          <TableCell key={cell.id} className='px-3 py-2'>
+                            {flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext()
+                            )}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell
+                        colSpan={columns.length}
+                        className='h-20 text-center text-slate-500'
+                      >
+                        No outlets found for the selected filters.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+            <DataTablePagination table={table} />
+          </CardContent>
+        </Card>
+      ) : null}
       <FullWidthDialog
         open={Boolean(editOutlet)}
         onOpenChange={(open) => {
@@ -859,7 +841,12 @@ export const OutletList = () => {
         title='Edit Outlet'
         width='full'
       >
-        {editOutlet ? <EditOutletForm outlet={editOutlet} /> : null}
+        {editOutlet ? (
+          <EditOutletForm
+            outlet={editOutlet}
+            onSubmit={() => setEditOutlet(null)}
+          />
+        ) : null}
       </FullWidthDialog>
     </div>
   )

@@ -49,3 +49,14 @@ export function removeCookie(name: string): void {
 
   document.cookie = `${name}=; path=/; max-age=0`
 }
+
+export function clearAllCookies(): void {
+  if (typeof document === 'undefined') return
+
+  document.cookie.split(';').forEach((cookie) => {
+    const name = cookie.split('=')[0]?.trim()
+    if (!name) return
+    document.cookie = `${name}=; path=/; max-age=0`
+    document.cookie = `${name}=; max-age=0`
+  })
+}

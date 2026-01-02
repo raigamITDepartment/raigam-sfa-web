@@ -3,6 +3,7 @@ import type { LoginResponsePayload } from '@/types/auth'
 import * as authApi from '@/services/authApi'
 import { getFirebaseAuth } from '@/services/firebase'
 import { signInWithCustomToken, signInWithEmailAndPassword, signOut } from 'firebase/auth'
+import { clearAllCookies } from '@/lib/cookies'
 import {
   setAccessToken,
   setRefreshToken,
@@ -34,6 +35,19 @@ const initialState: AuthState = {
 }
 
 const AUTH_USER_KEY = 'auth_user'
+
+function clearBrowserStorage() {
+  try {
+    localStorage.clear()
+  } catch {
+    /* noop */
+  }
+  try {
+    sessionStorage.clear()
+  } catch {
+    /* noop */
+  }
+}
 
 function setStoredUser(user: AuthUser) {
   try {
@@ -158,6 +172,8 @@ const authSlice = createSlice({
       clearAllTokens()
       clearRememberPreference()
       clearStoredUser()
+      clearBrowserStorage()
+      clearAllCookies()
       void signOut(getFirebaseAuth())
       state.user = null
       state.status = 'idle'

@@ -13,15 +13,8 @@ export const Route = createFileRoute('/(auth)/sign-in')({
     const refresh = getRefreshToken()
     if (token || refresh) {
       throw redirect({
-        to: '/dashboard/home-report',
+        to: '/dashboard/overview',
         replace: true,
-        search: {
-          subChannelId: undefined,
-          rangeId: undefined,
-          areaId: 0,
-          year: undefined,
-          month: undefined,
-        },
       })
     }
   },

@@ -254,6 +254,12 @@ export function getAllOutletsByRouteId(routeId: Id) {
   )
 }
 
+export function getAllOutletsByChannelId(channelId: Id) {
+  return get<OutletDTO[]>(
+    `${USER_DEMARC_BASE}/outlet/getAllOutletsByChannelId?channelId=${channelId}`
+  )
+}
+
 export function findOutletById(outletId: Id) {
   return get<OutletDTO>(`${USER_DEMARC_BASE}/outlet/findById/${outletId}`)
 }
@@ -282,8 +288,11 @@ export type UpdateOutletRequest = {
   outletSequence?: number | string
 }
 
-export function updateOutlet(body: UpdateOutletRequest) {
-  return put<OutletDTO, UpdateOutletRequest>(`${USER_DEMARC_BASE}/outlet`, body)
+export function updateOutlet(body: UpdateOutletRequest | FormData) {
+  return put<OutletDTO, UpdateOutletRequest | FormData>(
+    `${USER_DEMARC_BASE}/outlet`,
+    body
+  )
 }
 
 

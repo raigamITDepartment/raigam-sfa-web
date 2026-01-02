@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { ensureRoleAccess, RoleId } from '@/lib/authz'
+import { ensureRoleAccess, RoleId, SubRoleId } from '@/lib/authz'
 import { Main } from '@/components/layout/main'
 import { PageHeader } from '@/components/layout/page-header'
 import { OutletList } from '@/components/outlet-module/OutletList'
@@ -11,6 +11,7 @@ export const Route = createFileRoute('/_authenticated/outlet-module/outlets')({
       RoleId.SeniorManagerSales,
       RoleId.ManagerSales,
       RoleId.ExecutiveSales,
+      SubRoleId.Representative,
     ]),
   component: () => (
     <Main>

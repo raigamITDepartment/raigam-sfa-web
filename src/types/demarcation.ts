@@ -206,7 +206,11 @@ export type UserAgencyDTO = { id: Id; name: string }
 
 export type UserAreaDTO = { id: Id; name: string }
 
-export type UserChannelDTO = { id: Id; name: string }
+export type UserChannelDTO = {
+  id: Id
+  name?: string
+  channelName?: string
+}
 
 export type UserContinentDTO = { id: Id; name: string }
 

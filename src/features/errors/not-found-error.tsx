@@ -7,15 +7,8 @@ export function NotFoundError() {
 
   const goHome = () =>
     navigate({
-      to: '/dashboard/home-report',
+      to: '/dashboard/overview',
       replace: true,
-      search: {
-        subChannelId: undefined,
-        rangeId: undefined,
-        areaId: 0,
-        year: undefined,
-        month: undefined,
-      },
     })
 
   const handleGoBack = () => {

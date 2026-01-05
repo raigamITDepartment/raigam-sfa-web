@@ -193,6 +193,10 @@ export const sidebarData: SidebarData = {
               title: 'Add/Modifiy User',
               url: '/admin-module/user-module/add-modifiy-user',
             },
+            {
+              title: 'Manage Permission',
+              url: '/admin-module/user-module/manage-permission',
+            },
           ],
         },
         {

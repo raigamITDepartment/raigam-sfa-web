@@ -26,12 +26,13 @@ export type AuthUser = LoginResponsePayload
 type AuthState = {
   user: AuthUser | null
   status: 'idle' | 'loading' | 'authenticated'
-  effectivePermissions?: string[]
+  effectivePermissions: string[]
 }
 
 const initialState: AuthState = {
   user: null,
   status: 'idle',
+  effectivePermissions: [],
 }
 
 const AUTH_USER_KEY = 'auth_user'
@@ -182,6 +183,7 @@ const authSlice = createSlice({
     setUser(state, action: PayloadAction<AuthUser | null>) {
       state.user = action.payload
       state.status = action.payload ? 'authenticated' : 'idle'
+      state.effectivePermissions = action.payload?.permissions ?? []
     },
   },
   extraReducers: (builder) => {
@@ -192,6 +194,7 @@ const authSlice = createSlice({
       .addCase(loginThunk.fulfilled, (state, action) => {
         state.user = action.payload.user
         state.status = 'authenticated'
+        state.effectivePermissions = action.payload.user.permissions ?? []
       })
       .addCase(loginThunk.rejected, (state) => {
         state.status = 'idle'
@@ -203,6 +206,7 @@ const authSlice = createSlice({
         if (action.payload?.user) {
           state.user = action.payload.user
           state.status = 'authenticated'
+          state.effectivePermissions = action.payload.user.permissions ?? []
         }
       })
   },

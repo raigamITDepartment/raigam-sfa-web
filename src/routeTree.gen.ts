@@ -56,8 +56,8 @@ import { Route as AuthenticatedAgencyModuleLoadingListViewLoadingListRouteImport
 import { Route as AuthenticatedAgencyModuleInvoiceViewInvoiceRouteImport } from './routes/_authenticated/agency-module/invoice/view-invoice'
 import { Route as AuthenticatedAgencyModuleInvoiceManualInvoiceRouteImport } from './routes/_authenticated/agency-module/invoice/manual-invoice'
 import { Route as AuthenticatedAgencyModuleInvoiceInvoicesSummaryRouteImport } from './routes/_authenticated/agency-module/invoice/invoices-summary'
+import { Route as AuthenticatedAdminModuleUserModuleManagePermissionRouteImport } from './routes/_authenticated/admin-module/user-module/manage-permission'
 import { Route as AuthenticatedAdminModuleUserModuleAddModifiyUserRouteImport } from './routes/_authenticated/admin-module/user-module/add-modifiy-user'
-import { Route as AuthenticatedAdminModuleOperationReverseRequestsRouteImport } from './routes/_authenticated/admin-module/operation/reverse-requests'
 import { Route as AuthenticatedAdminModuleOperationManualBillQuotaRouteImport } from './routes/_authenticated/admin-module/operation/manual-bill-quota'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
@@ -330,16 +330,16 @@ const AuthenticatedAgencyModuleInvoiceInvoicesSummaryRoute =
     path: '/agency-module/invoice/invoices-summary',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminModuleUserModuleManagePermissionRoute =
+  AuthenticatedAdminModuleUserModuleManagePermissionRouteImport.update({
+    id: '/admin-module/user-module/manage-permission',
+    path: '/admin-module/user-module/manage-permission',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminModuleUserModuleAddModifiyUserRoute =
   AuthenticatedAdminModuleUserModuleAddModifiyUserRouteImport.update({
     id: '/admin-module/user-module/add-modifiy-user',
     path: '/admin-module/user-module/add-modifiy-user',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedAdminModuleOperationReverseRequestsRoute =
-  AuthenticatedAdminModuleOperationReverseRequestsRouteImport.update({
-    id: '/admin-module/operation/reverse-requests',
-    path: '/admin-module/operation/reverse-requests',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAdminModuleOperationManualBillQuotaRoute =
@@ -378,8 +378,8 @@ export interface FileRoutesByFullPath {
   '/reports/territory-wise-items-report': typeof AuthenticatedReportsTerritoryWiseItemsReportRoute
   '/reports/territory-wise-sales-report': typeof AuthenticatedReportsTerritoryWiseSalesReportRoute
   '/admin-module/operation/manual-bill-quota': typeof AuthenticatedAdminModuleOperationManualBillQuotaRoute
-  '/admin-module/operation/reverse-requests': typeof AuthenticatedAdminModuleOperationReverseRequestsRoute
   '/admin-module/user-module/add-modifiy-user': typeof AuthenticatedAdminModuleUserModuleAddModifiyUserRoute
+  '/admin-module/user-module/manage-permission': typeof AuthenticatedAdminModuleUserModuleManagePermissionRoute
   '/agency-module/invoice/invoices-summary': typeof AuthenticatedAgencyModuleInvoiceInvoicesSummaryRoute
   '/agency-module/invoice/manual-invoice': typeof AuthenticatedAgencyModuleInvoiceManualInvoiceRoute
   '/agency-module/invoice/view-invoice': typeof AuthenticatedAgencyModuleInvoiceViewInvoiceRoute
@@ -428,8 +428,8 @@ export interface FileRoutesByTo {
   '/reports/territory-wise-items-report': typeof AuthenticatedReportsTerritoryWiseItemsReportRoute
   '/reports/territory-wise-sales-report': typeof AuthenticatedReportsTerritoryWiseSalesReportRoute
   '/admin-module/operation/manual-bill-quota': typeof AuthenticatedAdminModuleOperationManualBillQuotaRoute
-  '/admin-module/operation/reverse-requests': typeof AuthenticatedAdminModuleOperationReverseRequestsRoute
   '/admin-module/user-module/add-modifiy-user': typeof AuthenticatedAdminModuleUserModuleAddModifiyUserRoute
+  '/admin-module/user-module/manage-permission': typeof AuthenticatedAdminModuleUserModuleManagePermissionRoute
   '/agency-module/invoice/invoices-summary': typeof AuthenticatedAgencyModuleInvoiceInvoicesSummaryRoute
   '/agency-module/invoice/manual-invoice': typeof AuthenticatedAgencyModuleInvoiceManualInvoiceRoute
   '/agency-module/invoice/view-invoice': typeof AuthenticatedAgencyModuleInvoiceViewInvoiceRoute
@@ -481,8 +481,8 @@ export interface FileRoutesById {
   '/_authenticated/reports/territory-wise-items-report': typeof AuthenticatedReportsTerritoryWiseItemsReportRoute
   '/_authenticated/reports/territory-wise-sales-report': typeof AuthenticatedReportsTerritoryWiseSalesReportRoute
   '/_authenticated/admin-module/operation/manual-bill-quota': typeof AuthenticatedAdminModuleOperationManualBillQuotaRoute
-  '/_authenticated/admin-module/operation/reverse-requests': typeof AuthenticatedAdminModuleOperationReverseRequestsRoute
   '/_authenticated/admin-module/user-module/add-modifiy-user': typeof AuthenticatedAdminModuleUserModuleAddModifiyUserRoute
+  '/_authenticated/admin-module/user-module/manage-permission': typeof AuthenticatedAdminModuleUserModuleManagePermissionRoute
   '/_authenticated/agency-module/invoice/invoices-summary': typeof AuthenticatedAgencyModuleInvoiceInvoicesSummaryRoute
   '/_authenticated/agency-module/invoice/manual-invoice': typeof AuthenticatedAgencyModuleInvoiceManualInvoiceRoute
   '/_authenticated/agency-module/invoice/view-invoice': typeof AuthenticatedAgencyModuleInvoiceViewInvoiceRoute
@@ -533,8 +533,8 @@ export interface FileRouteTypes {
     | '/reports/territory-wise-items-report'
     | '/reports/territory-wise-sales-report'
     | '/admin-module/operation/manual-bill-quota'
-    | '/admin-module/operation/reverse-requests'
     | '/admin-module/user-module/add-modifiy-user'
+    | '/admin-module/user-module/manage-permission'
     | '/agency-module/invoice/invoices-summary'
     | '/agency-module/invoice/manual-invoice'
     | '/agency-module/invoice/view-invoice'
@@ -583,8 +583,8 @@ export interface FileRouteTypes {
     | '/reports/territory-wise-items-report'
     | '/reports/territory-wise-sales-report'
     | '/admin-module/operation/manual-bill-quota'
-    | '/admin-module/operation/reverse-requests'
     | '/admin-module/user-module/add-modifiy-user'
+    | '/admin-module/user-module/manage-permission'
     | '/agency-module/invoice/invoices-summary'
     | '/agency-module/invoice/manual-invoice'
     | '/agency-module/invoice/view-invoice'
@@ -635,8 +635,8 @@ export interface FileRouteTypes {
     | '/_authenticated/reports/territory-wise-items-report'
     | '/_authenticated/reports/territory-wise-sales-report'
     | '/_authenticated/admin-module/operation/manual-bill-quota'
-    | '/_authenticated/admin-module/operation/reverse-requests'
     | '/_authenticated/admin-module/user-module/add-modifiy-user'
+    | '/_authenticated/admin-module/user-module/manage-permission'
     | '/_authenticated/agency-module/invoice/invoices-summary'
     | '/_authenticated/agency-module/invoice/manual-invoice'
     | '/_authenticated/agency-module/invoice/view-invoice'
@@ -998,18 +998,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAgencyModuleInvoiceInvoicesSummaryRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin-module/user-module/manage-permission': {
+      id: '/_authenticated/admin-module/user-module/manage-permission'
+      path: '/admin-module/user-module/manage-permission'
+      fullPath: '/admin-module/user-module/manage-permission'
+      preLoaderRoute: typeof AuthenticatedAdminModuleUserModuleManagePermissionRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin-module/user-module/add-modifiy-user': {
       id: '/_authenticated/admin-module/user-module/add-modifiy-user'
       path: '/admin-module/user-module/add-modifiy-user'
       fullPath: '/admin-module/user-module/add-modifiy-user'
       preLoaderRoute: typeof AuthenticatedAdminModuleUserModuleAddModifiyUserRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/admin-module/operation/reverse-requests': {
-      id: '/_authenticated/admin-module/operation/reverse-requests'
-      path: '/admin-module/operation/reverse-requests'
-      fullPath: '/admin-module/operation/reverse-requests'
-      preLoaderRoute: typeof AuthenticatedAdminModuleOperationReverseRequestsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin-module/operation/manual-bill-quota': {
@@ -1057,8 +1057,8 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedReportsTerritoryWiseItemsReportRoute: typeof AuthenticatedReportsTerritoryWiseItemsReportRoute
   AuthenticatedReportsTerritoryWiseSalesReportRoute: typeof AuthenticatedReportsTerritoryWiseSalesReportRoute
   AuthenticatedAdminModuleOperationManualBillQuotaRoute: typeof AuthenticatedAdminModuleOperationManualBillQuotaRoute
-  AuthenticatedAdminModuleOperationReverseRequestsRoute: typeof AuthenticatedAdminModuleOperationReverseRequestsRoute
   AuthenticatedAdminModuleUserModuleAddModifiyUserRoute: typeof AuthenticatedAdminModuleUserModuleAddModifiyUserRoute
+  AuthenticatedAdminModuleUserModuleManagePermissionRoute: typeof AuthenticatedAdminModuleUserModuleManagePermissionRoute
   AuthenticatedAgencyModuleInvoiceInvoicesSummaryRoute: typeof AuthenticatedAgencyModuleInvoiceInvoicesSummaryRoute
   AuthenticatedAgencyModuleInvoiceManualInvoiceRoute: typeof AuthenticatedAgencyModuleInvoiceManualInvoiceRoute
   AuthenticatedAgencyModuleInvoiceViewInvoiceRoute: typeof AuthenticatedAgencyModuleInvoiceViewInvoiceRoute
@@ -1114,10 +1114,10 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedReportsTerritoryWiseSalesReportRoute,
   AuthenticatedAdminModuleOperationManualBillQuotaRoute:
     AuthenticatedAdminModuleOperationManualBillQuotaRoute,
-  AuthenticatedAdminModuleOperationReverseRequestsRoute:
-    AuthenticatedAdminModuleOperationReverseRequestsRoute,
   AuthenticatedAdminModuleUserModuleAddModifiyUserRoute:
     AuthenticatedAdminModuleUserModuleAddModifiyUserRoute,
+  AuthenticatedAdminModuleUserModuleManagePermissionRoute:
+    AuthenticatedAdminModuleUserModuleManagePermissionRoute,
   AuthenticatedAgencyModuleInvoiceInvoicesSummaryRoute:
     AuthenticatedAgencyModuleInvoiceInvoicesSummaryRoute,
   AuthenticatedAgencyModuleInvoiceManualInvoiceRoute:

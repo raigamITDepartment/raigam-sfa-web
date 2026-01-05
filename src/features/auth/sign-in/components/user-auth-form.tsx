@@ -72,7 +72,7 @@ export function UserAuthForm({
     toast.promise(promise, {
       loading: 'Signing in...',
       success: (_result) => {
-        const targetPath = redirectTo || '/dashboard/home-report'
+        const targetPath = redirectTo || '/dashboard/overview'
         navigate({ to: targetPath, replace: true })
         return `Welcome back, ${data.username}!`
       },

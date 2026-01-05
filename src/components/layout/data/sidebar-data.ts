@@ -193,16 +193,16 @@ export const sidebarData: SidebarData = {
               title: 'Add/Modifiy User',
               url: '/admin-module/user-module/add-modifiy-user',
             },
+            {
+              title: 'Manage Permission',
+              url: '/admin-module/user-module/manage-permission',
+            },
           ],
         },
         {
           title: 'Operation',
           icon: UserRoundCog,
           items: [
-            {
-              title: 'Reverse Requests',
-              url: '/admin-module/operation/reverse-requests',
-            },
             {
               title: 'Manual Bill Quota',
               url: '/admin-module/operation/manual-bill-quota',

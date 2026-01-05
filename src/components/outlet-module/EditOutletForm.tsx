@@ -1,4 +1,14 @@
 import { useMemo, useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  findOutletById,
+  updateOutlet,
+  type UpdateOutletRequest,
+} from '@/services/userDemarcation/endpoints'
+import { SubRoleId } from '@/lib/authz'
+import { useAppSelector } from '@/store/hooks'
+import { toast } from 'sonner'
+import type { ApiResponse, Id } from '@/types/common'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -8,6 +18,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 
 type EditOutletFormValues = {
   id?: number | string
+  outletCategoryId?: number | string
+  routeId?: number | string
+  rangeId?: number | string
+  outletSequence?: number | string
   outletName?: string
   uniqueCode?: string
   displayOrder?: number | string
@@ -39,12 +53,66 @@ type EditOutletFormProps = {
 const toStringValue = (value: unknown) =>
   value === null || value === undefined ? '' : String(value)
 
+const resolveNonEmpty = <T,>(...values: Array<T | null | undefined>) => {
+  for (const value of values) {
+    if (value !== null && value !== undefined && value !== '') return value
+  }
+  return undefined
+}
+
+const resolveRequiredString = (label: string, ...values: unknown[]) => {
+  const resolved = resolveNonEmpty(...values)
+  const text = resolved === undefined ? '' : String(resolved).trim()
+  if (!text) {
+    throw new Error(`${label} is required.`)
+  }
+  return text
+}
+
+const resolveRequiredValue = <T,>(label: string, ...values: T[]) => {
+  const resolved = resolveNonEmpty(...values)
+  if (resolved === undefined) {
+    throw new Error(`${label} is required.`)
+  }
+  return resolved as T
+}
+
+const resolveRequiredId = (label: string, ...values: unknown[]) => {
+  const resolved = resolveNonEmpty(...values)
+  if (resolved === undefined) {
+    throw new Error(`${label} is required.`)
+  }
+  return resolved as Id
+}
+
+const resolveBoolean = (...values: Array<boolean | null | undefined>) => {
+  for (const value of values) {
+    if (value !== null && value !== undefined) return value
+  }
+  return false
+}
+
 export function EditOutletForm({ outlet, onSubmit }: EditOutletFormProps) {
+  const queryClient = useQueryClient()
+  const user = useAppSelector((state) => state.auth.user)
+  const roleId = Number(user?.subRoleId ?? user?.roleId)
+  const isRep = roleId === SubRoleId.Representative
   const [formValues, setFormValues] = useState<EditOutletFormValues>(() => ({
     ...outlet,
   }))
   const [imageOpen, setImageOpen] = useState(false)
   const [imageLoading, setImageLoading] = useState(Boolean(outlet.imagePath))
+
+  const { data: outletDetails, isLoading: isDetailsLoading } = useQuery({
+    queryKey: ['user-demarcation', 'outlets', 'detail', outlet.id],
+    enabled: outlet.id !== null && outlet.id !== undefined,
+    queryFn: async () => {
+      const res = (await findOutletById(outlet.id as Id)) as ApiResponse<
+        EditOutletFormValues
+      >
+      return res.payload
+    },
+  })
 
   const outletIdText = useMemo(
     () => (outlet.id !== null && outlet.id !== undefined ? outlet.id : '-'),
@@ -58,8 +126,177 @@ export function EditOutletForm({ outlet, onSubmit }: EditOutletFormProps) {
     setFormValues((prev) => ({ ...prev, [key]: value }))
   }
 
+  const mutation = useMutation({
+    mutationFn: async (values: EditOutletFormValues) => {
+      const userId = user?.userId
+      if (!userId) {
+        throw new Error('User id is required to update outlet.')
+      }
+
+      const outletId = values.id ?? outlet.id
+      if (outletId === null || outletId === undefined) {
+        throw new Error('Outlet id is required to update outlet.')
+      }
+
+      const outletCategoryId = resolveRequiredId(
+        'Outlet category',
+        values.outletCategoryId,
+        outletDetails?.outletCategoryId,
+        outlet.outletCategoryId
+      )
+      const routeId = resolveRequiredId(
+        'Route',
+        values.routeId,
+        outletDetails?.routeId,
+        outlet.routeId
+      )
+      const rangeId = resolveRequiredId(
+        'Range',
+        values.rangeId,
+        outletDetails?.rangeId,
+        outlet.rangeId
+      )
+
+      const outletName = resolveRequiredString(
+        'Outlet name',
+        values.outletName,
+        outletDetails?.outletName,
+        outlet.outletName
+      )
+      const address1 = resolveRequiredString(
+        'Address 1',
+        values.address1,
+        outletDetails?.address1,
+        outlet.address1
+      )
+      const ownerName = resolveRequiredString(
+        'Owner name',
+        values.ownerName,
+        outletDetails?.ownerName,
+        outlet.ownerName
+      )
+      const mobileNo = resolveRequiredString(
+        'Mobile number',
+        values.mobileNo,
+        outletDetails?.mobileNo,
+        outlet.mobileNo
+      )
+      const latitude = resolveRequiredString(
+        'Latitude',
+        values.latitude,
+        outletDetails?.latitude,
+        outlet.latitude
+      )
+      const longitude = resolveRequiredString(
+        'Longitude',
+        values.longitude,
+        outletDetails?.longitude,
+        outlet.longitude
+      )
+      const displayOrder = resolveRequiredValue(
+        'Display order',
+        values.displayOrder,
+        outletDetails?.displayOrder,
+        outlet.displayOrder
+      )
+      const openTime = resolveRequiredString(
+        'Open time',
+        values.openTime,
+        outletDetails?.openTime,
+        outlet.openTime
+      )
+      const closeTime = resolveRequiredString(
+        'Close time',
+        values.closeTime,
+        outletDetails?.closeTime,
+        outlet.closeTime
+      )
+
+      const outletSequence = resolveRequiredValue(
+        'Outlet sequence',
+        values.outletSequence,
+        outletDetails?.outletSequence,
+        outlet.outletSequence
+      )
+
+      const payload: UpdateOutletRequest = {
+        id: outletId,
+        userId,
+        outletCategoryId,
+        routeId,
+        rangeId,
+        outletName,
+        address1,
+        address2: resolveRequiredString(
+          'Address2',
+          values.address2,
+          outletDetails?.address2,
+          outlet.address2
+        ),
+        address3: resolveRequiredString(
+          'Address3',
+          values.address3,
+          outletDetails?.address3,
+          outlet.address3
+        ),
+        ownerName,
+        mobileNo,
+        latitude,
+        longitude,
+        displayOrder,
+        openTime,
+        closeTime,
+        isNew: resolveBoolean(values.isNew, outletDetails?.isNew, outlet.isNew),
+        isApproved: resolveBoolean(
+          values.isApproved,
+          outletDetails?.isApproved,
+          outlet.isApproved
+        ),
+        isClose: resolveBoolean(
+          values.isClose,
+          outletDetails?.isClose,
+          outlet.isClose
+        ),
+        vatNum: resolveNonEmpty(
+          values.vatNum,
+          outletDetails?.vatNum,
+          outlet.vatNum
+        )
+          ? toStringValue(
+              resolveNonEmpty(
+                values.vatNum,
+                outletDetails?.vatNum,
+                outlet.vatNum
+              )
+            )
+          : undefined,
+        outletSequence,
+      }
+
+      const formData = new FormData()
+      ;(Object.entries(payload) as Array<
+        [keyof UpdateOutletRequest, UpdateOutletRequest[keyof UpdateOutletRequest]]
+      >).forEach(([key, value]) => {
+        if (value === undefined || value === null) return
+        formData.append(String(key), String(value))
+      })
+
+      return updateOutlet(formData)
+    },
+    onSuccess: () => {
+      toast.success('Outlet updated successfully')
+      queryClient.invalidateQueries({ queryKey: ['user-demarcation', 'outlets'] })
+      onSubmit?.(formValues)
+    },
+    onError: (error) => {
+      toast.error(
+        (error as Error)?.message ?? 'Failed to update outlet details'
+      )
+    },
+  })
+
   const handleSubmit = () => {
-    onSubmit?.(formValues)
+    mutation.mutate(formValues)
   }
 
   return (
@@ -147,6 +384,7 @@ export function EditOutletForm({ outlet, onSubmit }: EditOutletFormProps) {
                   handleChange('uniqueCode', event.target.value)
                 }
                 className='h-10'
+                disabled
               />
             </div>
             <div className='space-y-2'>
@@ -155,6 +393,19 @@ export function EditOutletForm({ outlet, onSubmit }: EditOutletFormProps) {
                 value={toStringValue(formValues.displayOrder)}
                 onChange={(event) =>
                   handleChange('displayOrder', event.target.value)
+                }
+                className='h-10'
+              />
+            </div>
+          </div>
+
+          <div className='grid gap-4 md:grid-cols-3'>
+            <div className='space-y-2'>
+              <Label>Outlet Sequence</Label>
+              <Input
+                value={toStringValue(formValues.outletSequence)}
+                onChange={(event) =>
+                  handleChange('outletSequence', event.target.value)
                 }
                 className='h-10'
               />
@@ -227,6 +478,7 @@ export function EditOutletForm({ outlet, onSubmit }: EditOutletFormProps) {
                   handleChange('outletCategoryName', event.target.value)
                 }
                 className='h-10'
+                disabled={isRep}
               />
             </div>
             <div className='space-y-2'>
@@ -237,6 +489,7 @@ export function EditOutletForm({ outlet, onSubmit }: EditOutletFormProps) {
                   handleChange('routeName', event.target.value)
                 }
                 className='h-10'
+                disabled={isRep}
               />
             </div>
             <div className='space-y-2'>
@@ -247,6 +500,7 @@ export function EditOutletForm({ outlet, onSubmit }: EditOutletFormProps) {
                   handleChange('rangeName', event.target.value)
                 }
                 className='h-10'
+                disabled={isRep}
               />
             </div>
           </div>
@@ -322,6 +576,7 @@ export function EditOutletForm({ outlet, onSubmit }: EditOutletFormProps) {
                     handleChange('isApproved', Boolean(value))
                   }
                   id='outlet-approved'
+                  disabled={isRep}
                 />
                 <Label htmlFor='outlet-approved' className='text-sm'>
                   Approved
@@ -337,6 +592,7 @@ export function EditOutletForm({ outlet, onSubmit }: EditOutletFormProps) {
                     handleChange('isClose', Boolean(value))
                   }
                   id='outlet-closed'
+                  disabled={isRep}
                 />
                 <Label htmlFor='outlet-closed' className='text-sm'>
                   Is close
@@ -352,6 +608,7 @@ export function EditOutletForm({ outlet, onSubmit }: EditOutletFormProps) {
                     handleChange('isNew', Boolean(value))
                   }
                   id='outlet-new'
+                  disabled={isRep}
                 />
                 <Label htmlFor='outlet-new' className='text-sm'>
                   Is new
@@ -363,7 +620,11 @@ export function EditOutletForm({ outlet, onSubmit }: EditOutletFormProps) {
       </div>
 
       <div className='flex justify-end'>
-        <Button className='min-w-[220px]' onClick={handleSubmit}>
+        <Button
+          className='min-w-[220px]'
+          onClick={handleSubmit}
+          disabled={mutation.isPending || isDetailsLoading}
+        >
           Update Outlet
         </Button>
       </div>

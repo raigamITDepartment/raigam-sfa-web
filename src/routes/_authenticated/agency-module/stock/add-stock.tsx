@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { ensureRoleAccess, RoleId } from '@/lib/authz'
+import { ComingSoon } from '@/components/coming-soon'
 import { Main } from '@/components/layout/main'
 import { PageHeader } from '@/components/layout/page-header'
 
@@ -16,7 +17,7 @@ export const Route = createFileRoute('/_authenticated/agency-module/stock/add-st
           { label: 'Add Stock' },
         ]}
       />
-      <div>Agency Module - Stock - Add Stock</div>
+      <ComingSoon />
     </Main>
   ),
 })

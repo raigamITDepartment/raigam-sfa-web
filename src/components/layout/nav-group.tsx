@@ -32,7 +32,7 @@ import {
   type NavLink,
   type NavGroup as NavGroupProps,
 } from './types'
-import { isPathAllowedForRole } from '@/lib/authz'
+import { isPathAllowedForUser, resolvePermissions } from '@/lib/authz'
 import { useSelector } from 'react-redux'
 import type { RootState } from '@/store'
 
@@ -41,21 +41,27 @@ export function NavGroup({ title, items }: NavGroupProps) {
   const href = useLocation({ select: (location) => location.href })
   const roleId = useSelector((s: RootState) => s.auth.user?.roleId)
   const subRoleId = useSelector((s: RootState) => s.auth.user?.subRoleId)
+  const permissions = useSelector((s: RootState) => s.auth.user?.permissions)
 
-  // Filter items by role using centralized rules
+  const effectivePermissions = useMemo(
+    () => resolvePermissions({ permissions, roleId, subRoleId }),
+    [permissions, roleId, subRoleId]
+  )
+
+  // Filter items by permission using centralized rules
   const visibleItems = useMemo(() => {
     return items
       .map((it) => {
         if (it.items) {
           const sub = it.items.filter((s) =>
-            isPathAllowedForRole(s.url, roleId, subRoleId)
+            isPathAllowedForUser(s.url, effectivePermissions)
           )
           return sub.length ? { ...it, items: sub } : null
         }
-        return isPathAllowedForRole(it.url, roleId, subRoleId) ? it : null
+        return isPathAllowedForUser(it.url, effectivePermissions) ? it : null
       })
       .filter(Boolean) as typeof items
-  }, [items, roleId, subRoleId])
+  }, [items, effectivePermissions])
 
   // Single-open accordion behavior within a group
   const initialOpenKey = useMemo(() => {
@@ -223,8 +229,6 @@ function SidebarMenuCollapsedDropdown({
     </SidebarMenuItem>
   )
 }
-
-// No permission filtering; show provided items
 
 function checkIsActive(href: string, item: NavItem, mainNav = false) {
   return (

@@ -1,4 +1,3 @@
-// Authorization disabled: no redirects, always allow
 import { redirect } from '@tanstack/react-router'
 import { store } from '@/store'
 
@@ -42,12 +41,137 @@ export const SubRoleId = {
 } as const
 
 export type RoleIdValue = number
-type Permission = string
 
-// Central role → route access rules (by path prefix)
-// Use the longest matching key for a given path
+export const PermissionKey = {
+  DashboardOverview: 'dashboard.overview',
+  DashboardHomeReport: 'dashboard.homeReport',
+  DashboardHeartCount: 'dashboard.heartCount',
+  MasterSettingsDemarcation: 'masterSettings.demarcation',
+  MasterSettingsDistributorMapping: 'masterSettings.distributorMapping',
+  MasterSettingsFinalGeographyMapping: 'masterSettings.finalGeographyMapping',
+  SalesDetailsViewAllItems: 'sales.details.viewAllItems',
+  SalesDetailsStock: 'sales.details.stock',
+  SalesDetailsViewInvoices: 'sales.details.viewInvoices',
+  SalesDetailsMarketReturn: 'sales.details.marketReturn',
+  SalesOperationsManageCategory: 'sales.operations.manageCategory',
+  SalesOperationsItemMaster: 'sales.operations.itemMaster',
+  SalesOperationsItemAdd: 'sales.operations.itemAdd',
+  SalesOperationsWorkingDay: 'sales.operations.workingDay',
+  SalesOperationsTarget: 'sales.operations.target',
+  SalesOperationsFreeIssue: 'sales.operations.freeIssue',
+  OutletModuleOutlets: 'outletModule.outlets',
+  OutletModuleRoutes: 'outletModule.routes',
+  ReportsAchievementCategoryWise: 'reports.achievementCategoryWise',
+  ReportsAreaWiseSales: 'reports.areaWiseSales',
+  ReportsTerritoryWiseSales: 'reports.territoryWiseSales',
+  ReportsTerritoryWiseItems: 'reports.territoryWiseItems',
+  ReportsItemSummary: 'reports.itemSummary',
+  HrGpsMonitoring: 'hr.gpsMonitoring',
+  HrTimeAttendance: 'hr.timeAttendance',
+  AdminUserAddModify: 'admin.user.addModify',
+  AdminUserManagePermissions: 'admin.user.managePermissions',
+  AdminOperationManualBillQuota: 'admin.operation.manualBillQuota',
+  AgencyInvoiceView: 'agency.invoice.view',
+  AgencyInvoiceManual: 'agency.invoice.manual',
+  AgencyInvoiceSummary: 'agency.invoice.summary',
+  AgencyInvoicePost: 'agency.invoice.post',
+  AgencyLoadingListView: 'agency.loadingList.view',
+  AgencyMarketReturn: 'agency.marketReturn',
+  AgencyStockView: 'agency.stock.view',
+  AgencyStockAdd: 'agency.stock.add',
+  AgencyStockRequestOrder: 'agency.stock.requestOrder',
+} as const
+
+export type PermissionKey =
+  | (typeof PermissionKey)[keyof typeof PermissionKey]
+  | (string & {})
+
+// Route permissions (by path prefix). Use the longest matching key for a path.
+export const RoutePermissions: Record<
+  string,
+  PermissionKey | PermissionKey[]
+> = {
+  // Dashboards
+  '/dashboard/overview': PermissionKey.DashboardOverview,
+  '/dashboard/home-report': PermissionKey.DashboardHomeReport,
+  '/dashboard/heart-count': PermissionKey.DashboardHeartCount,
+
+  // Master Settings
+  '/master-settings/demarcation': PermissionKey.MasterSettingsDemarcation,
+  '/master-settings/distributor-mapping':
+    PermissionKey.MasterSettingsDistributorMapping,
+  '/master-settings/final-geography-mapping':
+    PermissionKey.MasterSettingsFinalGeographyMapping,
+
+  // Sales Details
+  '/sales/sales-details/view-all-items':
+    PermissionKey.SalesDetailsViewAllItems,
+  '/sales/sales-details/stock': PermissionKey.SalesDetailsStock,
+  '/sales/sales-details/view-invoices': PermissionKey.SalesDetailsViewInvoices,
+  '/sales/sales-details/market-return':
+    PermissionKey.SalesDetailsMarketReturn,
+
+  // Sales Operations
+  '/sales/sales-operations/manage-category':
+    PermissionKey.SalesOperationsManageCategory,
+  '/sales/sales-operations/item-master':
+    PermissionKey.SalesOperationsItemMaster,
+  '/sales/sales-operations/item-add': PermissionKey.SalesOperationsItemAdd,
+  '/sales/sales-operations/working-day':
+    PermissionKey.SalesOperationsWorkingDay,
+  '/sales/sales-operations/target': PermissionKey.SalesOperationsTarget,
+  '/sales/sales-operations/free-issue': PermissionKey.SalesOperationsFreeIssue,
+
+  // Outlet Module
+  '/outlet-module/outlets': PermissionKey.OutletModuleOutlets,
+  '/outlet-module/routes': PermissionKey.OutletModuleRoutes,
+
+  // Reports
+  '/reports/achievement-category-wise':
+    PermissionKey.ReportsAchievementCategoryWise,
+  '/reports/area-wise-sales-report': PermissionKey.ReportsAreaWiseSales,
+  '/reports/territory-wise-sales-report':
+    PermissionKey.ReportsTerritoryWiseSales,
+  '/reports/territory-wise-items-report':
+    PermissionKey.ReportsTerritoryWiseItems,
+  '/reports/item-summary-report': PermissionKey.ReportsItemSummary,
+
+  // HR Module
+  '/hr-module/gps-monitoring': PermissionKey.HrGpsMonitoring,
+  '/hr-module/time-attendance': PermissionKey.HrTimeAttendance,
+
+  // Admin Module
+  '/admin-module/user-module/add-modifiy-user':
+    PermissionKey.AdminUserAddModify,
+  '/admin-module/user-module/manage-permission':
+    PermissionKey.AdminUserManagePermissions,
+  '/admin-module/operation/manual-bill-quota':
+    PermissionKey.AdminOperationManualBillQuota,
+
+  // Agency Module
+  '/agency-module/invoice/invoices-summary':
+    PermissionKey.AgencyInvoiceSummary,
+  '/agency-module/invoice/post-invoice': PermissionKey.AgencyInvoicePost,
+  '/agency-module/invoice/manual-invoice': PermissionKey.AgencyInvoiceManual,
+  '/agency-module/invoice/view-invoice': PermissionKey.AgencyInvoiceView,
+  '/agency-module/loading-list/view-loading-list':
+    PermissionKey.AgencyLoadingListView,
+  '/agency-module/market-return/return': PermissionKey.AgencyMarketReturn,
+  '/agency-module/stock/view-stock': PermissionKey.AgencyStockView,
+  '/agency-module/stock/add-stock': PermissionKey.AgencyStockAdd,
+  '/agency-module/stock/request-order':
+    PermissionKey.AgencyStockRequestOrder,
+}
+
+// Central role-to-route access rules (by path prefix).
+// Use the longest matching key for a given path.
 export const RoleAccess: Record<string, RoleIdValue[]> = {
   // Dashboards
+  '/dashboard/overview': [
+    RoleId.SystemAdmin,
+    RoleId.TopManager,
+    RoleId.ManagerSales,
+  ],
   '/dashboard/home-report': [
     RoleId.SystemAdmin,
     RoleId.TopManager,
@@ -80,7 +204,7 @@ export const RoleAccess: Record<string, RoleIdValue[]> = {
   ],
 
   // Sales Details
-  '/sales/sales-details/view-item-range-wise': [
+  '/sales/sales-details/view-all-items': [
     RoleId.SystemAdmin,
     RoleId.ManagerSales,
     RoleId.ExecutiveSales,
@@ -102,7 +226,7 @@ export const RoleAccess: Record<string, RoleIdValue[]> = {
   ],
 
   // Sales Operations
-  '/sales/sales-operations/category-add': [
+  '/sales/sales-operations/manage-category': [
     RoleId.SystemAdmin,
     RoleId.TopManager,
     RoleId.ManagerSales,
@@ -140,8 +264,12 @@ export const RoleAccess: Record<string, RoleIdValue[]> = {
   ],
 
   // Outlet Module
-  '/outlet-module/outlets': [RoleId.SystemAdmin, RoleId.ManagerSales],
-  '/outlet-module/route': [RoleId.SystemAdmin, RoleId.ManagerSales],
+  '/outlet-module/outlets': [
+    RoleId.SystemAdmin,
+    RoleId.ManagerSales,
+    SubRoleId.Representative,
+  ],
+  '/outlet-module/routes': [RoleId.SystemAdmin, RoleId.ManagerSales],
 
   // Reports
   '/reports/achievement-category-wise': [
@@ -168,7 +296,6 @@ export const RoleAccess: Record<string, RoleIdValue[]> = {
     RoleId.ExecutiveCompany,
     RoleId.ManagerSales,
   ],
-  // Present in codebase; align with Reports access model
   '/reports/item-summary-report': [
     RoleId.SystemAdmin,
     RoleId.TopManager,
@@ -192,7 +319,7 @@ export const RoleAccess: Record<string, RoleIdValue[]> = {
 
   // Admin Module
   '/admin-module/user-module/add-modifiy-user': [RoleId.SystemAdmin],
-  '/admin-module/operation/reverse-requests': [RoleId.SystemAdmin],
+  '/admin-module/user-module/manage-permission': [RoleId.SystemAdmin],
   '/admin-module/operation/manual-bill-quota': [RoleId.SystemAdmin],
 
   // Agency Module
@@ -296,16 +423,120 @@ export function getEffectiveSubRoleId(): number | undefined {
   return undefined
 }
 
-function longestMatchingRule(pathname: string): RoleIdValue[] | undefined {
-  const keys = Object.keys(RoleAccess)
+function normalizePathname(pathname: string): string {
+  if (!pathname) return '/'
+  if (pathname.startsWith('/_authenticated')) {
+    const stripped = pathname.slice('/_authenticated'.length)
+    return stripped || '/'
+  }
+  return pathname
+}
+
+function longestMatchingRule<T>(
+  pathname: string,
+  rules: Record<string, T>
+): T | undefined {
+  const normalized = normalizePathname(pathname)
+  const keys = Object.keys(rules)
   // Sort by length desc to find the most specific match first
   keys.sort((a, b) => b.length - a.length)
   for (const key of keys) {
-    if (pathname === key || pathname.startsWith(key + '/')) {
-      return RoleAccess[key]
+    if (normalized === key || normalized.startsWith(key + '/')) {
+      return rules[key]
     }
   }
   return undefined
+}
+
+function getRoleRuleForPath(pathname: string): RoleIdValue[] | undefined {
+  return longestMatchingRule(pathname, RoleAccess)
+}
+
+export function getRequiredPermissionsForPath(
+  pathname: string | undefined
+): PermissionKey[] | undefined {
+  if (!pathname) return undefined
+  const required = longestMatchingRule(pathname, RoutePermissions)
+  if (!required) return undefined
+  return Array.isArray(required) ? required : [required]
+}
+
+function normalizePermissions(
+  permissions: PermissionKey | PermissionKey[]
+): PermissionKey[] {
+  return Array.isArray(permissions) ? permissions : [permissions]
+}
+
+function derivePermissionsFromRole(
+  roleId?: number,
+  subRoleId?: number
+): PermissionKey[] {
+  if (roleId == null && subRoleId == null) return []
+  const derived = new Set<PermissionKey>()
+  for (const [path, required] of Object.entries(RoutePermissions)) {
+    const allowed = getRoleRuleForPath(path)
+    if (!allowed) continue
+    const hasRole =
+      (roleId != null && allowed.includes(roleId)) ||
+      (subRoleId != null && allowed.includes(subRoleId))
+    if (!hasRole) continue
+    for (const perm of normalizePermissions(required)) {
+      derived.add(perm)
+    }
+  }
+  return Array.from(derived)
+}
+
+function getStoredPermissions(): PermissionKey[] | undefined {
+  try {
+    const raw = localStorage.getItem('auth_user')
+    if (!raw) return undefined
+    const parsed = JSON.parse(raw) as { permissions?: unknown }
+    const perms = parsed?.permissions
+    if (Array.isArray(perms)) return perms as PermissionKey[]
+  } catch {
+    // ignore
+  }
+  return undefined
+}
+
+export function resolvePermissions({
+  permissions,
+  roleId,
+  subRoleId,
+}: {
+  permissions?: PermissionKey[] | null
+  roleId?: number
+  subRoleId?: number
+}): PermissionKey[] {
+  // Prefer backend permissions; fall back to role-derived permissions when missing.
+  if (Array.isArray(permissions)) return permissions
+  return derivePermissionsFromRole(roleId, subRoleId)
+}
+
+export function getEffectivePermissions(): PermissionKey[] {
+  const user = store.getState().auth.user
+  const statePermissions = Array.isArray(user?.permissions)
+    ? user.permissions
+    : undefined
+  const storedPermissions =
+    statePermissions === undefined ? getStoredPermissions() : undefined
+  const roleId = getEffectiveRoleId()
+  const subRoleId = getEffectiveSubRoleId()
+  return resolvePermissions({
+    permissions: statePermissions ?? storedPermissions,
+    roleId,
+    subRoleId,
+  })
+}
+
+export function hasAnyPermission(
+  permissions: PermissionKey[],
+  required: PermissionKey | PermissionKey[]
+): boolean {
+  if (!permissions.length) return false
+  const requiredList = normalizePermissions(required)
+  return requiredList.some((perm) => permissions.includes(perm))
 }
 
 export function isPathAllowedForRole(
@@ -314,7 +545,7 @@ export function isPathAllowedForRole(
   subRoleId?: number
 ): boolean {
   if (!pathname) return false
-  const allowed = longestMatchingRule(pathname)
+  const allowed = getRoleRuleForPath(pathname)
   if (!allowed) return true // no rule means allowed
   if (!roleId && !subRoleId) return false
   if (roleId && allowed.includes(roleId)) return true
@@ -322,21 +553,51 @@ export function isPathAllowedForRole(
   return false
 }
 
-// Simple permission flags, reserved for future use
-export function can(_perm: Permission): boolean {
-  // If/when backend supplies authority array, wire it here
-  return true
+export function isPathAllowedForUser(
+  pathname: string | undefined,
+  permissions?: PermissionKey[] | null,
+  roleId?: number,
+  subRoleId?: number
+): boolean {
+  if (!pathname) return false
+  const required = getRequiredPermissionsForPath(pathname)
+  if (!required) return true
+  const effective = resolvePermissions({ permissions, roleId, subRoleId })
+  return hasAnyPermission(effective, required)
+}
+
+export function can(required: PermissionKey | PermissionKey[]): boolean {
+  return hasAnyPermission(getEffectivePermissions(), required)
 }
 
 export async function ensureCan(
-  _required: Permission | Permission[]
+  required: PermissionKey | PermissionKey[]
 ): Promise<void> {
-  // Placeholder for future permission preload
-  return
+  if (!can(required)) {
+    throw redirect({ to: '/errors/unauthorized', replace: true })
+  }
+}
+
+function getCurrentPathname(): string | undefined {
+  if (typeof window === 'undefined') return undefined
+  return window.location?.pathname
 }
 
 // Used by route beforeLoad hooks. Throws a redirect on failure.
-export async function ensureRoleAccess(allowed: RoleIdValue[]): Promise<void> {
+export async function ensureRoleAccess(
+  allowed: RoleIdValue[],
+  pathname?: string
+): Promise<void> {
+  const effectivePath = pathname ?? getCurrentPathname()
+  const required = getRequiredPermissionsForPath(effectivePath)
+  if (required) {
+    const effective = getEffectivePermissions()
+    if (!hasAnyPermission(effective, required)) {
+      throw redirect({ to: '/errors/unauthorized', replace: true })
+    }
+    return
+  }
+
   if (!allowed || allowed.length === 0) return
   const roleId = getEffectiveRoleId()
   const subRoleId = getEffectiveSubRoleId()

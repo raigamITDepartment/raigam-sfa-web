@@ -3,6 +3,7 @@ import type { LoginResponsePayload } from '@/types/auth'
 import * as authApi from '@/services/authApi'
 import { getFirebaseAuth } from '@/services/firebase'
 import { signInWithCustomToken, signInWithEmailAndPassword, signOut } from 'firebase/auth'
+import { clearAllCookies } from '@/lib/cookies'
 import {
   setAccessToken,
   setRefreshToken,
@@ -25,15 +26,29 @@ export type AuthUser = LoginResponsePayload
 type AuthState = {
   user: AuthUser | null
   status: 'idle' | 'loading' | 'authenticated'
-  effectivePermissions?: string[]
+  effectivePermissions: string[]
 }
 
 const initialState: AuthState = {
   user: null,
   status: 'idle',
+  effectivePermissions: [],
 }
 
 const AUTH_USER_KEY = 'auth_user'
+
+function clearBrowserStorage() {
+  try {
+    localStorage.clear()
+  } catch {
+    /* noop */
+  }
+  try {
+    sessionStorage.clear()
+  } catch {
+    /* noop */
+  }
+}
 
 function setStoredUser(user: AuthUser) {
   try {
@@ -158,6 +173,8 @@ const authSlice = createSlice({
       clearAllTokens()
       clearRememberPreference()
       clearStoredUser()
+      clearBrowserStorage()
+      clearAllCookies()
       void signOut(getFirebaseAuth())
       state.user = null
       state.status = 'idle'
@@ -166,6 +183,7 @@ const authSlice = createSlice({
     setUser(state, action: PayloadAction<AuthUser | null>) {
       state.user = action.payload
       state.status = action.payload ? 'authenticated' : 'idle'
+      state.effectivePermissions = action.payload?.permissions ?? []
     },
   },
   extraReducers: (builder) => {
@@ -176,6 +194,7 @@ const authSlice = createSlice({
       .addCase(loginThunk.fulfilled, (state, action) => {
         state.user = action.payload.user
         state.status = 'authenticated'
+        state.effectivePermissions = action.payload.user.permissions ?? []
       })
       .addCase(loginThunk.rejected, (state) => {
         state.status = 'idle'
@@ -187,6 +206,7 @@ const authSlice = createSlice({
         if (action.payload?.user) {
           state.user = action.payload.user
           state.status = 'authenticated'
+          state.effectivePermissions = action.payload.user.permissions ?? []
         }
       })
   },

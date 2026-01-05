@@ -1,11 +1,7 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { AuthenticatedLayout } from '@/components/layout/authenticated-layout'
 import { getAccessToken, getRefreshToken } from '@/services/tokenService'
-import {
-  getEffectiveRoleId,
-  getEffectiveSubRoleId,
-  isPathAllowedForRole,
-} from '@/lib/authz'
+import { getEffectivePermissions, isPathAllowedForUser } from '@/lib/authz'
 
 export const Route = createFileRoute('/_authenticated')({
   beforeLoad: ({ location }) => {
@@ -16,10 +12,9 @@ export const Route = createFileRoute('/_authenticated')({
     }
 
     // Fallback role-based guard for any child route without its own beforeLoad
-    const roleId = getEffectiveRoleId()
-    const subRoleId = getEffectiveSubRoleId()
     const path = location.pathname.replace('/_authenticated', '') || '/'
-    if (!isPathAllowedForRole(path, roleId, subRoleId)) {
+    const permissions = getEffectivePermissions()
+    if (!isPathAllowedForUser(path, permissions)) {
       throw redirect({ to: '/errors/unauthorized', replace: true })
     }
   },

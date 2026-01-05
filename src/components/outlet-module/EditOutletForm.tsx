@@ -69,12 +69,15 @@ const resolveRequiredString = (label: string, ...values: unknown[]) => {
   return text
 }
 
-const resolveRequiredValue = <T,>(label: string, ...values: T[]) => {
+const resolveRequiredValue = <T,>(
+  label: string,
+  ...values: Array<T | null | undefined>
+) => {
   const resolved = resolveNonEmpty(...values)
   if (resolved === undefined) {
     throw new Error(`${label} is required.`)
   }
-  return resolved as T
+  return resolved as NonNullable<T>
 }
 
 const resolveRequiredId = (label: string, ...values: unknown[]) => {

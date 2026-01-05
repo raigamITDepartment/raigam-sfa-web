@@ -114,10 +114,10 @@ const formatValue = (value: unknown) => {
   return String(value)
 }
 
-const pickFirstValue = (
+const pickFirstValue = <K extends keyof OutletRecord>(
   row: OutletRecord,
-  keys: (keyof OutletRecord)[]
-) => {
+  keys: K[]
+): OutletRecord[K] | undefined => {
   for (const key of keys) {
     const value = row[key]
     if (value !== null && value !== undefined && value !== '') return value
@@ -530,11 +530,6 @@ export const OutletList = () => {
       value: label,
     }))
   }, [filteredData])
-
-  const channelFilterOptions = useMemo(
-    () => buildFacetOptions(filteredData.map((row) => row.channelName)),
-    [filteredData]
-  )
 
   const areaFilterOptions = useMemo(
     () =>

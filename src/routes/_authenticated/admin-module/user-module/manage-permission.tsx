@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import { getAllUsers, type UserDemarcationUser } from '@/services/users/userApi'
+import { getAllUsers } from '@/services/users/userApi'
+import type { UserDemarcationUser } from '@/types/users'
 import {
   ChevronDown,
   CheckCircle2,

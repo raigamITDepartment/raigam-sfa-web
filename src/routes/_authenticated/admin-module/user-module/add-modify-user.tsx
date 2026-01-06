@@ -1,12 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import type {
-  ColumnDef,
-  PaginationState,
-  SortingState,
-  VisibilityState,
-} from '@tanstack/react-table'
+import type { PaginationState, SortingState, VisibilityState } from '@tanstack/react-table'
 import {
   flexRender,
   getCoreRowModel,
@@ -16,25 +11,24 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import {
-  getAllUsers,
   addUser,
-  type AddUserRequest,
-  type GetAllUsersResponse,
-  type UpdateUserRequest,
+  getAllUsers,
   updateUser,
   userActivation,
-  type UserDemarcationUser,
 } from '@/services/users/userApi'
+import type {
+  AddUserRequest,
+  GetAllUsersResponse,
+  UpdateUserRequest,
+  UserDemarcationUser,
+} from '@/types/users'
 import { useAppSelector } from '@/store/hooks'
-import { Pencil, UserPlus } from 'lucide-react'
+import { UserPlus } from 'lucide-react'
 import { toast } from 'sonner'
 import { ensureRoleAccess, RoleId } from '@/lib/authz'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { CountBadge } from '@/components/ui/count-badge'
-import { Switch } from '@/components/ui/switch'
 import {
   Table,
   TableBody,
@@ -43,21 +37,15 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 import { CommonAlert } from '@/components/common-alert'
 import { CommonDialog } from '@/components/common-dialog'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import {
-  DataTableColumnHeader,
   DataTablePagination,
   DataTableToolbar,
   TableLoadingRows,
 } from '@/components/data-table'
-import { ExcelExportButton, type ExcelExportColumn } from '@/components/excel-export-button'
+import { ExcelExportButton } from '@/components/excel-export-button'
 import { Main } from '@/components/layout/main'
 import { PageHeader } from '@/components/layout/page-header'
 import {
@@ -65,6 +53,8 @@ import {
   type UserFormMode,
   type UserFormValues,
 } from '@/components/user-module/UserForm'
+import { createUserColumns } from './user-list-columns'
+import { createUserExportColumns } from './user-list-export'
 
 export const Route = createFileRoute(
   '/_authenticated/admin-module/user-module/add-modify-user'
@@ -72,26 +62,6 @@ export const Route = createFileRoute(
   beforeLoad: () => ensureRoleAccess([RoleId.SystemAdmin]),
   component: AddModifyUser,
 })
-
-const formatText = (value: unknown) => {
-  if (value === null || value === undefined) return '-'
-  const text = String(value).trim()
-  return text ? text : '-'
-}
-
-const getInitials = (user: UserDemarcationUser) => {
-  const parts = [user.firstName, user.lastName]
-    .map((part) => (part ?? '').trim())
-    .filter(Boolean)
-  const base = parts.length ? parts.join(' ') : (user.userName ?? '')
-  const initials = base
-    .split(/\s+/)
-    .map((chunk) => chunk[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase()
-  return initials || 'U'
-}
 
 function AddModifyUser() {
   const queryClient = useQueryClient()
@@ -274,181 +244,21 @@ function AddModifyUser() {
     }
   }, [userDialogOpen])
 
-  const columns = useMemo<ColumnDef<UserDemarcationUser>[]>(
-    () => [
-      {
-        id: 'avatar',
-        header: () => <span className='sr-only'>Avatar</span>,
-        cell: ({ row }) => {
-          const user = row.original
-          return (
-            <div className='pl-4'>
-              <Avatar className='size-9 border border-sky-200 bg-sky-50'>
-                <AvatarFallback className='text-xs font-semibold text-sky-700'>
-                  {getInitials(user)}
-                </AvatarFallback>
-              </Avatar>
-            </div>
-          )
+  const columns = useMemo(
+    () =>
+      createUserColumns({
+        currentUserId: currentUser?.userId,
+        canToggleUserStatus,
+        onEdit: (user) => {
+          setUserDialogMode('edit')
+          setEditingUser(user)
+          setUserDialogOpen(true)
         },
-        enableSorting: false,
-        meta: { thClassName: 'w-[80px]' },
-      },
-      {
-        accessorKey: 'userName',
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title='Username' />
-        ),
-        cell: ({ row }) => (
-          <span className='pl-4'>{formatText(row.getValue('userName'))}</span>
-        ),
-      },
-      {
-        accessorKey: 'roleName',
-        filterFn: (row, columnId, filterValue) => {
-          const values = Array.isArray(filterValue)
-            ? filterValue
-            : filterValue
-              ? [String(filterValue)]
-              : []
-          if (!values.length) return true
-          const cellValue = row.getValue(columnId) as string
-          return values.includes(String(cellValue))
+        onToggle: (payload) => {
+          setPendingToggle(payload)
+          setConfirmOpen(true)
         },
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title='Role Name' />
-        ),
-        cell: ({ row }) => (
-          <span className='pl-4'>{formatText(row.getValue('roleName'))}</span>
-        ),
-      },
-      {
-        accessorKey: 'subRoleName',
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title='Sub Role Name' />
-        ),
-        cell: ({ row }) => (
-          <span className='pl-4'>
-            {formatText(row.getValue('subRoleName'))}
-          </span>
-        ),
-      },
-      {
-        id: 'fullName',
-        accessorFn: (row) =>
-          `${row.firstName ?? ''} ${row.lastName ?? ''}`.trim(),
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title='Full Name' />
-        ),
-        cell: ({ row }) => {
-          const user = row.original
-          const fullName =
-            `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim()
-          return <span className='pl-4 capitalize'>{formatText(fullName)}</span>
-        },
-      },
-      {
-        accessorKey: 'email',
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title='Email' />
-        ),
-        cell: ({ row }) => (
-          <span className='pl-4'>{formatText(row.getValue('email'))}</span>
-        ),
-      },
-      {
-        id: 'status',
-        accessorFn: (row) => (row.isActive ? 'Active' : 'Inactive'),
-        filterFn: (row, columnId, filterValue) => {
-          const values = Array.isArray(filterValue)
-            ? filterValue
-            : filterValue
-              ? [String(filterValue)]
-              : []
-          if (!values.length) return true
-          const cellValue = row.getValue(columnId) as string
-          return values.includes(String(cellValue))
-        },
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title='Status' />
-        ),
-        cell: ({ row }) => {
-          const user = row.original
-          const isActive = Boolean(user.isActive)
-          return (
-            <div className='pl-4'>
-              <Badge
-                variant={isActive ? 'secondary' : 'outline'}
-                className={
-                  isActive
-                    ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                    : 'border-slate-200 bg-slate-50 text-slate-600'
-                }
-              >
-                {isActive ? 'Active' : 'Inactive'}
-              </Badge>
-            </div>
-          )
-        },
-        meta: { thClassName: 'w-[130px]' },
-      },
-      {
-        id: 'actions',
-        header: () => <div className='pr-4 text-right'>Actions</div>,
-        cell: ({ row }) => {
-          const user = row.original
-          const isActive = Boolean(user.isActive)
-          const isSelf =
-            currentUser?.userId != null &&
-            String(user.id) === String(currentUser.userId)
-          const toggleDisabled = !canToggleUserStatus || isSelf
-          const toggleLabel = toggleDisabled
-            ? isSelf
-              ? 'Cannot change your own status'
-              : 'Only System Admin can change user status'
-            : undefined
-          return (
-            <div className='flex items-center justify-end gap-1 pr-4'>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant='ghost'
-                    size='icon'
-                    className='size-8'
-                    aria-label='Edit user'
-                    onClick={() => {
-                      setUserDialogMode('edit')
-                      setEditingUser(user)
-                      setUserDialogOpen(true)
-                    }}
-                  >
-                    <Pencil className='size-4' />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Edit</TooltipContent>
-              </Tooltip>
-              <Switch
-                disabled={toggleDisabled}
-                checked={isActive}
-                onCheckedChange={(value) => {
-                  if (toggleDisabled) return
-                  setPendingToggle({
-                    id: user.id,
-                    userName: user.userName ?? '',
-                    nextActive: value,
-                  })
-                  setConfirmOpen(true)
-                }}
-                title={toggleLabel}
-                aria-label={isActive ? 'Deactivate user' : 'Activate user'}
-              />
-            </div>
-          )
-        },
-        enableSorting: false,
-        meta: { thClassName: 'w-[140px] text-right' },
-      },
-    ],
+      }),
     [canToggleUserStatus, currentUser?.userId]
   )
 
@@ -473,21 +283,7 @@ function AddModifyUser() {
   })
 
   const exportRows = table.getSortedRowModel().rows.map((row) => row.original)
-  const exportColumns = useMemo<ExcelExportColumn<UserDemarcationUser>[]>(() => {
-    const formatFullName = (user: UserDemarcationUser) =>
-      `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim()
-    return [
-      { header: 'Username', accessor: (row) => row.userName },
-      { header: 'Role Name', accessor: (row) => row.roleName },
-      { header: 'Sub Role Name', accessor: (row) => row.subRoleName },
-      { header: 'Full Name', accessor: (row) => formatFullName(row) || '-' },
-      { header: 'Email', accessor: (row) => row.email },
-      {
-        header: 'Status',
-        accessor: (row) => (row.isActive ? 'Active' : 'Inactive'),
-      },
-    ]
-  }, [])
+  const exportColumns = useMemo(() => createUserExportColumns(), [])
 
   const totalCount = table.getPreFilteredRowModel().rows.length
   const filteredCount = table.getFilteredRowModel().rows.length

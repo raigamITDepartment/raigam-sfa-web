@@ -14,8 +14,8 @@ import {
   type FinalGeoDTO,
   getFinalGeo,
 } from '@/services/userDemarcationApi'
-import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { CountBadge } from '@/components/ui/count-badge'
 import {
   Table,
   TableBody,
@@ -188,9 +188,7 @@ const FinalGeographyMapping = () => {
       <CardHeader className='flex items-center justify-between gap-2'>
         <CardTitle className='text-base font-semibold'>
           Final Geography Mapping{' '}
-          <Badge variant='secondary' className='text-xs font-medium uppercase'>
-            {filteredCount}/{rows.length}
-          </Badge>
+          <CountBadge value={`${filteredCount}/${rows.length}`} />
         </CardTitle>
       </CardHeader>
       <CardContent className='space-y-4'>

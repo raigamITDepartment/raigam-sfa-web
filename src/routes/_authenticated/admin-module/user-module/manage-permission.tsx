@@ -331,13 +331,6 @@ const permissionModules: PermissionModule[] = [
             path: '/outlet-module/outlets',
             type: 'ROUTE',
           },
-          {
-            code: 'ROUTE_OUTLET_ROUTES',
-            title: 'Routes',
-            description: 'Route planning and optimization.',
-            path: '/outlet-module/routes',
-            type: 'ROUTE',
-          },
         ],
       },
     ],
@@ -423,7 +416,7 @@ const permissionModules: PermissionModule[] = [
             code: 'ROUTE_ADMIN_ADD_MODIFY_USER',
             title: 'Add/Modify User',
             description: 'Create and manage user profiles.',
-            path: '/admin-module/user-module/add-modifiy-user',
+            path: '/admin-module/user-module/add-modify-user',
             type: 'ROUTE',
           },
           {

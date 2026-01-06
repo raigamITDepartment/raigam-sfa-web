@@ -23,6 +23,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { CountBadge } from '@/components/ui/count-badge'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import {
   DataTableColumnHeader,
@@ -327,12 +328,7 @@ const SubCategory = () => {
       <CardHeader className='flex flex-row items-center justify-between gap-2'>
         <CardTitle className='flex items-center gap-2 text-base font-semibold'>
           Sub Category List
-          <Badge
-            variant='secondary'
-            className='text-xs font-medium uppercase'
-          >
-            {filteredCount}/{rows.length}
-          </Badge>
+          <CountBadge value={`${filteredCount}/${rows.length}`} />
         </CardTitle>
         <div className='flex items-center gap-2'>
           <ExcelExportButton

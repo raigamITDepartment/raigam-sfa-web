@@ -23,7 +23,6 @@ import { Route as AuthenticatedReportsTerritoryWiseSalesReportRouteImport } from
 import { Route as AuthenticatedReportsTerritoryWiseItemsReportRouteImport } from './routes/_authenticated/reports/territory-wise-items-report'
 import { Route as AuthenticatedReportsAreaWiseSalesReportRouteImport } from './routes/_authenticated/reports/area-wise-sales-report'
 import { Route as AuthenticatedReportsAchievementCategoryWiseRouteImport } from './routes/_authenticated/reports/achievement-category-wise'
-import { Route as AuthenticatedOutletModuleRoutesRouteImport } from './routes/_authenticated/outlet-module/routes'
 import { Route as AuthenticatedOutletModuleOutletsRouteImport } from './routes/_authenticated/outlet-module/outlets'
 import { Route as AuthenticatedMasterSettingsFinalGeographyMappingRouteImport } from './routes/_authenticated/master-settings/final-geography-mapping'
 import { Route as AuthenticatedMasterSettingsDistributorMappingRouteImport } from './routes/_authenticated/master-settings/distributor-mapping'
@@ -57,7 +56,7 @@ import { Route as AuthenticatedAgencyModuleInvoiceViewInvoiceRouteImport } from 
 import { Route as AuthenticatedAgencyModuleInvoiceManualInvoiceRouteImport } from './routes/_authenticated/agency-module/invoice/manual-invoice'
 import { Route as AuthenticatedAgencyModuleInvoiceInvoicesSummaryRouteImport } from './routes/_authenticated/agency-module/invoice/invoices-summary'
 import { Route as AuthenticatedAdminModuleUserModuleManagePermissionRouteImport } from './routes/_authenticated/admin-module/user-module/manage-permission'
-import { Route as AuthenticatedAdminModuleUserModuleAddModifiyUserRouteImport } from './routes/_authenticated/admin-module/user-module/add-modifiy-user'
+import { Route as AuthenticatedAdminModuleUserModuleAddModifyUserRouteImport } from './routes/_authenticated/admin-module/user-module/add-modify-user'
 import { Route as AuthenticatedAdminModuleOperationManualBillQuotaRouteImport } from './routes/_authenticated/admin-module/operation/manual-bill-quota'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
@@ -130,12 +129,6 @@ const AuthenticatedReportsAchievementCategoryWiseRoute =
   AuthenticatedReportsAchievementCategoryWiseRouteImport.update({
     id: '/reports/achievement-category-wise',
     path: '/reports/achievement-category-wise',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedOutletModuleRoutesRoute =
-  AuthenticatedOutletModuleRoutesRouteImport.update({
-    id: '/outlet-module/routes',
-    path: '/outlet-module/routes',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedOutletModuleOutletsRoute =
@@ -336,10 +329,10 @@ const AuthenticatedAdminModuleUserModuleManagePermissionRoute =
     path: '/admin-module/user-module/manage-permission',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedAdminModuleUserModuleAddModifiyUserRoute =
-  AuthenticatedAdminModuleUserModuleAddModifiyUserRouteImport.update({
-    id: '/admin-module/user-module/add-modifiy-user',
-    path: '/admin-module/user-module/add-modifiy-user',
+const AuthenticatedAdminModuleUserModuleAddModifyUserRoute =
+  AuthenticatedAdminModuleUserModuleAddModifyUserRouteImport.update({
+    id: '/admin-module/user-module/add-modify-user',
+    path: '/admin-module/user-module/add-modify-user',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAdminModuleOperationManualBillQuotaRoute =
@@ -372,13 +365,12 @@ export interface FileRoutesByFullPath {
   '/master-settings/distributor-mapping': typeof AuthenticatedMasterSettingsDistributorMappingRoute
   '/master-settings/final-geography-mapping': typeof AuthenticatedMasterSettingsFinalGeographyMappingRoute
   '/outlet-module/outlets': typeof AuthenticatedOutletModuleOutletsRoute
-  '/outlet-module/routes': typeof AuthenticatedOutletModuleRoutesRoute
   '/reports/achievement-category-wise': typeof AuthenticatedReportsAchievementCategoryWiseRoute
   '/reports/area-wise-sales-report': typeof AuthenticatedReportsAreaWiseSalesReportRoute
   '/reports/territory-wise-items-report': typeof AuthenticatedReportsTerritoryWiseItemsReportRoute
   '/reports/territory-wise-sales-report': typeof AuthenticatedReportsTerritoryWiseSalesReportRoute
   '/admin-module/operation/manual-bill-quota': typeof AuthenticatedAdminModuleOperationManualBillQuotaRoute
-  '/admin-module/user-module/add-modifiy-user': typeof AuthenticatedAdminModuleUserModuleAddModifiyUserRoute
+  '/admin-module/user-module/add-modify-user': typeof AuthenticatedAdminModuleUserModuleAddModifyUserRoute
   '/admin-module/user-module/manage-permission': typeof AuthenticatedAdminModuleUserModuleManagePermissionRoute
   '/agency-module/invoice/invoices-summary': typeof AuthenticatedAgencyModuleInvoiceInvoicesSummaryRoute
   '/agency-module/invoice/manual-invoice': typeof AuthenticatedAgencyModuleInvoiceManualInvoiceRoute
@@ -422,13 +414,12 @@ export interface FileRoutesByTo {
   '/master-settings/distributor-mapping': typeof AuthenticatedMasterSettingsDistributorMappingRoute
   '/master-settings/final-geography-mapping': typeof AuthenticatedMasterSettingsFinalGeographyMappingRoute
   '/outlet-module/outlets': typeof AuthenticatedOutletModuleOutletsRoute
-  '/outlet-module/routes': typeof AuthenticatedOutletModuleRoutesRoute
   '/reports/achievement-category-wise': typeof AuthenticatedReportsAchievementCategoryWiseRoute
   '/reports/area-wise-sales-report': typeof AuthenticatedReportsAreaWiseSalesReportRoute
   '/reports/territory-wise-items-report': typeof AuthenticatedReportsTerritoryWiseItemsReportRoute
   '/reports/territory-wise-sales-report': typeof AuthenticatedReportsTerritoryWiseSalesReportRoute
   '/admin-module/operation/manual-bill-quota': typeof AuthenticatedAdminModuleOperationManualBillQuotaRoute
-  '/admin-module/user-module/add-modifiy-user': typeof AuthenticatedAdminModuleUserModuleAddModifiyUserRoute
+  '/admin-module/user-module/add-modify-user': typeof AuthenticatedAdminModuleUserModuleAddModifyUserRoute
   '/admin-module/user-module/manage-permission': typeof AuthenticatedAdminModuleUserModuleManagePermissionRoute
   '/agency-module/invoice/invoices-summary': typeof AuthenticatedAgencyModuleInvoiceInvoicesSummaryRoute
   '/agency-module/invoice/manual-invoice': typeof AuthenticatedAgencyModuleInvoiceManualInvoiceRoute
@@ -475,13 +466,12 @@ export interface FileRoutesById {
   '/_authenticated/master-settings/distributor-mapping': typeof AuthenticatedMasterSettingsDistributorMappingRoute
   '/_authenticated/master-settings/final-geography-mapping': typeof AuthenticatedMasterSettingsFinalGeographyMappingRoute
   '/_authenticated/outlet-module/outlets': typeof AuthenticatedOutletModuleOutletsRoute
-  '/_authenticated/outlet-module/routes': typeof AuthenticatedOutletModuleRoutesRoute
   '/_authenticated/reports/achievement-category-wise': typeof AuthenticatedReportsAchievementCategoryWiseRoute
   '/_authenticated/reports/area-wise-sales-report': typeof AuthenticatedReportsAreaWiseSalesReportRoute
   '/_authenticated/reports/territory-wise-items-report': typeof AuthenticatedReportsTerritoryWiseItemsReportRoute
   '/_authenticated/reports/territory-wise-sales-report': typeof AuthenticatedReportsTerritoryWiseSalesReportRoute
   '/_authenticated/admin-module/operation/manual-bill-quota': typeof AuthenticatedAdminModuleOperationManualBillQuotaRoute
-  '/_authenticated/admin-module/user-module/add-modifiy-user': typeof AuthenticatedAdminModuleUserModuleAddModifiyUserRoute
+  '/_authenticated/admin-module/user-module/add-modify-user': typeof AuthenticatedAdminModuleUserModuleAddModifyUserRoute
   '/_authenticated/admin-module/user-module/manage-permission': typeof AuthenticatedAdminModuleUserModuleManagePermissionRoute
   '/_authenticated/agency-module/invoice/invoices-summary': typeof AuthenticatedAgencyModuleInvoiceInvoicesSummaryRoute
   '/_authenticated/agency-module/invoice/manual-invoice': typeof AuthenticatedAgencyModuleInvoiceManualInvoiceRoute
@@ -527,13 +517,12 @@ export interface FileRouteTypes {
     | '/master-settings/distributor-mapping'
     | '/master-settings/final-geography-mapping'
     | '/outlet-module/outlets'
-    | '/outlet-module/routes'
     | '/reports/achievement-category-wise'
     | '/reports/area-wise-sales-report'
     | '/reports/territory-wise-items-report'
     | '/reports/territory-wise-sales-report'
     | '/admin-module/operation/manual-bill-quota'
-    | '/admin-module/user-module/add-modifiy-user'
+    | '/admin-module/user-module/add-modify-user'
     | '/admin-module/user-module/manage-permission'
     | '/agency-module/invoice/invoices-summary'
     | '/agency-module/invoice/manual-invoice'
@@ -577,13 +566,12 @@ export interface FileRouteTypes {
     | '/master-settings/distributor-mapping'
     | '/master-settings/final-geography-mapping'
     | '/outlet-module/outlets'
-    | '/outlet-module/routes'
     | '/reports/achievement-category-wise'
     | '/reports/area-wise-sales-report'
     | '/reports/territory-wise-items-report'
     | '/reports/territory-wise-sales-report'
     | '/admin-module/operation/manual-bill-quota'
-    | '/admin-module/user-module/add-modifiy-user'
+    | '/admin-module/user-module/add-modify-user'
     | '/admin-module/user-module/manage-permission'
     | '/agency-module/invoice/invoices-summary'
     | '/agency-module/invoice/manual-invoice'
@@ -629,13 +617,12 @@ export interface FileRouteTypes {
     | '/_authenticated/master-settings/distributor-mapping'
     | '/_authenticated/master-settings/final-geography-mapping'
     | '/_authenticated/outlet-module/outlets'
-    | '/_authenticated/outlet-module/routes'
     | '/_authenticated/reports/achievement-category-wise'
     | '/_authenticated/reports/area-wise-sales-report'
     | '/_authenticated/reports/territory-wise-items-report'
     | '/_authenticated/reports/territory-wise-sales-report'
     | '/_authenticated/admin-module/operation/manual-bill-quota'
-    | '/_authenticated/admin-module/user-module/add-modifiy-user'
+    | '/_authenticated/admin-module/user-module/add-modify-user'
     | '/_authenticated/admin-module/user-module/manage-permission'
     | '/_authenticated/agency-module/invoice/invoices-summary'
     | '/_authenticated/agency-module/invoice/manual-invoice'
@@ -765,13 +752,6 @@ declare module '@tanstack/react-router' {
       path: '/reports/achievement-category-wise'
       fullPath: '/reports/achievement-category-wise'
       preLoaderRoute: typeof AuthenticatedReportsAchievementCategoryWiseRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/outlet-module/routes': {
-      id: '/_authenticated/outlet-module/routes'
-      path: '/outlet-module/routes'
-      fullPath: '/outlet-module/routes'
-      preLoaderRoute: typeof AuthenticatedOutletModuleRoutesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/outlet-module/outlets': {
@@ -1005,11 +985,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminModuleUserModuleManagePermissionRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/admin-module/user-module/add-modifiy-user': {
-      id: '/_authenticated/admin-module/user-module/add-modifiy-user'
-      path: '/admin-module/user-module/add-modifiy-user'
-      fullPath: '/admin-module/user-module/add-modifiy-user'
-      preLoaderRoute: typeof AuthenticatedAdminModuleUserModuleAddModifiyUserRouteImport
+    '/_authenticated/admin-module/user-module/add-modify-user': {
+      id: '/_authenticated/admin-module/user-module/add-modify-user'
+      path: '/admin-module/user-module/add-modify-user'
+      fullPath: '/admin-module/user-module/add-modify-user'
+      preLoaderRoute: typeof AuthenticatedAdminModuleUserModuleAddModifyUserRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin-module/operation/manual-bill-quota': {
@@ -1051,13 +1031,12 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedMasterSettingsDistributorMappingRoute: typeof AuthenticatedMasterSettingsDistributorMappingRoute
   AuthenticatedMasterSettingsFinalGeographyMappingRoute: typeof AuthenticatedMasterSettingsFinalGeographyMappingRoute
   AuthenticatedOutletModuleOutletsRoute: typeof AuthenticatedOutletModuleOutletsRoute
-  AuthenticatedOutletModuleRoutesRoute: typeof AuthenticatedOutletModuleRoutesRoute
   AuthenticatedReportsAchievementCategoryWiseRoute: typeof AuthenticatedReportsAchievementCategoryWiseRoute
   AuthenticatedReportsAreaWiseSalesReportRoute: typeof AuthenticatedReportsAreaWiseSalesReportRoute
   AuthenticatedReportsTerritoryWiseItemsReportRoute: typeof AuthenticatedReportsTerritoryWiseItemsReportRoute
   AuthenticatedReportsTerritoryWiseSalesReportRoute: typeof AuthenticatedReportsTerritoryWiseSalesReportRoute
   AuthenticatedAdminModuleOperationManualBillQuotaRoute: typeof AuthenticatedAdminModuleOperationManualBillQuotaRoute
-  AuthenticatedAdminModuleUserModuleAddModifiyUserRoute: typeof AuthenticatedAdminModuleUserModuleAddModifiyUserRoute
+  AuthenticatedAdminModuleUserModuleAddModifyUserRoute: typeof AuthenticatedAdminModuleUserModuleAddModifyUserRoute
   AuthenticatedAdminModuleUserModuleManagePermissionRoute: typeof AuthenticatedAdminModuleUserModuleManagePermissionRoute
   AuthenticatedAgencyModuleInvoiceInvoicesSummaryRoute: typeof AuthenticatedAgencyModuleInvoiceInvoicesSummaryRoute
   AuthenticatedAgencyModuleInvoiceManualInvoiceRoute: typeof AuthenticatedAgencyModuleInvoiceManualInvoiceRoute
@@ -1103,7 +1082,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedMasterSettingsFinalGeographyMappingRoute:
     AuthenticatedMasterSettingsFinalGeographyMappingRoute,
   AuthenticatedOutletModuleOutletsRoute: AuthenticatedOutletModuleOutletsRoute,
-  AuthenticatedOutletModuleRoutesRoute: AuthenticatedOutletModuleRoutesRoute,
   AuthenticatedReportsAchievementCategoryWiseRoute:
     AuthenticatedReportsAchievementCategoryWiseRoute,
   AuthenticatedReportsAreaWiseSalesReportRoute:
@@ -1114,8 +1092,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedReportsTerritoryWiseSalesReportRoute,
   AuthenticatedAdminModuleOperationManualBillQuotaRoute:
     AuthenticatedAdminModuleOperationManualBillQuotaRoute,
-  AuthenticatedAdminModuleUserModuleAddModifiyUserRoute:
-    AuthenticatedAdminModuleUserModuleAddModifiyUserRoute,
+  AuthenticatedAdminModuleUserModuleAddModifyUserRoute:
+    AuthenticatedAdminModuleUserModuleAddModifyUserRoute,
   AuthenticatedAdminModuleUserModuleManagePermissionRoute:
     AuthenticatedAdminModuleUserModuleManagePermissionRoute,
   AuthenticatedAgencyModuleInvoiceInvoicesSummaryRoute:

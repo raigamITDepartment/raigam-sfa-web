@@ -21,6 +21,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { CountBadge } from '@/components/ui/count-badge'
 import { CommonAlert } from '@/components/common-alert'
 import {
   ExcelExportButton,
@@ -652,12 +653,7 @@ export const OutletList = () => {
           <CardHeader className='flex items-center justify-between gap-2'>
             <CardTitle className='text-base font-semibold'>
               Outlet List{' '}
-              <Badge
-                variant='secondary'
-                className='text-xs font-medium uppercase'
-              >
-                {filteredCount}/{outletRows.length}
-              </Badge>
+              <CountBadge value={`${filteredCount}/${outletRows.length}`} />
             </CardTitle>
             <ExcelExportButton
               data={exportRows}

@@ -124,7 +124,6 @@ export const RoutePermissions: Record<
 
   // Outlet Module
   '/outlet-module/outlets': PermissionKey.OutletModuleOutlets,
-  '/outlet-module/routes': PermissionKey.OutletModuleRoutes,
 
   // Reports
   '/reports/achievement-category-wise':
@@ -141,7 +140,7 @@ export const RoutePermissions: Record<
   '/hr-module/time-attendance': PermissionKey.HrTimeAttendance,
 
   // Admin Module
-  '/admin-module/user-module/add-modifiy-user':
+  '/admin-module/user-module/add-modify-user':
     PermissionKey.AdminUserAddModify,
   '/admin-module/user-module/manage-permission':
     PermissionKey.AdminUserManagePermissions,
@@ -269,7 +268,6 @@ export const RoleAccess: Record<string, RoleIdValue[]> = {
     RoleId.ManagerSales,
     SubRoleId.Representative,
   ],
-  '/outlet-module/routes': [RoleId.SystemAdmin, RoleId.ManagerSales],
 
   // Reports
   '/reports/achievement-category-wise': [
@@ -318,7 +316,7 @@ export const RoleAccess: Record<string, RoleIdValue[]> = {
   ],
 
   // Admin Module
-  '/admin-module/user-module/add-modifiy-user': [RoleId.SystemAdmin],
+  '/admin-module/user-module/add-modify-user': [RoleId.SystemAdmin],
   '/admin-module/user-module/manage-permission': [RoleId.SystemAdmin],
   '/admin-module/operation/manual-bill-quota': [RoleId.SystemAdmin],
 

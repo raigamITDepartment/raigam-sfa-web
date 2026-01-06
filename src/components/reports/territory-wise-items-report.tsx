@@ -30,6 +30,7 @@ import {
 } from '@/components/data-table'
 import { CommonAlert } from '@/components/common-alert'
 import { ExcelExportButton } from '@/components/excel-export-button'
+import { CountBadge } from '@/components/ui/count-badge'
 import {
   buildCategoryFilters,
   createColumns,
@@ -226,9 +227,7 @@ const TerritoryWiseItemsReport = () => {
                   </div>
                   <div className='flex items-center gap-2 text-sm font-semibold text-slate-800 dark:text-slate-100'>
                     Items
-                    <span className='rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200'>
-                      {filteredCount}/{totalCount}
-                    </span>
+                    <CountBadge value={`${filteredCount}/${totalCount}`} />
                   </div>
                 </div>
                 <div className='overflow-auto rounded-md border'>

@@ -9,7 +9,6 @@ import {
   MapPinPlus,
   Store,
   BriefcaseBusiness,
-  Route as RouteIcon,
   Trophy,
   ChartArea,
   ChartLine,
@@ -135,11 +134,6 @@ export const sidebarData: SidebarData = {
       title: 'Outlet Module',
       items: [
         { title: 'Outlets', url: '/outlet-module/outlets', icon: Store },
-        {
-          title: 'Route',
-          url: '/outlet-module/routes',
-          icon: RouteIcon,
-        },
       ],
     },
     {
@@ -191,7 +185,7 @@ export const sidebarData: SidebarData = {
           items: [
             {
               title: 'Add/Modifiy User',
-              url: '/admin-module/user-module/add-modifiy-user',
+              url: '/admin-module/user-module/add-modify-user',
             },
             {
               title: 'Manage Permission',

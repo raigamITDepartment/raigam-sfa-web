@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { ensureRoleAccess, RoleId } from '@/lib/authz'
 import { Main } from '@/components/layout/main'
 import { PageHeader } from '@/components/layout/page-header'
-import { ComingSoon } from '@/components/coming-soon'
+import { GPSMonitoring } from '@/components/gps-monitoring/GPSmonitoring'
 
 export const Route = createFileRoute('/_authenticated/hr-module/gps-monitoring')({
   beforeLoad: () =>
@@ -22,7 +22,7 @@ export const Route = createFileRoute('/_authenticated/hr-module/gps-monitoring')
           { label: 'GPS Monitoring' },
         ]}
       />
-      <ComingSoon />
+      <GPSMonitoring />
     </Main>
   ),
 })

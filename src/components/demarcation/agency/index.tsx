@@ -31,6 +31,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { CountBadge } from '@/components/ui/count-badge'
 import {
   Table,
   TableBody,
@@ -431,6 +432,10 @@ export default function Agency() {
     getPaginationRowModel: getPaginationRowModel(),
   })
 
+  const totalCount = table.getPreFilteredRowModel().rows.length
+  const filteredCount = table.getFilteredRowModel().rows.length
+  const countLabel = isLoading ? '.../...' : `${filteredCount}/${totalCount}`
+
   const exportStatusStyles = `
 .status-active { background-color: #d1fae5; color: #065f46; font-weight: 600; }
 .status-inactive { background-color: #fee2e2; color: #991b1b; font-weight: 600; }
@@ -441,9 +446,7 @@ export default function Agency() {
       <CardHeader className='flex flex-row items-center justify-between gap-2'>
         <CardTitle className='flex items-center gap-2'>
           Agency List
-          <Badge variant='secondary' className='text-xs font-medium uppercase'>
-            {rows.length}
-          </Badge>
+          <CountBadge value={countLabel} />
         </CardTitle>
         <div className='flex items-center gap-2'>
           <ExcelExportButton

@@ -21,6 +21,7 @@ import { ExcelExportButton, type ExcelExportColumn } from '@/components/excel-ex
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { CountBadge } from '@/components/ui/count-badge'
 import { Switch } from '@/components/ui/switch'
 import {
   Table,
@@ -371,17 +372,16 @@ export default function Channel() {
     getPaginationRowModel: getPaginationRowModel(),
   })
 
+  const totalCount = table.getPreFilteredRowModel().rows.length
+  const filteredCount = table.getFilteredRowModel().rows.length
+  const countLabel = isLoading ? '.../...' : `${filteredCount}/${totalCount}`
+
   return (
     <Card>
       <CardHeader className='flex flex-row items-center justify-between gap-2'>
         <CardTitle className='flex items-center gap-2'>
           Channel List
-          <Badge
-            variant='secondary'
-            className='text-xs font-medium uppercase'
-          >
-            {rows.length}
-          </Badge>
+          <CountBadge value={countLabel} />
         </CardTitle>
         <div className='flex items-center gap-2'>
           <ExcelExportButton

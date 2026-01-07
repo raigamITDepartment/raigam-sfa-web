@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import { getAllUsers, type UserDemarcationUser } from '@/services/users/userApi'
+import { getAllUsers } from '@/services/users/userApi'
+import type { UserDemarcationUser } from '@/types/users'
 import {
   ChevronDown,
   CheckCircle2,
@@ -331,13 +332,6 @@ const permissionModules: PermissionModule[] = [
             path: '/outlet-module/outlets',
             type: 'ROUTE',
           },
-          {
-            code: 'ROUTE_OUTLET_ROUTES',
-            title: 'Routes',
-            description: 'Route planning and optimization.',
-            path: '/outlet-module/routes',
-            type: 'ROUTE',
-          },
         ],
       },
     ],
@@ -423,7 +417,7 @@ const permissionModules: PermissionModule[] = [
             code: 'ROUTE_ADMIN_ADD_MODIFY_USER',
             title: 'Add/Modify User',
             description: 'Create and manage user profiles.',
-            path: '/admin-module/user-module/add-modifiy-user',
+            path: '/admin-module/user-module/add-modify-user',
             type: 'ROUTE',
           },
           {

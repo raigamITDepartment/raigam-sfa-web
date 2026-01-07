@@ -44,7 +44,7 @@ import { CommonAlert } from '@/components/common-alert'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { Badge } from '@/components/ui/badge'
+import { CountBadge } from '@/components/ui/count-badge'
 import FullWidthDialog from '@/components/FullWidthDialog'
 import InvoiceNumber from '@/components/InvoiceNumber'
 import BookingInvoiceDetailsHeader from '@/components/agency-module/booking-invoice-details-header'
@@ -463,12 +463,7 @@ const InvoiceSummary = () => {
                 },
               ]}
             rightContent={
-              <Badge
-                variant='secondary'
-                className='rounded-full px-2.5 py-0.5 text-xs font-semibold text-slate-800 dark:text-slate-100'
-              >
-                {filteredCount}/{totalCount}
-              </Badge>
+              <CountBadge value={`${filteredCount}/${totalCount}`} />
             }
           />
             <div className='mt-4 mb-4 rounded-md border'>

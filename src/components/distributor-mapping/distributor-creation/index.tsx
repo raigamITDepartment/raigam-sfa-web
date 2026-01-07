@@ -29,6 +29,7 @@ import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { CountBadge } from '@/components/ui/count-badge'
 import { Switch } from '@/components/ui/switch'
 import {
   Table,
@@ -435,9 +436,7 @@ export default function DistributorCreation() {
       <CardHeader className='flex flex-row items-center justify-between gap-2'>
         <div className='flex items-center gap-2'>
           <CardTitle>All Distributors</CardTitle>
-          <Badge variant='secondary' className='text-xs font-medium uppercase'>
-            {filteredCount}/{rows.length}
-          </Badge>
+          <CountBadge value={`${filteredCount}/${rows.length}`} />
         </div>
         <div className='flex items-center gap-2'>
           <ExcelExportButton

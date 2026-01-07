@@ -25,6 +25,7 @@ import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { CountBadge } from '@/components/ui/count-badge'
 import { Switch } from '@/components/ui/switch'
 import {
   Table,
@@ -317,12 +318,7 @@ export default function WareHouseMapping() {
         <div className='flex items-center gap-2'>
           <CardTitle className='flex w-full items-center gap-3'>
             <span>Warehouse Mappings</span>
-            <Badge
-              variant='secondary'
-              className='text-xs font-medium uppercase'
-            >
-              {filteredCount}/{totalCount}
-            </Badge>
+            <CountBadge value={`${filteredCount}/${totalCount}`} />
             <span className='text-muted-foreground ml-auto text-sm font-medium'>
               Filters {activeFiltersCount}
             </span>

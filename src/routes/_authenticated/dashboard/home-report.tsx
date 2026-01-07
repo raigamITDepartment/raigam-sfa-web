@@ -5,9 +5,11 @@ import { getHomeReportData } from '@/services/reports/homeReportApi'
 import type { HomeReportParams, HomeReportResponse } from '@/types/home-report'
 import { Card } from '@/components/ui/card'
 import { CommonAlert } from '@/components/common-alert'
-import Filters, { type FiltersPayload } from '@/components/home-report/filters'
-import HomeReportTable from '@/components/home-report/table'
-import TableSkeleton from '@/components/home-report/table-skeleton'
+import Filters, {
+  type FiltersPayload,
+} from '@/components/dashboard/home-report/filters'
+import HomeReportTable from '@/components/dashboard/home-report/table'
+import TableSkeleton from '@/components/dashboard/home-report/table-skeleton'
 import { Main } from '@/components/layout/main'
 import { PageHeader } from '@/components/layout/page-header'
 
@@ -82,7 +84,13 @@ function HomeReportPage() {
       const raw = localStorage.getItem(FILTER_STORAGE_KEY)
       if (!raw) return
       const parsed = JSON.parse(raw) as HomeReportParams
-      if (!parsed || !parsed.subChannelId || !parsed.rangeId || !parsed.month || !parsed.year)
+      if (
+        !parsed ||
+        !parsed.subChannelId ||
+        !parsed.rangeId ||
+        !parsed.month ||
+        !parsed.year
+      )
         return
       navigate({
         to: '/dashboard/home-report',
@@ -113,7 +121,9 @@ function HomeReportPage() {
       const res = await getHomeReportData(params as HomeReportParams)
       return res
     },
-    enabled: Boolean(params?.subChannelId && params?.rangeId && params?.month && params?.year),
+    enabled: Boolean(
+      params?.subChannelId && params?.rangeId && params?.month && params?.year
+    ),
     staleTime: 1000 * 60 * 5, // 5 minutes fresh
     gcTime: 1000 * 60 * 30, // keep cached for 30 minutes after unmount
     refetchOnWindowFocus: false,
@@ -176,7 +186,7 @@ function HomeReportPage() {
         />
       )}
       {(isFetching || isError || Boolean(data)) && (
-      <Card className='round-md overflow-auto p-2'>
+        <Card className='round-md overflow-auto p-2'>
           {isLoading && (
             <div className='p-2'>
               <TableSkeleton

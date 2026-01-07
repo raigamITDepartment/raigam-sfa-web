@@ -13,7 +13,6 @@ import {
 } from '@/services/userDemarcationApi'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
-import { Input } from '@/components/ui/input'
 import {
   Popover,
   PopoverContent,
@@ -62,14 +61,40 @@ const formatDateLabel = (date?: Date) =>
   date ? format(date, 'MMM d, yyyy') : 'Select tracking date'
 
 const DEFAULT_FROM_TIME = '08:00'
-const DEFAULT_TO_TIME = '17:00'
+const DEFAULT_TO_TIME = '17:30'
+const TIME_STEP_MINUTES = 15
+const buildTimeOptions = (stepMinutes: number) => {
+  const options: string[] = []
+  for (let minutes = 0; minutes < 24 * 60; minutes += stepMinutes) {
+    const hours = Math.floor(minutes / 60)
+    const mins = minutes % 60
+    options.push(
+      `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`
+    )
+  }
+  return options
+}
+const formatTimeLabel = (value: string) => {
+  const [hourStr, minuteStr] = value.split(':')
+  const hour = Number(hourStr)
+  const minutes = Number(minuteStr)
+  if (Number.isNaN(hour) || Number.isNaN(minutes)) return value
+  const period = hour >= 12 ? 'PM' : 'AM'
+  const hour12 = hour % 12 || 12
+  return `${String(hour12).padStart(2, '0')}:${String(minutes).padStart(2, '0')} ${period}`
+}
+const TIME_OPTIONS = buildTimeOptions(TIME_STEP_MINUTES)
 
 export function GPSMonitoringFilter({
   initialValues,
   onApply,
   onReset,
 }: GPSMonitoringFilterProps) {
-  const controlHeight = 'h-11 min-h-[44px]'
+  const controlHeight = 'h-9'
+  const timeTriggerClass = cn(
+    controlHeight,
+    'w-full bg-slate-50 text-slate-800 placeholder:text-slate-400 focus-visible:border-slate-400 focus-visible:ring-slate-300/40 dark:bg-slate-900/60 dark:text-slate-100 dark:placeholder:text-slate-400 dark:focus-visible:border-slate-500 dark:focus-visible:ring-slate-500/40'
+  )
   const [trackingDate, setTrackingDate] = useState<Date | undefined>(
     parseDate(initialValues?.trackingDate)
   )
@@ -174,7 +199,7 @@ export function GPSMonitoringFilter({
                 variant='outline'
                 className={cn(
                   controlHeight,
-                  'w-full justify-between rounded-sm text-left font-normal',
+                  'w-full justify-between text-left font-normal',
                   !trackingDate && 'text-muted-foreground'
                 )}
               >
@@ -207,7 +232,7 @@ export function GPSMonitoringFilter({
           >
             <SelectTrigger
               id='gps-area'
-              className={cn(controlHeight, 'w-full rounded-sm')}
+              className={cn(controlHeight, 'w-full')}
             >
               <SelectValue placeholder='Select Area' />
             </SelectTrigger>
@@ -233,7 +258,7 @@ export function GPSMonitoringFilter({
           >
             <SelectTrigger
               id='gps-territory'
-              className={cn(controlHeight, 'w-full rounded-sm')}
+              className={cn(controlHeight, 'w-full')}
             >
               <SelectValue placeholder='Select Territory' />
             </SelectTrigger>
@@ -257,7 +282,7 @@ export function GPSMonitoringFilter({
           >
             <SelectTrigger
               id='gps-sales-rep'
-              className={cn(controlHeight, 'w-full rounded-sm')}
+              className={cn(controlHeight, 'w-full')}
             >
               <SelectValue placeholder='Select Sales Rep' />
             </SelectTrigger>
@@ -272,30 +297,38 @@ export function GPSMonitoringFilter({
         </div>
 
         <div className='flex flex-col gap-2'>
-          <Input
-            id='gps-from-time'
-            type='time'
-            value={fromTime}
-            onChange={(event) => setFromTime(event.target.value)}
-            placeholder='From time'
-            className={cn(controlHeight, 'w-full rounded-sm')}
-          />
+          <Select value={fromTime} onValueChange={setFromTime}>
+            <SelectTrigger id='gps-from-time' className={timeTriggerClass}>
+              <SelectValue placeholder='From time' />
+            </SelectTrigger>
+            <SelectContent>
+              {TIME_OPTIONS.map((time) => (
+                <SelectItem key={time} value={time}>
+                  {formatTimeLabel(time)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div className='flex flex-col gap-2'>
-          <Input
-            id='gps-to-time'
-            type='time'
-            value={toTime}
-            onChange={(event) => setToTime(event.target.value)}
-            placeholder='To time'
-            className={cn(controlHeight, 'w-full rounded-sm')}
-          />
+          <Select value={toTime} onValueChange={setToTime}>
+            <SelectTrigger id='gps-to-time' className={timeTriggerClass}>
+              <SelectValue placeholder='To time' />
+            </SelectTrigger>
+            <SelectContent>
+              {TIME_OPTIONS.map((time) => (
+                <SelectItem key={time} value={time}>
+                  {formatTimeLabel(time)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div className='flex items-end'>
           <Button
-            className={cn(controlHeight, 'min-w-[150px] rounded-sm')}
+            className={cn(controlHeight, 'min-w-[150px]')}
             onClick={handleApply}
           >
             Apply Filters
@@ -305,7 +338,7 @@ export function GPSMonitoringFilter({
         <div className='flex items-end'>
           <Button
             variant='outline'
-            className={cn(controlHeight, 'min-w-[150px] rounded-sm')}
+            className={cn(controlHeight, 'min-w-[150px]')}
             onClick={handleReset}
           >
             Reset All

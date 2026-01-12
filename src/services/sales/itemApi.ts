@@ -8,8 +8,7 @@ export const ITEM_SEQUENCE_BASE = '/api/v1/sales/itemSequence'
 export const CATEGORY_TYPE_BASE = '/api/v1/sales/categoryType'
 export const ITEM_SUB_CATEGORY_ONE_BASE = '/api/v1/sales/itemSubCategoryOne'
 export const ITEM_SUB_CATEGORY_TWO_BASE = '/api/v1/sales/itemSubCategoryTwo'
-export const ITEM_SUB_CATEGORY_THREE_BASE =
-  '/api/v1/sales/itemSubCategoryThree'
+export const ITEM_SUB_CATEGORY_THREE_BASE = '/api/v1/sales/itemSubCategoryThree'
 
 export type ItemPrice = {
   id: number
@@ -28,6 +27,7 @@ export type ItemPrice = {
 
 export type FindItemPriceResponse = ApiResponse<ItemPrice | null>
 export type FindItemPriceByItemResponse = ApiResponse<ItemPrice[]>
+export type FindItemPriceByTerritoryAndItemResponse = ApiResponse<ItemPrice[]>
 export type ItemMainCategory = {
   userId: number | null
   catTypeId: number
@@ -144,7 +144,9 @@ export type GroupedItemByMainCategory = {
   itemPriceList: unknown
   active: boolean
 }
-export type GroupedItemsByMainCategoryResponse = GroupedItemByMainCategory[]
+export type GroupedItemsByMainCategoryResponse = ApiResponse<
+  GroupedItemByMainCategory[]
+>
 
 export type ItemSequence = {
   userId: number | null
@@ -200,6 +202,16 @@ export async function findItemPriceByItemId(
 ): Promise<FindItemPriceByItemResponse> {
   const res = await http.get<FindItemPriceByItemResponse>(
     `${ITEM_PRICE_BASE}/findByItemId/${itemId}`
+  )
+  return res.data
+}
+
+export async function getPriceByTerritoryAndItemId(
+  territoryId: Id,
+  itemId: Id
+): Promise<FindItemPriceByTerritoryAndItemResponse> {
+  const res = await http.get<FindItemPriceByTerritoryAndItemResponse>(
+    `${ITEM_PRICE_BASE}/findItemPricesByTerritoryAndItemIds/${itemId}/${territoryId}`
   )
   return res.data
 }
@@ -367,10 +379,10 @@ export async function changeStatusFlavour(
 }
 
 export async function getItemsGroupedByMainCategory(
-  mainCatId: Id
+  territoryId: Id
 ): Promise<GroupedItemsByMainCategoryResponse> {
   const res = await http.get<GroupedItemsByMainCategoryResponse>(
-    `${ITEM_GROUPED_BASE}/grouped-by-main-category-list/${mainCatId}`
+    `${ITEM_GROUPED_BASE}/grouped-by-main-category-list/${territoryId}`
   )
   return res.data
 }

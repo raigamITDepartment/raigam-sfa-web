@@ -65,6 +65,54 @@ const PAST_MONTH_COLUMN_DEFS: PastMonthColumnDef[] = [
     nameKey: 'past6MonthName',
     numberKey: 'past6MonthNumber',
   },
+  {
+    index: 7,
+    defaultLabel: 'Past 7 Month',
+    valueKey: 'past7MonthTotalValue',
+    pcKey: 'past7MonthTotalPcCount',
+    nameKey: 'past7MonthName',
+    numberKey: 'past7MonthNumber',
+  },
+  {
+    index: 8,
+    defaultLabel: 'Past 8 Month',
+    valueKey: 'past8MonthTotalValue',
+    pcKey: 'past8MonthTotalPcCount',
+    nameKey: 'past8MonthName',
+    numberKey: 'past8MonthNumber',
+  },
+  {
+    index: 9,
+    defaultLabel: 'Past 9 Month',
+    valueKey: 'past9MonthTotalValue',
+    pcKey: 'past9MonthTotalPcCount',
+    nameKey: 'past9MonthName',
+    numberKey: 'past9MonthNumber',
+  },
+  {
+    index: 10,
+    defaultLabel: 'Past 10 Month',
+    valueKey: 'past10MonthTotalValue',
+    pcKey: 'past10MonthTotalPcCount',
+    nameKey: 'past10MonthName',
+    numberKey: 'past10MonthNumber',
+  },
+  {
+    index: 11,
+    defaultLabel: 'Past 11 Month',
+    valueKey: 'past11MonthTotalValue',
+    pcKey: 'past11MonthTotalPcCount',
+    nameKey: 'past11MonthName',
+    numberKey: 'past11MonthNumber',
+  },
+  {
+    index: 12,
+    defaultLabel: 'Past 12 Month',
+    valueKey: 'past12MonthTotalValue',
+    pcKey: 'past12MonthTotalPcCount',
+    nameKey: 'past12MonthName',
+    numberKey: 'past12MonthNumber',
+  },
 ]
 
 // Color palette for daily columns (1–31)
@@ -181,7 +229,7 @@ const getFallbackPastMonthLabels = (baseMonthIndex?: number) => {
       ? baseMonthIndex
       : new Date().getMonth()
   const labels: string[] = []
-  for (let i = 1; i <= 6; i++) {
+  for (let i = 1; i <= 12; i++) {
     const monthIdx = (base - i + 12) % 12
     labels.push(SHORT_MONTH_NAMES[monthIdx])
   }
@@ -238,7 +286,7 @@ const buildPastMonthMeta = (
   firstItem: HomeReportItem | undefined,
   fallbackPastMonthLabels: string[]
 ): PastMonthMeta[] =>
-  // Build labels/headers for past 6 months using provided names or short-name fallbacks.
+  // Build labels/headers for past months using provided names or short-name fallbacks.
   PAST_MONTH_COLUMN_DEFS.map((column) => {
     const rawName = firstItem?.[column.nameKey]
     const monthNumber = firstItem?.[column.numberKey]
@@ -454,7 +502,7 @@ function renderTable(
                 colSpan={pastMonthsHeaders.length}
                 className='border border-l border-gray-300 bg-slate-200 py-3 text-center font-bold text-blue-900 dark:bg-gray-900 dark:text-white'
               >
-                Past 6 Months Figures
+                Past 12 Months Figures
               </th>
             )}
           </tr>

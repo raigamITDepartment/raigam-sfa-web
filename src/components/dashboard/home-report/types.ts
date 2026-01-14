@@ -25,6 +25,12 @@ export type PastMonthValueKey =
   | 'past4MonthTotalValue'
   | 'past5MonthTotalValue'
   | 'past6MonthTotalValue'
+  | 'past7MonthTotalValue'
+  | 'past8MonthTotalValue'
+  | 'past9MonthTotalValue'
+  | 'past10MonthTotalValue'
+  | 'past11MonthTotalValue'
+  | 'past12MonthTotalValue'
 
 export type PastMonthPcKey =
   | 'past1MonthTotalPcCount'
@@ -33,6 +39,12 @@ export type PastMonthPcKey =
   | 'past4MonthTotalPcCount'
   | 'past5MonthTotalPcCount'
   | 'past6MonthTotalPcCount'
+  | 'past7MonthTotalPcCount'
+  | 'past8MonthTotalPcCount'
+  | 'past9MonthTotalPcCount'
+  | 'past10MonthTotalPcCount'
+  | 'past11MonthTotalPcCount'
+  | 'past12MonthTotalPcCount'
 
 export type PastMonthNameKey =
   | 'past1MonthName'
@@ -41,6 +53,12 @@ export type PastMonthNameKey =
   | 'past4MonthName'
   | 'past5MonthName'
   | 'past6MonthName'
+  | 'past7MonthName'
+  | 'past8MonthName'
+  | 'past9MonthName'
+  | 'past10MonthName'
+  | 'past11MonthName'
+  | 'past12MonthName'
 
 export type PastMonthNumberKey =
   | 'past1MonthNumber'
@@ -49,6 +67,12 @@ export type PastMonthNumberKey =
   | 'past4MonthNumber'
   | 'past5MonthNumber'
   | 'past6MonthNumber'
+  | 'past7MonthNumber'
+  | 'past8MonthNumber'
+  | 'past9MonthNumber'
+  | 'past10MonthNumber'
+  | 'past11MonthNumber'
+  | 'past12MonthNumber'
 
 export type PastMonthColumnDef = {
   index: number

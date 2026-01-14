@@ -796,10 +796,10 @@ const BookingInvoice = () => {
           ) : null}
         </ConfirmDialog>
         <BookingInvoiceFilter
-          initialStartDate={defaultDates.startDate}
-          initialEndDate={defaultDates.endDate}
-          initialInvoiceType='ALL'
-          initialTerritoryId={isAreaRole ? undefined : filters.territoryId}
+          initialStartDate={filters.startDate}
+          initialEndDate={filters.endDate}
+          initialInvoiceType={filters.invoiceType}
+          initialTerritoryId={filters.territoryId}
           territoryOptions={isAreaRole ? territoryOptions : undefined}
           onApply={(next) => {
             setFilters(next)

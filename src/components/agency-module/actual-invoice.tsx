@@ -13,7 +13,8 @@ import {
   getInvoiceDetailsById,
   getInvoiceDetailsByStatus,
 } from '@/services/reports/invoiceReports'
-import { useAppSelector } from '@/store/hooks'
+import { setActualFilters } from '@/store/bookingInvoiceSlice'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import type {
   BookingInvoiceReportItem,
   InvoiceTypeParam,
@@ -73,6 +74,10 @@ const deriveStatus = (row: BookingInvoiceReportItem) => {
 
 const ActualInvoice = () => {
   const user = useAppSelector((s) => s.auth.user)
+  const savedFilters = useAppSelector(
+    (s) => s.bookingInvoice.actualFilters
+  )
+  const dispatch = useAppDispatch()
   const queryClient = useQueryClient()
   const toIso = (d: Date) => d.toISOString().slice(0, 10)
   const baseTerritoryId = Number(
@@ -94,15 +99,26 @@ const ActualInvoice = () => {
       endDate: toIso(today),
     }
   }, [])
-  const [filters, setFilters] = useState<BookingInvoiceFilters>({
-    startDate: defaultDates.startDate,
-    endDate: defaultDates.endDate,
-    invoiceType: 'ALL',
-    territoryId: isAreaRole
-      ? undefined
-      : baseTerritoryId > 0
-        ? baseTerritoryId
-        : undefined,
+  const [filters, setFilters] = useState<BookingInvoiceFilters>(() => {
+    if (savedFilters) {
+      return {
+        ...savedFilters,
+        territoryId: isAreaRole
+          ? savedFilters.territoryId
+          : savedFilters.territoryId ??
+              (baseTerritoryId > 0 ? baseTerritoryId : undefined),
+      }
+    }
+    return {
+      startDate: defaultDates.startDate,
+      endDate: defaultDates.endDate,
+      invoiceType: 'ALL',
+      territoryId: isAreaRole
+        ? undefined
+        : baseTerritoryId > 0
+          ? baseTerritoryId
+          : undefined,
+    }
   })
   const [rowSelection, setRowSelection] = useState({})
   const [invoicePreviewOpen, setInvoicePreviewOpen] = useState(false)
@@ -854,13 +870,14 @@ const ActualInvoice = () => {
           ) : null}
         </ConfirmDialog>
         <BookingInvoiceFilter
-          initialStartDate={defaultDates.startDate}
-          initialEndDate={defaultDates.endDate}
-          initialInvoiceType='ALL'
-          initialTerritoryId={isAreaRole ? undefined : filters.territoryId}
+          initialStartDate={filters.startDate}
+          initialEndDate={filters.endDate}
+          initialInvoiceType={filters.invoiceType}
+          initialTerritoryId={filters.territoryId}
           territoryOptions={isAreaRole ? territoryOptions : undefined}
           onApply={(next) => {
             setFilters(next)
+            dispatch(setActualFilters(next))
           }}
           onReset={() => {
             const defaults: BookingInvoiceFilters = {
@@ -874,6 +891,7 @@ const ActualInvoice = () => {
                   : undefined,
             }
             setFilters(defaults)
+            dispatch(setActualFilters(defaults))
           }}
         />
         <BookingInvoiceTableSection

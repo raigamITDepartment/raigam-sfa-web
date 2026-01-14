@@ -15,6 +15,17 @@ type OutletColumnsOptions = {
   onEdit: (record: OutletRecord) => void
 }
 
+const matchesMultiSelect = (rowValue: unknown, filterValue: unknown) => {
+  const values = Array.isArray(filterValue)
+    ? filterValue
+    : filterValue
+      ? [String(filterValue)]
+      : []
+  if (!values.length) return true
+  if (rowValue === null || rowValue === undefined) return false
+  return values.includes(String(rowValue))
+}
+
 export const createOutletColumns = ({
   onEdit,
 }: OutletColumnsOptions): ColumnDef<OutletRecord>[] => [
@@ -74,6 +85,8 @@ export const createOutletColumns = ({
     id: 'category',
     accessorFn: (row) =>
       pickFirstValue(row, ['outletCategoryName', 'outletCategory', 'category']),
+    filterFn: (row, columnId, filterValue) =>
+      matchesMultiSelect(row.getValue(columnId), filterValue),
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title='Category' />
     ),
@@ -102,6 +115,8 @@ export const createOutletColumns = ({
     id: 'areaName',
     accessorFn: (row) =>
       pickFirstValue(row, ['areaName', 'rangeName', 'range']),
+    filterFn: (row, columnId, filterValue) =>
+      matchesMultiSelect(row.getValue(columnId), filterValue),
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title='Area' />
     ),
@@ -116,6 +131,8 @@ export const createOutletColumns = ({
   {
     id: 'route',
     accessorFn: (row) => row.routeName,
+    filterFn: (row, columnId, filterValue) =>
+      matchesMultiSelect(row.getValue(columnId), filterValue),
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title='Route' />
     ),

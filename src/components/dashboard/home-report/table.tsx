@@ -207,6 +207,15 @@ const LONG_MONTH_NAMES = [
   'december',
 ]
 
+const PAST_MONTH_COLUMN_COLORS = [
+  'bg-amber-50 dark:bg-amber-950/40',
+  'bg-blue-50 dark:bg-blue-950/40',
+  'bg-emerald-50 dark:bg-emerald-950/40',
+  'bg-rose-50 dark:bg-rose-950/40',
+  'bg-slate-50 dark:bg-slate-900/40',
+  'bg-orange-50 dark:bg-orange-950/40',
+]
+
 const parseMonthIndexFromString = (input?: string) => {
   if (!input) return undefined
   const normalized = input.toLowerCase()
@@ -481,6 +490,24 @@ function renderTable(
   isFullScreen: boolean
 ) {
   const pastMonthColumnSet = new Set(pastMonthsHeaders)
+  const pastMonthKeyOrder: string[] = []
+  pastMonthsHeaders.forEach((header) => {
+    const key = header.replace(/ (Value|PC)$/, '')
+    if (!pastMonthKeyOrder.includes(key)) pastMonthKeyOrder.push(key)
+  })
+  const pastMonthColorMap = new Map<string, string>()
+  pastMonthKeyOrder.forEach((key, index) => {
+    pastMonthColorMap.set(
+      key,
+      PAST_MONTH_COLUMN_COLORS[index % PAST_MONTH_COLUMN_COLORS.length]
+    )
+  })
+  const resolvePastMonthClass = (header: string) => {
+    if (!pastMonthColumnSet.has(header)) return ''
+    const key = header.replace(/ (Value|PC)$/, '')
+    const colorClass = pastMonthColorMap.get(key)
+    return colorClass ? ` ${colorClass}` : ''
+  }
   return (
     <div className='relative border-r border-l border-gray-200'>
       <table className='w-full min-w-[2400px] border-collapse text-sm'>
@@ -520,9 +547,7 @@ function renderTable(
             {headers.map((h, i) => {
               const isPastMonthHeader = pastMonthColumnSet.has(h)
               const headerBgClass = isPastMonthHeader
-                ? h.endsWith('PC')
-                  ? ' bg-slate-100'
-                  : ' bg-slate-50'
+                ? resolvePastMonthClass(h)
                 : ''
               return (
                 <th
@@ -621,9 +646,7 @@ function renderTable(
                     !isGrandTotal &&
                     !(isAreaTotal || isRegionTotal)
                   ) {
-                    cellClass += header.endsWith('PC')
-                      ? ' bg-slate-100'
-                      : ' bg-slate-50'
+                    cellClass += resolvePastMonthClass(header)
                   }
 
                   return (

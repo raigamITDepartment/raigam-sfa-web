@@ -66,6 +66,17 @@ const buildFacetOptions = (values: unknown[]) => {
 const findColumnKey = (keys: string[], candidates: string[]) =>
   keys.find((key) => candidates.includes(normalizeKey(key)))
 
+type ToolbarFilterOption = {
+  columnId?: string
+  title: string
+  options: { label: string; value: string }[]
+}
+
+const hasColumnId = (
+  filter: ToolbarFilterOption
+): filter is Omit<ToolbarFilterOption, 'columnId'> & { columnId: string } =>
+  Boolean(filter.columnId && filter.options.length > 0)
+
 const isFilterMatch = (rowValue: unknown, filterValue: unknown) => {
   const values = Array.isArray(filterValue)
     ? filterValue
@@ -230,7 +241,7 @@ const MainCategorySummaryReport = () => {
         title: 'Main Category',
         options: buildOptions(filterColumnKeys.mainCategory),
       },
-    ].filter((filter) => filter.columnId && filter.options.length > 0)
+    ].filter(hasColumnId)
   }, [
     rows,
     filterColumnKeys.unitOfMeasure,

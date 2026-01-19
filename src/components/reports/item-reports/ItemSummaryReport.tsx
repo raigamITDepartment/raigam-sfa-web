@@ -3,6 +3,8 @@ import { useQuery } from '@tanstack/react-query'
 import {
   flexRender,
   getCoreRowModel,
+  getFacetedRowModel,
+  getFacetedUniqueValues,
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
@@ -23,6 +25,11 @@ import { CommonAlert } from '@/components/common-alert'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { CountBadge } from '@/components/ui/count-badge'
 import {
+  ExcelExportButton,
+  type ExcelExportColumn,
+} from '@/components/excel-export-button'
+import { Download } from 'lucide-react'
+import {
   Table,
   TableBody,
   TableCell,
@@ -41,6 +48,34 @@ const formatHeader = (key: string) => {
 
 const normalizeKey = (key: string) =>
   key.toLowerCase().replace(/[^a-z0-9]/g, '')
+
+const buildFacetOptions = (values: unknown[]) => {
+  const normalized = values
+    .map((value) => (value === null || value === undefined ? '' : String(value)))
+    .map((value) => value.trim())
+    .filter((value) => value !== '')
+
+  return Array.from(new Set(normalized))
+    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
+    .map((value) => ({
+      label: value,
+      value,
+    }))
+}
+
+const findColumnKey = (keys: string[], candidates: string[]) =>
+  keys.find((key) => candidates.includes(normalizeKey(key)))
+
+const isFilterMatch = (rowValue: unknown, filterValue: unknown) => {
+  const values = Array.isArray(filterValue)
+    ? filterValue
+    : filterValue
+      ? [String(filterValue)]
+      : []
+  if (!values.length) return true
+  if (rowValue === null || rowValue === undefined) return false
+  return values.includes(String(rowValue))
+}
 
 const isTotalFinalValue = (key: string) =>
   normalizeKey(key) === 'totalfinalvalue'
@@ -113,11 +148,103 @@ const ItemSummaryReport = () => {
     return Array.isArray(payload) ? (payload as Record<string, unknown>[]) : []
   }, [data])
 
+  const orderedKeys = useMemo(
+    () => (rows.length ? orderColumnKeys(Object.keys(rows[0])) : []),
+    [rows]
+  )
+  const exportColumns = useMemo<
+    ExcelExportColumn<Record<string, unknown>>[]
+  >(
+    () =>
+      orderedKeys.map((key) => ({
+        header: formatHeader(key),
+        accessor: (row) => formatValue(key, row[key]),
+      })),
+    [orderedKeys]
+  )
+
+  const columnKeys = useMemo(
+    () => (rows.length ? Object.keys(rows[0]) : []),
+    [rows]
+  )
+  const filterColumnKeys = useMemo(
+    () => ({
+      unitOfMeasure: findColumnKey(columnKeys, [
+        'unitofmeasure',
+        'unitmeasure',
+        'uom',
+        'uomname',
+      ]),
+      subTwoCategory: findColumnKey(columnKeys, [
+        'subtwocatname',
+        'subtwocat',
+        'subtwocategoryname',
+        'subtwocategory',
+        'sub2catname',
+        'sub2cat',
+        'sub2categoryname',
+        'sub2category',
+        'subcategory2name',
+      ]),
+      subOneCategory: findColumnKey(columnKeys, [
+        'subonecatname',
+        'subonecat',
+        'subonecategoryname',
+        'subonecategory',
+        'sub1catname',
+        'sub1cat',
+        'sub1categoryname',
+        'sub1category',
+        'subcategory1name',
+      ]),
+      mainCategory: findColumnKey(columnKeys, [
+        'maincatname',
+        'maincat',
+        'maincategoryname',
+        'maincategory',
+      ]),
+    }),
+    [columnKeys]
+  )
+  const filterOptions = useMemo(() => {
+    const buildOptions = (columnKey?: string) =>
+      columnKey ? buildFacetOptions(rows.map((row) => row[columnKey])) : []
+    return [
+      {
+        columnId: filterColumnKeys.unitOfMeasure,
+        title: 'Unit of Measure',
+        options: buildOptions(filterColumnKeys.unitOfMeasure),
+      },
+      {
+        columnId: filterColumnKeys.subTwoCategory,
+        title: 'Sub Two Category',
+        options: buildOptions(filterColumnKeys.subTwoCategory),
+      },
+      {
+        columnId: filterColumnKeys.subOneCategory,
+        title: 'Sub One Category',
+        options: buildOptions(filterColumnKeys.subOneCategory),
+      },
+      {
+        columnId: filterColumnKeys.mainCategory,
+        title: 'Main Category',
+        options: buildOptions(filterColumnKeys.mainCategory),
+      },
+    ].filter((filter) => filter.columnId && filter.options.length > 0)
+  }, [
+    rows,
+    filterColumnKeys.unitOfMeasure,
+    filterColumnKeys.subTwoCategory,
+    filterColumnKeys.subOneCategory,
+    filterColumnKeys.mainCategory,
+  ])
+
   const columns = useMemo<ColumnDef<Record<string, unknown>>[]>(() => {
     if (!rows.length) return []
-    const orderedKeys = orderColumnKeys(Object.keys(rows[0]))
     return orderedKeys.map((key) => ({
       accessorKey: key,
+      filterFn: (row, columnId, filterValue) =>
+        isFilterMatch(row.getValue(columnId), filterValue),
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={formatHeader(key)} />
       ),
@@ -140,6 +267,8 @@ const ItemSummaryReport = () => {
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    getFacetedRowModel: getFacetedRowModel(),
+    getFacetedUniqueValues: getFacetedUniqueValues(),
     initialState: {
       pagination: {
         pageSize: 10,
@@ -147,6 +276,12 @@ const ItemSummaryReport = () => {
     },
     autoResetPageIndex: false,
   })
+
+  const tableState = table.getState()
+  const exportRowsForExport = useMemo(
+    () => table.getSortedRowModel().rows.map((row) => row.original),
+    [table, rows, globalFilter, tableState.columnFilters, tableState.sorting]
+  )
 
   const showNoData =
     canFetch && !isLoading && !isError && table.getRowModel().rows.length === 0
@@ -198,6 +333,21 @@ const ItemSummaryReport = () => {
                   <DataTableToolbar
                     table={table}
                     searchPlaceholder='Search report data...'
+                    filters={filterOptions}
+                    rightContent={
+                      <ExcelExportButton
+                        size='sm'
+                        variant='outline'
+                        className='gap-2'
+                        data={exportRowsForExport}
+                        columns={exportColumns}
+                        fileName='item-summary-report'
+                        worksheetName='Item Summary Report'
+                      >
+                        <Download className='size-4' aria-hidden='true' />
+                        <span>Export Excel</span>
+                      </ExcelExportButton>
+                    }
                   />
                 </div>
               </div>

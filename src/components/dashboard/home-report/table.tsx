@@ -65,6 +65,54 @@ const PAST_MONTH_COLUMN_DEFS: PastMonthColumnDef[] = [
     nameKey: 'past6MonthName',
     numberKey: 'past6MonthNumber',
   },
+  {
+    index: 7,
+    defaultLabel: 'Past 7 Month',
+    valueKey: 'past7MonthTotalValue',
+    pcKey: 'past7MonthTotalPcCount',
+    nameKey: 'past7MonthName',
+    numberKey: 'past7MonthNumber',
+  },
+  {
+    index: 8,
+    defaultLabel: 'Past 8 Month',
+    valueKey: 'past8MonthTotalValue',
+    pcKey: 'past8MonthTotalPcCount',
+    nameKey: 'past8MonthName',
+    numberKey: 'past8MonthNumber',
+  },
+  {
+    index: 9,
+    defaultLabel: 'Past 9 Month',
+    valueKey: 'past9MonthTotalValue',
+    pcKey: 'past9MonthTotalPcCount',
+    nameKey: 'past9MonthName',
+    numberKey: 'past9MonthNumber',
+  },
+  {
+    index: 10,
+    defaultLabel: 'Past 10 Month',
+    valueKey: 'past10MonthTotalValue',
+    pcKey: 'past10MonthTotalPcCount',
+    nameKey: 'past10MonthName',
+    numberKey: 'past10MonthNumber',
+  },
+  {
+    index: 11,
+    defaultLabel: 'Past 11 Month',
+    valueKey: 'past11MonthTotalValue',
+    pcKey: 'past11MonthTotalPcCount',
+    nameKey: 'past11MonthName',
+    numberKey: 'past11MonthNumber',
+  },
+  {
+    index: 12,
+    defaultLabel: 'Past 12 Month',
+    valueKey: 'past12MonthTotalValue',
+    pcKey: 'past12MonthTotalPcCount',
+    nameKey: 'past12MonthName',
+    numberKey: 'past12MonthNumber',
+  },
 ]
 
 // Color palette for daily columns (1–31)
@@ -159,6 +207,15 @@ const LONG_MONTH_NAMES = [
   'december',
 ]
 
+const PAST_MONTH_COLUMN_COLORS = [
+  'bg-amber-50 dark:bg-amber-950/40',
+  'bg-blue-50 dark:bg-blue-950/40',
+  'bg-emerald-50 dark:bg-emerald-950/40',
+  'bg-rose-50 dark:bg-rose-950/40',
+  'bg-slate-50 dark:bg-slate-900/40',
+  'bg-orange-50 dark:bg-orange-950/40',
+]
+
 const parseMonthIndexFromString = (input?: string) => {
   if (!input) return undefined
   const normalized = input.toLowerCase()
@@ -181,7 +238,7 @@ const getFallbackPastMonthLabels = (baseMonthIndex?: number) => {
       ? baseMonthIndex
       : new Date().getMonth()
   const labels: string[] = []
-  for (let i = 1; i <= 6; i++) {
+  for (let i = 1; i <= 12; i++) {
     const monthIdx = (base - i + 12) % 12
     labels.push(SHORT_MONTH_NAMES[monthIdx])
   }
@@ -238,7 +295,7 @@ const buildPastMonthMeta = (
   firstItem: HomeReportItem | undefined,
   fallbackPastMonthLabels: string[]
 ): PastMonthMeta[] =>
-  // Build labels/headers for past 6 months using provided names or short-name fallbacks.
+  // Build labels/headers for past months using provided names or short-name fallbacks.
   PAST_MONTH_COLUMN_DEFS.map((column) => {
     const rawName = firstItem?.[column.nameKey]
     const monthNumber = firstItem?.[column.numberKey]
@@ -433,6 +490,24 @@ function renderTable(
   isFullScreen: boolean
 ) {
   const pastMonthColumnSet = new Set(pastMonthsHeaders)
+  const pastMonthKeyOrder: string[] = []
+  pastMonthsHeaders.forEach((header) => {
+    const key = header.replace(/ (Value|PC)$/, '')
+    if (!pastMonthKeyOrder.includes(key)) pastMonthKeyOrder.push(key)
+  })
+  const pastMonthColorMap = new Map<string, string>()
+  pastMonthKeyOrder.forEach((key, index) => {
+    pastMonthColorMap.set(
+      key,
+      PAST_MONTH_COLUMN_COLORS[index % PAST_MONTH_COLUMN_COLORS.length]
+    )
+  })
+  const resolvePastMonthClass = (header: string) => {
+    if (!pastMonthColumnSet.has(header)) return ''
+    const key = header.replace(/ (Value|PC)$/, '')
+    const colorClass = pastMonthColorMap.get(key)
+    return colorClass ? ` ${colorClass}` : ''
+  }
   return (
     <div className='relative border-r border-l border-gray-200'>
       <table className='w-full min-w-[2400px] border-collapse text-sm'>
@@ -454,7 +529,7 @@ function renderTable(
                 colSpan={pastMonthsHeaders.length}
                 className='border border-l border-gray-300 bg-slate-200 py-3 text-center font-bold text-blue-900 dark:bg-gray-900 dark:text-white'
               >
-                Past 6 Months Figures
+                Past 12 Months Figures
               </th>
             )}
           </tr>
@@ -472,9 +547,7 @@ function renderTable(
             {headers.map((h, i) => {
               const isPastMonthHeader = pastMonthColumnSet.has(h)
               const headerBgClass = isPastMonthHeader
-                ? h.endsWith('PC')
-                  ? ' bg-slate-100'
-                  : ' bg-slate-50'
+                ? resolvePastMonthClass(h)
                 : ''
               return (
                 <th
@@ -573,9 +646,7 @@ function renderTable(
                     !isGrandTotal &&
                     !(isAreaTotal || isRegionTotal)
                   ) {
-                    cellClass += header.endsWith('PC')
-                      ? ' bg-slate-100'
-                      : ' bg-slate-50'
+                    cellClass += resolvePastMonthClass(header)
                   }
 
                   return (

@@ -9,7 +9,8 @@ import {
   type ColumnDef,
 } from '@tanstack/react-table'
 import { getInvoiceDetailsById, getInvoiceDetailsByStatus } from '@/services/reports/invoiceReports'
-import { useAppSelector } from '@/store/hooks'
+import { setCanceledFilters } from '@/store/bookingInvoiceSlice'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import type {
   BookingInvoiceReportItem,
   InvoiceTypeParam,
@@ -53,6 +54,10 @@ const deriveStatus = (row: BookingInvoiceReportItem) => {
 
 const CanceledInvoice = () => {
   const user = useAppSelector((s) => s.auth.user)
+  const savedFilters = useAppSelector(
+    (s) => s.bookingInvoice.canceledFilters
+  )
+  const dispatch = useAppDispatch()
   const queryClient = useQueryClient()
   const toIso = (d: Date) => d.toISOString().slice(0, 10)
   const baseTerritoryId = Number(
@@ -70,15 +75,26 @@ const CanceledInvoice = () => {
       endDate: toIso(today),
     }
   }, [])
-  const [filters, setFilters] = useState<BookingInvoiceFilters>({
-    startDate: defaultDates.startDate,
-    endDate: defaultDates.endDate,
-    invoiceType: 'ALL',
-    territoryId: isAreaRole
-      ? undefined
-      : baseTerritoryId > 0
-        ? baseTerritoryId
-        : undefined,
+  const [filters, setFilters] = useState<BookingInvoiceFilters>(() => {
+    if (savedFilters) {
+      return {
+        ...savedFilters,
+        territoryId: isAreaRole
+          ? savedFilters.territoryId
+          : savedFilters.territoryId ??
+              (baseTerritoryId > 0 ? baseTerritoryId : undefined),
+      }
+    }
+    return {
+      startDate: defaultDates.startDate,
+      endDate: defaultDates.endDate,
+      invoiceType: 'ALL',
+      territoryId: isAreaRole
+        ? undefined
+        : baseTerritoryId > 0
+          ? baseTerritoryId
+          : undefined,
+    }
   })
   const [invoicePreviewOpen, setInvoicePreviewOpen] = useState(false)
   const [selectedInvoice, setSelectedInvoice] =
@@ -367,13 +383,14 @@ const CanceledInvoice = () => {
     <Card className='space-y-4'>
       <CardContent>
         <BookingInvoiceFilter
-          initialStartDate={defaultDates.startDate}
-          initialEndDate={defaultDates.endDate}
-          initialInvoiceType='ALL'
-          initialTerritoryId={isAreaRole ? undefined : filters.territoryId}
+          initialStartDate={filters.startDate}
+          initialEndDate={filters.endDate}
+          initialInvoiceType={filters.invoiceType}
+          initialTerritoryId={filters.territoryId}
           territoryOptions={isAreaRole ? territoryOptions : undefined}
           onApply={(next) => {
             setFilters(next)
+            dispatch(setCanceledFilters(next))
           }}
           onReset={() => {
             const defaults: BookingInvoiceFilters = {
@@ -387,6 +404,7 @@ const CanceledInvoice = () => {
                   : undefined,
             }
             setFilters(defaults)
+            dispatch(setCanceledFilters(defaults))
           }}
         />
         <BookingInvoiceTableSection

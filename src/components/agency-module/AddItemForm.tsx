@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react'
 import {
   getItemMainCategories,
   getItemsGroupedByMainCategory,
-  findItemPriceByItemId,
+  getPriceByTerritoryAndItemId,
+  type GroupedItemByMainCategory,
 } from '@/services/sales/itemApi'
+import { useAppSelector } from '@/store/hooks'
 import type { ItemFormValues } from '@/types/itemForm'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -65,9 +67,14 @@ export const ItemForm = ({
     finalTotalValue: null,
   }
 
+  const user = useAppSelector((state) => state.auth.user)
+
   const [mainCategories, setMainCategories] = useState<
     { id: number; label: string }[]
   >([])
+  const [groupedItems, setGroupedItems] = useState<GroupedItemByMainCategory[]>(
+    []
+  )
   const [items, setItems] = useState<{ id: number; label: string }[]>([])
   const [isLoadingCats, setIsLoadingCats] = useState(false)
   const [isLoadingItems, setIsLoadingItems] = useState(false)
@@ -365,29 +372,57 @@ export const ItemForm = ({
       setItems([])
       return
     }
+    const seen = new Set<number>()
+    const nextItems = groupedItems.reduce(
+      (acc: { id: number; label: string }[], item) => {
+        if (item.mainCatId !== catId) return acc
+        if (seen.has(item.itemId)) return acc
+        seen.add(item.itemId)
+        const label = item.itemName?.trim()
+          ? item.itemName
+          : `Item ${item.itemId}`
+        acc.push({ id: item.itemId, label })
+        return acc
+      },
+      []
+    )
+    nextItems.sort((a, b) => a.label.localeCompare(b.label))
+    setItems(nextItems)
+  }, [groupedItems, value.mainCatId])
+
+  useEffect(() => {
+    const territoryId = user?.territoryId
+    if (territoryId == null) {
+      setGroupedItems([])
+      setItems([])
+      setIsLoadingItems(false)
+      return
+    }
     const loadItems = async () => {
       setIsLoadingItems(true)
+      setGroupedItems([])
       try {
-        const res = await getItemsGroupedByMainCategory(catId)
-        const list = Array.isArray(res) ? res : []
-        setItems(list.map((i) => ({ id: i.itemId, label: i.itemName })))
+        const res = await getItemsGroupedByMainCategory(territoryId)
+        const list = Array.isArray(res?.payload) ? res.payload : []
+        setGroupedItems(list)
       } finally {
         setIsLoadingItems(false)
       }
     }
     loadItems()
-  }, [value.mainCatId])
+  }, [user?.territoryId])
 
   useEffect(() => {
     const itemId = value.itemId
-    if (!itemId) {
+    const territoryId = user?.territoryId
+    if (!itemId || territoryId == null) {
       setPriceOptions([])
       return
     }
     const loadPrices = async () => {
       setIsLoadingPrices(true)
       try {
-        const res = await findItemPriceByItemId(itemId)
+        const res = await getPriceByTerritoryAndItemId(territoryId, itemId)
         const list = Array.isArray(res?.payload) ? res.payload : []
         setPriceOptions(
           list.map((p) => ({
@@ -401,7 +436,7 @@ export const ItemForm = ({
       }
     }
     loadPrices()
-  }, [value.itemId])
+  }, [user?.territoryId, value.itemId])
 
   return (
     <div className='space-y-4'>
@@ -452,21 +487,31 @@ export const ItemForm = ({
               })
             }}
           >
-            <SelectTrigger className={`${controlClass} w-full`}>
-              <SelectValue
-                placeholder={
-                  isLoadingItems ? 'Loading items...' : 'Select Item'
-                }
-              />
-            </SelectTrigger>
-            <SelectContent>
-              {items.map((item) => (
-                <SelectItem key={item.id} value={String(item.id)}>
-                  {item.label}
+          <SelectTrigger className={`${controlClass} w-full`}>
+            <SelectValue
+              placeholder={
+                  isLoadingItems
+                    ? 'Loading items...'
+                    : items.length
+                      ? 'Select Item'
+                      : 'No items found'
+              }
+            />
+          </SelectTrigger>
+          <SelectContent>
+              {items.length ? (
+                items.map((item) => (
+                  <SelectItem key={item.id} value={String(item.id)}>
+                    {item.label}
+                  </SelectItem>
+                ))
+              ) : (
+                <SelectItem value='__no-items' disabled>
+                  No items for this category
                 </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+              )}
+          </SelectContent>
+        </Select>
           {errors.itemId ? (
             <p className='text-xs text-red-600'>{errors.itemId}</p>
           ) : null}

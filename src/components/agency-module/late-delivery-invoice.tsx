@@ -8,18 +8,32 @@ import {
   useReactTable,
   type ColumnDef,
 } from '@tanstack/react-table'
-import { getInvoiceDetailsById, getInvoiceDetailsByStatus } from '@/services/reports/invoiceReports'
-import { useAppSelector } from '@/store/hooks'
+import {
+  getInvoiceDetailsById,
+  getInvoiceDetailsByStatus,
+} from '@/services/reports/invoiceReports'
+import { updateLateDeliveryToActualInvoice } from '@/services/sales/invoice/invoiceApi'
+import { setLateDeliveryFilters } from '@/store/bookingInvoiceSlice'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import type {
   BookingInvoiceReportItem,
   InvoiceTypeParam,
 } from '@/types/invoice'
 import { Eye } from 'lucide-react'
+import { toast } from 'sonner'
 import { formatPrice } from '@/lib/format-price'
 import { cn } from '@/lib/utils'
 import { SubRoleId } from '@/lib/authz'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   Tooltip,
   TooltipContent,
@@ -53,6 +67,10 @@ const deriveStatus = (row: BookingInvoiceReportItem) => {
 
 const LateDeliveryInvoice = () => {
   const user = useAppSelector((s) => s.auth.user)
+  const savedFilters = useAppSelector(
+    (s) => s.bookingInvoice.lateDeliveryFilters
+  )
+  const dispatch = useAppDispatch()
   const queryClient = useQueryClient()
   const toIso = (d: Date) => d.toISOString().slice(0, 10)
   const baseTerritoryId = Number(
@@ -70,21 +88,35 @@ const LateDeliveryInvoice = () => {
       endDate: toIso(today),
     }
   }, [])
-  const [filters, setFilters] = useState<BookingInvoiceFilters>({
-    startDate: defaultDates.startDate,
-    endDate: defaultDates.endDate,
-    invoiceType: 'ALL',
-    territoryId: isAreaRole
-      ? undefined
-      : baseTerritoryId > 0
-        ? baseTerritoryId
-        : undefined,
+  const [filters, setFilters] = useState<BookingInvoiceFilters>(() => {
+    if (savedFilters) {
+      return {
+        ...savedFilters,
+        territoryId: isAreaRole
+          ? savedFilters.territoryId
+          : savedFilters.territoryId ??
+              (baseTerritoryId > 0 ? baseTerritoryId : undefined),
+      }
+    }
+    return {
+      startDate: defaultDates.startDate,
+      endDate: defaultDates.endDate,
+      invoiceType: 'ALL',
+      territoryId: isAreaRole
+        ? undefined
+        : baseTerritoryId > 0
+          ? baseTerritoryId
+          : undefined,
+    }
   })
+  const [rowSelection, setRowSelection] = useState({})
   const [invoicePreviewOpen, setInvoicePreviewOpen] = useState(false)
   const [selectedInvoice, setSelectedInvoice] =
     useState<BookingInvoiceReportItem | null>(null)
   const [detailError, setDetailError] = useState<string | null>(null)
   const [isDetailLoading, setIsDetailLoading] = useState(false)
+  const [isStatusUpdating, setIsStatusUpdating] = useState(false)
+  const [statusSelectResetCounter, setStatusSelectResetCounter] = useState(0)
   const areaId = user?.areaIds?.[0]
   const { data: territoryList } = useQuery({
     queryKey: ['territories-by-area', areaId],
@@ -108,7 +140,7 @@ const LateDeliveryInvoice = () => {
     filters.territoryId ?? baseTerritoryId
   )
 
-  const { data, isLoading, isError, error } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: [
       'late-delivery-invoices',
       effectiveTerritoryId,
@@ -143,6 +175,17 @@ const LateDeliveryInvoice = () => {
     () => (data && 'payload' in data ? (data.payload ?? []) : []),
     [data]
   )
+  const selectedInvoices = useMemo(() => {
+    const selectedIds = new Set(
+      Object.entries(rowSelection)
+        .filter(([, isSelected]) => Boolean(isSelected))
+        .map(([key]) => key)
+    )
+    return rows.filter((row) => {
+      const id = String(row.id ?? row.invoiceNo)
+      return selectedIds.has(id)
+    })
+  }, [rowSelection, rows])
 
   const selectedInvoiceFresh = useMemo(() => {
     if (!selectedInvoice) return null
@@ -178,8 +221,88 @@ const LateDeliveryInvoice = () => {
     []
   )
 
+  const handleChangeStatusToActual = useCallback(async () => {
+    if (!selectedInvoices.length) {
+      toast.error('Select at least one invoice to update')
+      return
+    }
+    const userId = user?.userId
+    if (!userId) {
+      toast.error('Unable to update invoices without user context')
+      return
+    }
+    setIsStatusUpdating(true)
+    let successCount = 0
+    let failureCount = 0
+    for (const invoice of selectedInvoices) {
+      const invoiceId =
+        typeof invoice.id === 'number' && Number.isFinite(invoice.id)
+          ? invoice.id
+          : Number(invoice.invoiceNo) || 0
+      if (!invoiceId) {
+        failureCount += 1
+        toast.error(
+          `Unable to determine id for invoice ${invoice.invoiceNo ?? ''}`
+        )
+        continue
+      }
+      try {
+        await updateLateDeliveryToActualInvoice(invoiceId, userId)
+        successCount += 1
+      } catch (err) {
+        failureCount += 1
+        const message =
+          err instanceof Error ? err.message : 'Failed to update invoice.'
+        toast.error(`Invoice ${invoice.invoiceNo ?? invoiceId}: ${message}`)
+      }
+    }
+    if (successCount) {
+      const summary =
+        successCount === 1
+          ? 'Invoice updated to Actual.'
+          : `${successCount} invoices updated to Actual.`
+      toast.success(summary)
+      await refetch()
+      await queryClient.invalidateQueries({ queryKey: ['actual-invoices'] })
+    }
+    if (!successCount && failureCount) {
+      toast.error('Failed to update the selected invoices.')
+    }
+    setIsStatusUpdating(false)
+  }, [queryClient, refetch, selectedInvoices, user?.userId])
+
   const columns = useMemo<ColumnDef<BookingInvoiceReportItem>[]>(
     () => [
+      {
+        id: 'select',
+        header: ({ table }) => (
+          <div className='flex items-center justify-center pr-2 pl-1'>
+            <Checkbox
+              checked={
+                table.getIsAllPageRowsSelected() ||
+                (table.getIsSomePageRowsSelected() && 'indeterminate')
+              }
+              onCheckedChange={(value) =>
+                table.toggleAllPageRowsSelected(!!value)
+              }
+              aria-label='Select all'
+            />
+          </div>
+        ),
+        cell: ({ row }) => (
+          <div className='flex items-center justify-center pr-2 pl-1'>
+            <Checkbox
+              checked={row.getIsSelected()}
+              onCheckedChange={(value) => row.toggleSelected(!!value)}
+              aria-label='Select row'
+            />
+          </div>
+        ),
+        enableSorting: false,
+        enableHiding: false,
+        meta: { thClassName: 'w-12 text-center' },
+        size: 48,
+      },
       {
         accessorKey: 'invoiceNo',
         header: ({ column }) => (
@@ -350,7 +473,11 @@ const LateDeliveryInvoice = () => {
   const table = useReactTable({
     data: rows,
     columns,
-    enableRowSelection: false,
+    state: {
+      rowSelection,
+    },
+    onRowSelectionChange: setRowSelection,
+    enableRowSelection: true,
     getRowId: (row) => String(row.id ?? row.invoiceNo),
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -363,17 +490,37 @@ const LateDeliveryInvoice = () => {
     },
   })
 
+  const toolbarRightContent = (
+    <Select
+      key={`late-status-${statusSelectResetCounter}`}
+      disabled={isStatusUpdating}
+      onValueChange={(value) => {
+        if (value !== 'actual') return
+        handleChangeStatusToActual()
+        setStatusSelectResetCounter((prev) => prev + 1)
+      }}
+    >
+      <SelectTrigger size='sm' className='min-w-[160px] justify-between'>
+        <SelectValue placeholder='Change Status' />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value='actual'>Actual</SelectItem>
+      </SelectContent>
+    </Select>
+  )
+
   return (
     <Card className='space-y-4'>
       <CardContent>
         <BookingInvoiceFilter
-          initialStartDate={defaultDates.startDate}
-          initialEndDate={defaultDates.endDate}
-          initialInvoiceType='ALL'
-          initialTerritoryId={isAreaRole ? undefined : filters.territoryId}
+          initialStartDate={filters.startDate}
+          initialEndDate={filters.endDate}
+          initialInvoiceType={filters.invoiceType}
+          initialTerritoryId={filters.territoryId}
           territoryOptions={isAreaRole ? territoryOptions : undefined}
           onApply={(next) => {
             setFilters(next)
+            dispatch(setLateDeliveryFilters(next))
           }}
           onReset={() => {
             const defaults: BookingInvoiceFilters = {
@@ -387,6 +534,7 @@ const LateDeliveryInvoice = () => {
                   : undefined,
             }
             setFilters(defaults)
+            dispatch(setLateDeliveryFilters(defaults))
           }}
         />
         <BookingInvoiceTableSection
@@ -398,6 +546,7 @@ const LateDeliveryInvoice = () => {
           rows={rows}
           statusFilterOptions={[]}
           showPrintAction={false}
+          toolbarRightContent={toolbarRightContent}
         />
         {detailError ? (
           <p className='text-sm text-red-600'>{detailError}</p>

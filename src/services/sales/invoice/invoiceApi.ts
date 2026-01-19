@@ -89,6 +89,20 @@ export async function updateBookingInvoiceToActual(
   return res.data
 }
 
+export async function updateLateDeliveryToActualInvoice(
+  invoiceId: number | string,
+  userId: number | string
+) {
+  const res = await http.put<UpdateBookingInvoiceResponse>(
+    `${INVOICE_BASE}/updateLateDeliveryInvoiceWithDetailsToActualScenario`,
+    null,
+    {
+      params: { invoiceId, userId },
+    }
+  )
+  return res.data
+}
+
 type ReverseApprovalParams = {
   invoiceId: number | string
   repId?: number | string

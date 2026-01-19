@@ -53,8 +53,8 @@ import {
   type UserFormMode,
   type UserFormValues,
 } from '@/components/user-module/UserForm'
-import { createUserColumns } from './user-list-columns'
-import { createUserExportColumns } from './user-list-export'
+import { createUserColumns } from '@/components/user-module/user-list-columns'
+import { createUserExportColumns } from '@/components/user-module/user-list-export'
 
 export const Route = createFileRoute(
   '/_authenticated/admin-module/user-module/add-modify-user'

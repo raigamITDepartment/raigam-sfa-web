@@ -97,8 +97,3 @@ export const mockRouteResponse: RouteResponse = {
   user: 'U001',
   route: ONE_MINUTE_ROUTE,
 }
-
-// Quick sanity check:
-console.log('Points:', ONE_MINUTE_ROUTE.length) // should be 121 (03:30..05:30 inclusive)
-console.log('First:', ONE_MINUTE_ROUTE[0])
-console.log('Last:', ONE_MINUTE_ROUTE[ONE_MINUTE_ROUTE.length - 1])

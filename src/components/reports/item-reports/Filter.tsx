@@ -67,6 +67,9 @@ const formatRangeLabel = (range?: DateRange) => {
   return range?.from ? formatLocalDate(range.from) : 'Select date range'
 }
 
+const isPresentCode = (value?: number | string | null) =>
+  value !== null && value !== undefined && value !== ''
+
 export default function TerritoryWiseItemsFilter({
   initialValues,
   onApply,
@@ -392,11 +395,29 @@ export default function TerritoryWiseItemsFilter({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value='0'>All Routes</SelectItem>
-            {routes?.map((route) => (
-              <SelectItem key={route.id} value={String(route.id)}>
-                {route.routeName ?? `Route ${route.id}`}
-              </SelectItem>
-            ))}
+            {routes?.map((route) => {
+              const routeLabel = route.routeName ?? `Route ${route.id}`
+              const routeCode = route.routeCode
+              const routeTextValue = isPresentCode(routeCode)
+                ? `${routeCode} ${routeLabel}`
+                : routeLabel
+              return (
+                <SelectItem
+                  key={route.id}
+                  value={String(route.id)}
+                  textValue={routeTextValue}
+                >
+                  <div className='flex w-full items-center gap-2'>
+                    {isPresentCode(routeCode) ? (
+                      <span className='shrink-0 rounded-sm bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200'>
+                        {routeCode}
+                      </span>
+                    ) : null}
+                    <span className='truncate'>{routeLabel}</span>
+                  </div>
+                </SelectItem>
+              )
+            })}
           </SelectContent>
         </Select>
       </div>
@@ -418,11 +439,36 @@ export default function TerritoryWiseItemsFilter({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value='0'>All Outlets</SelectItem>
-            {outlets?.map((outlet) => (
-              <SelectItem key={outlet.id} value={String(outlet.id)}>
-                {outlet.name ?? `Outlet ${outlet.id}`}
-              </SelectItem>
-            ))}
+            {outlets?.map((outlet) => {
+              const outletRecord = outlet as OutletDTO & {
+                shopCode?: number | string | null
+                outletName?: string | null
+              }
+              const outletLabel =
+                outletRecord.name ??
+                outletRecord.outletName ??
+                `Outlet ${outletRecord.id}`
+              const shopCode = outletRecord.shopCode
+              const outletTextValue = isPresentCode(shopCode)
+                ? `${shopCode} ${outletLabel}`
+                : outletLabel
+              return (
+                <SelectItem
+                  key={outletRecord.id}
+                  value={String(outletRecord.id)}
+                  textValue={outletTextValue}
+                >
+                  <div className='flex w-full items-center gap-2'>
+                    {isPresentCode(shopCode) ? (
+                      <span className='shrink-0 rounded-sm bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200'>
+                        {shopCode}
+                      </span>
+                    ) : null}
+                    <span className='truncate'>{outletLabel}</span>
+                  </div>
+                </SelectItem>
+              )
+            })}
           </SelectContent>
         </Select>
       </div>

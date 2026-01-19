@@ -39,6 +39,37 @@ const formatHeader = (key: string) => {
   return withSpaces.charAt(0).toUpperCase() + withSpaces.slice(1)
 }
 
+const normalizeKey = (key: string) =>
+  key.toLowerCase().replace(/[^a-z0-9]/g, '')
+
+const isTotalFinalValue = (key: string) =>
+  normalizeKey(key) === 'totalfinalvalue'
+const isSoldQty = (key: string) => normalizeKey(key) === 'soldqty'
+const isTotalSoldValue = (key: string) =>
+  normalizeKey(key) === 'totalsoldvalue'
+const isTotalCancelQty = (key: string) =>
+  normalizeKey(key) === 'totalcancelqty'
+
+const orderColumnKeys = (keys: string[]) => {
+  const filtered = keys.filter((key) => !isTotalFinalValue(key))
+  const soldQtyKey = filtered.find(isSoldQty)
+  const totalSoldValueKey = filtered.find(isTotalSoldValue)
+  const hasReorderTargets = soldQtyKey || totalSoldValueKey
+  if (!hasReorderTargets) return filtered
+
+  const withoutTargets = filtered.filter(
+    (key) => !isSoldQty(key) && !isTotalSoldValue(key)
+  )
+  const cancelIndex = withoutTargets.findIndex(isTotalCancelQty)
+  if (cancelIndex === -1) return filtered
+
+  const insertKeys = [soldQtyKey, totalSoldValueKey].filter(
+    (value): value is string => Boolean(value)
+  )
+  withoutTargets.splice(cancelIndex, 0, ...insertKeys)
+  return withoutTargets
+}
+
 const isPriceKey = (key: string) =>
   /(price|amount|value|total|cost|net|sales)/i.test(key)
 
@@ -84,7 +115,8 @@ const ItemSummaryReport = () => {
 
   const columns = useMemo<ColumnDef<Record<string, unknown>>[]>(() => {
     if (!rows.length) return []
-    return Object.keys(rows[0]).map((key) => ({
+    const orderedKeys = orderColumnKeys(Object.keys(rows[0]))
+    return orderedKeys.map((key) => ({
       accessorKey: key,
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={formatHeader(key)} />

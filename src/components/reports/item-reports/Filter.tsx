@@ -47,8 +47,11 @@ type FilterProps = {
   onApply?: (filters: TerritoryWiseItemsFilters) => void
 }
 
+const pad2 = (value: number) => String(value).padStart(2, '0')
+const formatLocalDate = (value: Date) =>
+  `${value.getFullYear()}-${pad2(value.getMonth() + 1)}-${pad2(value.getDate())}`
 const toIsoDate = (value?: Date | null) =>
-  value ? value.toISOString().slice(0, 10) : undefined
+  value ? formatLocalDate(value) : undefined
 
 const parseDate = (value?: string) => {
   if (!value) return undefined
@@ -59,11 +62,9 @@ const parseDate = (value?: string) => {
 const formatRangeLabel = (range?: DateRange) => {
   if (!range?.from && !range?.to) return 'Select date range'
   if (range?.from && range?.to) {
-    return `${range.from.toISOString().slice(0, 10)} ~ ${range.to
-      .toISOString()
-      .slice(0, 10)}`
+    return `${formatLocalDate(range.from)} ~ ${formatLocalDate(range.to)}`
   }
-  return range?.from ? range.from.toISOString().slice(0, 10) : 'Select date range'
+  return range?.from ? formatLocalDate(range.from) : 'Select date range'
 }
 
 export default function TerritoryWiseItemsFilter({
@@ -71,7 +72,7 @@ export default function TerritoryWiseItemsFilter({
   onApply,
 }: FilterProps) {
   const controlHeight = 'h-9 min-h-[36px]'
-  const todayIso = useMemo(() => new Date().toISOString().slice(0, 10), [])
+  const todayIso = useMemo(() => formatLocalDate(new Date()), [])
   const user = useAppSelector((state) => state.auth.user)
   const canPickSubChannel = useMemo(() => {
     const userTypeId = user?.userTypeId
@@ -273,7 +274,7 @@ export default function TerritoryWiseItemsFilter({
   return (
     <div className='flex flex-wrap items-end gap-3'>
       {canPickSubChannel ? (
-        <div className='flex min-w-[200px] flex-1 flex-col gap-2'>
+        <div className='flex w-full min-w-0 flex-1 flex-col gap-2 sm:min-w-[200px]'>
           <Select
             value={subChannelId}
             onValueChange={(value) => {
@@ -289,7 +290,7 @@ export default function TerritoryWiseItemsFilter({
             <SelectTrigger
               className={cn(
                 controlHeight,
-                'w-full bg-slate-50',
+                'w-full bg-slate-50 text-left',
                 errors.subChannelId ? 'border-red-500 text-red-600' : ''
               )}
               aria-invalid={errors.subChannelId}
@@ -310,7 +311,7 @@ export default function TerritoryWiseItemsFilter({
         </div>
       ) : null}
 
-      <div className='flex min-w-[180px] flex-1 flex-col gap-2'>
+      <div className='flex w-full min-w-0 flex-1 flex-col gap-2 sm:min-w-[180px]'>
         <Select
           value={areaId}
           onValueChange={(value) => {
@@ -321,7 +322,9 @@ export default function TerritoryWiseItemsFilter({
           }}
           disabled={loadingAreas || !effectiveSubChannelId}
         >
-          <SelectTrigger className={cn(controlHeight, 'w-full bg-slate-50')}>
+          <SelectTrigger
+            className={cn(controlHeight, 'w-full bg-slate-50 text-left')}
+          >
             <SelectValue placeholder='Select Area' />
           </SelectTrigger>
           <SelectContent>
@@ -335,7 +338,7 @@ export default function TerritoryWiseItemsFilter({
         </Select>
       </div>
 
-      <div className='flex min-w-[180px] flex-1 flex-col gap-2'>
+      <div className='flex w-full min-w-0 flex-1 flex-col gap-2 sm:min-w-[180px]'>
         <Select
           value={territoryId}
           onValueChange={(value) => {
@@ -351,7 +354,7 @@ export default function TerritoryWiseItemsFilter({
           }
         >
           <SelectTrigger
-            className={cn(controlHeight, 'w-full bg-slate-50')}
+            className={cn(controlHeight, 'w-full bg-slate-50 text-left')}
           >
             <SelectValue placeholder='Select Territory' />
           </SelectTrigger>
@@ -368,7 +371,7 @@ export default function TerritoryWiseItemsFilter({
         </Select>
       </div>
 
-      <div className='flex min-w-[180px] flex-1 flex-col gap-2'>
+      <div className='flex w-full min-w-0 flex-1 flex-col gap-2 sm:min-w-[180px]'>
         <Select
           value={routeId}
           onValueChange={(value) => {
@@ -383,7 +386,7 @@ export default function TerritoryWiseItemsFilter({
           }
         >
           <SelectTrigger
-            className={cn(controlHeight, 'w-full bg-slate-50')}
+            className={cn(controlHeight, 'w-full bg-slate-50 text-left')}
           >
             <SelectValue placeholder='Select Route' />
           </SelectTrigger>
@@ -398,7 +401,7 @@ export default function TerritoryWiseItemsFilter({
         </Select>
       </div>
 
-      <div className='flex min-w-[180px] flex-1 flex-col gap-2'>
+      <div className='flex w-full min-w-0 flex-1 flex-col gap-2 sm:min-w-[180px]'>
         <Select
           value={outletId}
           onValueChange={(value) => {
@@ -409,7 +412,7 @@ export default function TerritoryWiseItemsFilter({
           }
         >
           <SelectTrigger
-            className={cn(controlHeight, 'w-full bg-slate-50')}
+            className={cn(controlHeight, 'w-full bg-slate-50 text-left')}
           >
             <SelectValue placeholder='Select Outlet' />
           </SelectTrigger>
@@ -424,15 +427,15 @@ export default function TerritoryWiseItemsFilter({
         </Select>
       </div>
 
-      <div className='flex min-w-[220px] flex-1 flex-col gap-2'>
-        <div className='flex items-center gap-2'>
+      <div className='flex w-full min-w-0 flex-1 flex-col gap-2 sm:min-w-[220px]'>
+        <div className='relative w-full'>
           <Popover>
             <PopoverTrigger asChild>
               <Button
                 variant='outline'
                 className={cn(
                   controlHeight,
-                  'w-full justify-between rounded-md border bg-slate-50 text-left font-normal',
+                  'w-full min-w-0 justify-between rounded-md border bg-slate-50 text-left font-normal',
                 )}
               >
                 <div className='flex items-center gap-2'>
@@ -449,35 +452,37 @@ export default function TerritoryWiseItemsFilter({
                 selected={range}
                 onSelect={setRange}
               />
+              {range?.from || range?.to ? (
+                <div className='flex justify-end border-t p-2'>
+                  <Button
+                    type='button'
+                    variant='ghost'
+                    size='sm'
+                    onClick={handleClearDates}
+                  >
+                    Clear
+                  </Button>
+                </div>
+              ) : null}
             </PopoverContent>
           </Popover>
-          {range?.from || range?.to ? (
-            <Button
-              variant='outline'
-              size='icon'
-              className={cn(controlHeight, 'w-11 min-w-[44px] bg-slate-50')}
-              onClick={handleClearDates}
-              aria-label='Clear date range'
-            >
-              <X className='h-4 w-4' />
-            </Button>
-          ) : null}
         </div>
       </div>
 
-      <div className='flex items-center'>
-        <div className='flex items-center gap-2'>
-          <Button className={cn(controlHeight, 'px-6')} onClick={handleApply}>
-            Apply filters
-          </Button>
-          <Button
-            variant='outline'
-            className={cn(controlHeight, 'px-6')}
-            onClick={handleReset}
-          >
-            Reset
-          </Button>
-        </div>
+      <div className='flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center'>
+        <Button
+          className={cn(controlHeight, 'w-full px-6 sm:w-auto')}
+          onClick={handleApply}
+        >
+          Apply filters
+        </Button>
+        <Button
+          variant='outline'
+          className={cn(controlHeight, 'w-full px-6 sm:w-auto')}
+          onClick={handleReset}
+        >
+          Reset
+        </Button>
       </div>
     </div>
   )

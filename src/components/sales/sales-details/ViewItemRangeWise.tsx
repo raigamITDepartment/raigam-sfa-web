@@ -32,6 +32,7 @@ import {
   DataTableColumnHeader,
   DataTablePagination,
   DataTableToolbar,
+  TableLoadingRows,
 } from '@/components/data-table'
 import {
   ExcelExportButton,
@@ -306,14 +307,7 @@ const ViewItemRangeWise = () => {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={columns.length}
-                    className='h-20 text-center'
-                  >
-                    Loading items...
-                  </TableCell>
-                </TableRow>
+                <TableLoadingRows columns={columns.length || 1} />
               ) : isError ? (
                 <TableRow>
                   <TableCell

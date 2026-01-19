@@ -16,8 +16,13 @@ import {
   type FinalGeoDTO,
   getFinalGeo,
 } from '@/services/userDemarcationApi'
+import { Download } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { CountBadge } from '@/components/ui/count-badge'
+import {
+  ExcelExportButton,
+  type ExcelExportColumn,
+} from '@/components/excel-export-button'
 import {
   Table,
   TableBody,
@@ -26,7 +31,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { DataTablePagination, DataTableToolbar } from '@/components/data-table'
+import {
+  DataTablePagination,
+  DataTableToolbar,
+  TableLoadingRows,
+} from '@/components/data-table'
 
 const formatValue = (value?: string | number | null) => {
   if (value === null || value === undefined || `${value}`.trim() === '') {
@@ -129,6 +138,52 @@ const FinalGeographyMapping = () => {
     ]
   )
 
+  const exportColumns = useMemo<ExcelExportColumn<FinalGeoDTO>[]>(
+    () => [
+      {
+        header: 'Channel Name',
+        accessor: (row) => formatValue(row.channelName),
+      },
+      {
+        header: 'Sub Channel Name',
+        accessor: (row) => formatValue(row.subChannelName),
+      },
+      {
+        header: 'Region Name',
+        accessor: (row) => formatValue(row.regionName),
+      },
+      {
+        header: 'Area Name',
+        accessor: (row) => formatValue(row.areaName),
+      },
+      {
+        header: 'Territory Code',
+        accessor: (row) => formatValue(row.territoryCode),
+      },
+      {
+        header: 'Territory Name',
+        accessor: (row) => formatValue(row.territoryName),
+      },
+      {
+        header: 'Agency Code',
+        accessor: (row) => formatValue(row.agencyCode),
+      },
+      {
+        header: 'Distributor Name',
+        accessor: (row) => formatValue(row.distributorName),
+      },
+      {
+        header: 'SAP Agency Code',
+        accessor: (row) => formatValue(row.sapAgCode),
+      },
+      {
+        header: 'Warehouse Name',
+        accessor: (row) => formatValue(row.warehouseName),
+      },
+    ],
+    []
+  )
+
   const columns = useMemo<ColumnDef<FinalGeoDTO, string | number | null>[]>(
     () => [
       {
@@ -216,6 +271,11 @@ const FinalGeographyMapping = () => {
     getPaginationRowModel: getPaginationRowModel(),
     autoResetPageIndex: false,
   })
+  const tableState = table.getState()
+  const exportRows = useMemo(
+    () => table.getFilteredRowModel().rows.map((row) => row.original),
+    [table, rows, globalFilter, tableState.columnFilters]
+  )
   const filteredCount = table.getFilteredRowModel().rows.length
 
   return (
@@ -225,6 +285,18 @@ const FinalGeographyMapping = () => {
           Final Geography Mapping{' '}
           <CountBadge value={`${filteredCount}/${rows.length}`} />
         </CardTitle>
+        <ExcelExportButton
+          size='sm'
+          variant='outline'
+          className='gap-2'
+          data={exportRows}
+          columns={exportColumns}
+          fileName='final-geography-mapping'
+          worksheetName='Final Geography Mapping'
+        >
+          <Download className='size-4' aria-hidden='true' />
+          <span>Export Excel</span>
+        </ExcelExportButton>
       </CardHeader>
       <CardContent className='space-y-4'>
         <DataTableToolbar
@@ -255,14 +327,7 @@ const FinalGeographyMapping = () => {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={columns.length}
-                    className='h-20 text-center'
-                  >
-                    Loading final geography data...
-                  </TableCell>
-                </TableRow>
+                <TableLoadingRows columns={columns.length || 1} />
               ) : isError ? (
                 <TableRow>
                   <TableCell

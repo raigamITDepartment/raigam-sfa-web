@@ -45,6 +45,7 @@ import {
   DataTableColumnHeader,
   DataTablePagination,
   DataTableToolbar,
+  TableLoadingRows,
 } from '@/components/data-table'
 import {
   ExcelExportButton,
@@ -319,9 +320,6 @@ export default function WareHouseMapping() {
           <CardTitle className='flex w-full items-center gap-3'>
             <span>Warehouse Mappings</span>
             <CountBadge value={`${filteredCount}/${totalCount}`} />
-            <span className='text-muted-foreground ml-auto text-sm font-medium'>
-              Filters {activeFiltersCount}
-            </span>
           </CardTitle>
           <ExcelExportButton
             size='sm'
@@ -380,14 +378,7 @@ export default function WareHouseMapping() {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={columns.length}
-                    className='h-20 text-center'
-                  >
-                    Loading warehouse mappings...
-                  </TableCell>
-                </TableRow>
+                <TableLoadingRows columns={columns.length || 1} />
               ) : isError ? (
                 <TableRow>
                   <TableCell

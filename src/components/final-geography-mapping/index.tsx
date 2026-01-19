@@ -3,6 +3,8 @@ import { useQuery } from '@tanstack/react-query'
 import {
   flexRender,
   getCoreRowModel,
+  getFacetedRowModel,
+  getFacetedUniqueValues,
   getFilteredRowModel,
   getPaginationRowModel,
   type ColumnDef,
@@ -34,6 +36,9 @@ const formatValue = (value?: string | number | null) => {
   return `${value}`
 }
 
+const normalizeText = (value?: string | number | null) =>
+  typeof value === 'string' ? value.trim() : value == null ? '' : String(value)
+
 const buildFacetOptions = (values: (string | undefined | null)[]) => {
   const normalized = values
     .map((value) => (typeof value === 'string' ? value.trim() : ''))
@@ -43,6 +48,19 @@ const buildFacetOptions = (values: (string | undefined | null)[]) => {
     label: value,
     value,
   }))
+}
+
+const matchesMultiSelect = (rowValue: unknown, filterValue: unknown) => {
+  const values = Array.isArray(filterValue)
+    ? filterValue
+    : filterValue
+      ? [String(filterValue)]
+      : []
+  if (!values.length) return true
+  if (rowValue === null || rowValue === undefined) return false
+  const normalizedValues = values.map((value) => value.trim().toLowerCase())
+  const normalizedRowValue = String(rowValue).trim().toLowerCase()
+  return normalizedValues.includes(normalizedRowValue)
 }
 
 const FinalGeographyMapping = () => {
@@ -115,22 +133,34 @@ const FinalGeographyMapping = () => {
     () => [
       {
         header: 'Channel Name',
-        accessorKey: 'channelName',
+        id: 'channelName',
+        accessorFn: (row) => normalizeText(row.channelName),
+        filterFn: (row, columnId, filterValue) =>
+          matchesMultiSelect(row.getValue(columnId), filterValue),
         cell: (context) => formatValue(context.getValue()),
       },
       {
         header: 'Sub Channel Name',
-        accessorKey: 'subChannelName',
+        id: 'subChannelName',
+        accessorFn: (row) => normalizeText(row.subChannelName),
+        filterFn: (row, columnId, filterValue) =>
+          matchesMultiSelect(row.getValue(columnId), filterValue),
         cell: (context) => formatValue(context.getValue()),
       },
       {
         header: 'Region Name',
-        accessorKey: 'regionName',
+        id: 'regionName',
+        accessorFn: (row) => normalizeText(row.regionName),
+        filterFn: (row, columnId, filterValue) =>
+          matchesMultiSelect(row.getValue(columnId), filterValue),
         cell: (context) => formatValue(context.getValue()),
       },
       {
         header: 'Area Name',
-        accessorKey: 'areaName',
+        id: 'areaName',
+        accessorFn: (row) => normalizeText(row.areaName),
+        filterFn: (row, columnId, filterValue) =>
+          matchesMultiSelect(row.getValue(columnId), filterValue),
         cell: (context) => formatValue(context.getValue()),
       },
       {
@@ -140,7 +170,10 @@ const FinalGeographyMapping = () => {
       },
       {
         header: 'Territory Name',
-        accessorKey: 'territoryName',
+        id: 'territoryName',
+        accessorFn: (row) => normalizeText(row.territoryName),
+        filterFn: (row, columnId, filterValue) =>
+          matchesMultiSelect(row.getValue(columnId), filterValue),
         cell: (context) => formatValue(context.getValue()),
       },
       {
@@ -178,6 +211,8 @@ const FinalGeographyMapping = () => {
     onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    getFacetedRowModel: getFacetedRowModel(),
+    getFacetedUniqueValues: getFacetedUniqueValues(),
     getPaginationRowModel: getPaginationRowModel(),
     autoResetPageIndex: false,
   })

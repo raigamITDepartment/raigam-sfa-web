@@ -158,6 +158,12 @@ export function getAllArea() {
   return get<AreaDTO[]>(`${USER_DEMARC_BASE}/area`)
 }
 
+export function getAreasBySubChannelId(subChannelId: Id) {
+  return get<AreaDTO[]>(
+    `${USER_DEMARC_BASE}/area/getAreasBySubChannelId/${subChannelId}`
+  )
+}
+
 
 
 export function createArea(body: CreateAreaRequest) {

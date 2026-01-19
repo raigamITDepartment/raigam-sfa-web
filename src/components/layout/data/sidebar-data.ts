@@ -9,10 +9,7 @@ import {
   MapPinPlus,
   Store,
   BriefcaseBusiness,
-  Trophy,
   ChartArea,
-  ChartLine,
-  ChartNoAxesCombined,
   LocateFixed,
   CalendarClock,
   User,
@@ -132,14 +129,36 @@ export const sidebarData: SidebarData = {
     },
     {
       title: 'Outlet Module',
-      items: [
-        { title: 'Outlets', url: '/outlet-module/outlets', icon: Store },
-      ],
+      items: [{ title: 'Outlets', url: '/outlet-module/outlets', icon: Store }],
     },
+
     {
       title: 'Reports',
       items: [
         {
+          title: 'Item Reports',
+          icon: ChartArea,
+          items: [
+            {
+              title: 'Item Summary',
+              url: '/reports/item-reports/item-summary-report',
+            },
+            {
+              title: 'Main Category Summary',
+              url: '/reports/item-reports/main-category-summary-report',
+            },
+            {
+              title: 'Sub Category Summary',
+              url: '/reports/item-reports/sub-category-summary-report',
+            },
+            {
+              title: 'Sub Two Category Summary',
+              url: '/reports/item-reports/sub-two-category-summary-report',
+            },
+          ],
+        },
+
+        /* {
           title: 'Achievement Category Wise',
           url: '/reports/achievement-category-wise',
           icon: Trophy,
@@ -158,9 +177,10 @@ export const sidebarData: SidebarData = {
           title: 'Territory Wise Items Report',
           url: '/reports/territory-wise-items-report',
           icon: ChartNoAxesCombined,
-        },
+        }, */
       ],
     },
+
     {
       title: 'HR Module',
       items: [

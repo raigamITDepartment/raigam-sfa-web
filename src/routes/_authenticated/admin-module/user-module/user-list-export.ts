@@ -1,18 +1,3 @@
-import type { ExcelExportColumn } from '@/components/excel-export-button'
-import type { UserDemarcationUser } from '@/types/users'
-import { formatUserFullName } from './user-list-utils'
-
-export const createUserExportColumns = (): ExcelExportColumn<UserDemarcationUser>[] => [
-  { header: 'Username', accessor: (row) => row.userName },
-  { header: 'Role Name', accessor: (row) => row.roleName },
-  { header: 'Sub Role Name', accessor: (row) => row.subRoleName },
-  {
-    header: 'Full Name',
-    accessor: (row) => formatUserFullName(row) || '-',
-  },
-  { header: 'Email', accessor: (row) => row.email },
-  {
-    header: 'Status',
-    accessor: (row) => (row.isActive ? 'Active' : 'Inactive'),
-  },
-]
+export {
+  createUserExportColumns,
+} from '@/components/user-module/user-list-export'

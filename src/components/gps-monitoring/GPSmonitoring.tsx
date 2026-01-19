@@ -98,6 +98,13 @@ export const GPSMonitoring = () => {
     | string
     | undefined
 
+  useEffect(() => {
+    if (!import.meta.env.DEV) return
+    console.log('Points:', routeData.length)
+    console.log('First:', routeData[0])
+    console.log('Last:', routeData[routeData.length - 1])
+  }, [routeData])
+
   const { isLoaded, loadError } = useJsApiLoader({
     id: 'gps-monitoring-map',
     googleMapsApiKey: apiKey ?? '',

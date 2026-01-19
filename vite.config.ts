@@ -10,6 +10,7 @@ export default defineConfig({
     tanstackRouter({
       target: 'react',
       autoCodeSplitting: true,
+      routeFileIgnorePattern: 'user-list-(columns|export|utils)\\.(ts|tsx)$',
     }),
     react(),
     tailwindcss(),

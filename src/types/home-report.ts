@@ -116,6 +116,30 @@ export type HomeReportItem = {
   past6MonthTotalValue: number
   past6MonthName: string
   past6MonthNumber: number
+  past7MonthTotalPcCount?: number
+  past7MonthTotalValue?: number
+  past7MonthName?: string
+  past7MonthNumber?: number
+  past8MonthTotalPcCount?: number
+  past8MonthTotalValue?: number
+  past8MonthName?: string
+  past8MonthNumber?: number
+  past9MonthTotalPcCount?: number
+  past9MonthTotalValue?: number
+  past9MonthName?: string
+  past9MonthNumber?: number
+  past10MonthTotalPcCount?: number
+  past10MonthTotalValue?: number
+  past10MonthName?: string
+  past10MonthNumber?: number
+  past11MonthTotalPcCount?: number
+  past11MonthTotalValue?: number
+  past11MonthName?: string
+  past11MonthNumber?: number
+  past12MonthTotalPcCount?: number
+  past12MonthTotalValue?: number
+  past12MonthName?: string
+  past12MonthNumber?: number
 }
 
 export type HomeReportResponse = ApiResponse<HomeReportItem[]>

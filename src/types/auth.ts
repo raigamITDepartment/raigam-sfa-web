@@ -15,6 +15,7 @@ export type LoginResponsePayload = {
   role: string
   subRoleId: number
   subRole: string
+  subChannelId?: number | null
   userTypeId: number
   userType: string
   rangeId: number

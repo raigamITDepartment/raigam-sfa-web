@@ -558,9 +558,18 @@ export function isPathAllowedForUser(
   subRoleId?: number
 ): boolean {
   if (!pathname) return false
+  const effectiveRoleId = roleId ?? getEffectiveRoleId()
+  const effectiveSubRoleId = subRoleId ?? getEffectiveSubRoleId()
+  if (pathname.startsWith('/reports') && effectiveRoleId === RoleId.OperationSales) {
+    return false
+  }
   const required = getRequiredPermissionsForPath(pathname)
   if (!required) return true
-  const effective = resolvePermissions({ permissions, roleId, subRoleId })
+  const effective = resolvePermissions({
+    permissions,
+    roleId: effectiveRoleId,
+    subRoleId: effectiveSubRoleId,
+  })
   return hasAnyPermission(effective, required)
 }
 

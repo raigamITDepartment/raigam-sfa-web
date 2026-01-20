@@ -49,9 +49,32 @@ export async function cancelInvoiceWithRemark(
 export async function updateBookingInvoiceWithDetails(
   payload: UpdateBookingInvoiceWithDetailsPayload
 ) {
+  const toNumber = (value: unknown) =>
+    typeof value === 'number' && Number.isFinite(value) ? value : 0
+  const details = Array.isArray(payload.invoiceDetailDTOList)
+    ? payload.invoiceDetailDTOList
+    : []
+  const detailsTotal = details.reduce(
+    (sum, item) => sum + toNumber(item.finalTotalValue),
+    0
+  )
+  const discountValue = (() => {
+    const explicit = toNumber(payload.totalDiscountValue)
+    if (explicit) return explicit
+    const pct = toNumber(payload.discountPercentage)
+    return pct ? (detailsTotal * pct) / 100 : 0
+  })()
+  const grandTotal =
+    details.length > 0
+      ? Number((detailsTotal - discountValue).toFixed(2))
+      : payload.totalBookFinalValue
+  const normalizedPayload = {
+    ...payload,
+    totalBookFinalValue: grandTotal,
+  }
   const res = await http.put<UpdateBookingInvoiceResponse>(
     INVOICE_BASE,
-    payload
+    normalizedPayload
   )
   return res.data
 }

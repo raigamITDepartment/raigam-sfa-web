@@ -10,6 +10,27 @@ import type {
 
 export const INVOICE_BASE = '/api/v1/sales/invoice'
 
+const toNumber = (value: unknown) =>
+  typeof value === 'number' && Number.isFinite(value) ? value : 0
+
+const computeGrandTotal = (
+  details: Array<{ finalTotalValue?: number }>,
+  totalDiscountValue: number | undefined,
+  discountPercentage: number | undefined,
+  fallback: number
+) => {
+  if (!details.length) return fallback
+  const detailsTotal = details.reduce(
+    (sum, item) => sum + toNumber(item.finalTotalValue),
+    0
+  )
+  const explicitDiscount = toNumber(totalDiscountValue)
+  const pct = toNumber(discountPercentage)
+  const discountValue =
+    explicitDiscount || (pct ? (detailsTotal * pct) / 100 : 0)
+  return Number((detailsTotal - discountValue).toFixed(2))
+}
+
 export async function getAllBookingInvoicesByTerritoryId(
   territoryId: number
 ): Promise<BookingInvoicesByTerritoryResponse> {
@@ -49,15 +70,44 @@ export async function cancelInvoiceWithRemark(
 export async function updateBookingInvoiceWithDetails(
   payload: UpdateBookingInvoiceWithDetailsPayload
 ) {
+  const details = Array.isArray(payload.invoiceDetailDTOList)
+    ? payload.invoiceDetailDTOList
+    : []
+  const grandTotal = computeGrandTotal(
+    details,
+    payload.totalDiscountValue,
+    payload.discountPercentage,
+    payload.totalBookFinalValue
+  )
+  const normalizedPayload = {
+    ...payload,
+    totalBookFinalValue: grandTotal,
+  }
   const res = await http.put<UpdateBookingInvoiceResponse>(
     INVOICE_BASE,
-    payload
+    normalizedPayload
   )
   return res.data
 }
 
 export async function createInvoice(payload: CreateInvoicePayload) {
-  const res = await http.post<CreateInvoiceResponse>(INVOICE_BASE, payload)
+  const details = Array.isArray(payload.invoiceDetailDTOList)
+    ? payload.invoiceDetailDTOList
+    : []
+  const grandTotal = computeGrandTotal(
+    details,
+    payload.totalDiscountValue,
+    payload.discountPercentage,
+    payload.totalBookFinalValue
+  )
+  const normalizedPayload = {
+    ...payload,
+    totalBookFinalValue: grandTotal,
+  }
+  const res = await http.post<CreateInvoiceResponse>(
+    INVOICE_BASE,
+    normalizedPayload
+  )
   return res.data
 }
 

@@ -1,4 +1,4 @@
-import { Plus } from 'lucide-react'
+import { Plus, Trash2 } from 'lucide-react'
 import { formatPrice } from '@/lib/format-price'
 import { formatNegativeValue, safeNumber } from '@/lib/invoice-calcs'
 import { Badge } from '@/components/ui/badge'
@@ -75,6 +75,8 @@ type InvoiceItemsTableLayoutProps = {
   onCancel?: () => void
   isUpdating?: boolean
   onRowClick?: (rowIndex: number) => void
+  onDeleteRow?: (rowIndex: number) => void
+  rowClickHint?: string
   updateLabel?: string
   updateDisabled?: boolean
 }
@@ -90,6 +92,8 @@ export function InvoiceItemsTableLayout({
   onCancel,
   isUpdating,
   onRowClick,
+  onDeleteRow,
+  rowClickHint,
   updateLabel = 'Update',
   updateDisabled = false,
 }: InvoiceItemsTableLayoutProps) {
@@ -99,6 +103,7 @@ export function InvoiceItemsTableLayout({
   const goodReturnCellClass = 'bg-emerald-50/60 dark:bg-emerald-900/20'
   const marketReturnCellClass = 'bg-amber-50/60 dark:bg-amber-900/20'
 
+  const showDelete = typeof onDeleteRow === 'function'
   const topHeaders = [
     {
       label: 'Item No',
@@ -146,6 +151,15 @@ export function InvoiceItemsTableLayout({
       rowSpan: 2,
       className: `${headerTopClass} min-w-[110px]`,
     },
+    ...(showDelete
+      ? [
+          {
+            label: 'Action',
+            rowSpan: 2,
+            className: `${headerTopClass} min-w-[80px]`,
+          },
+        ]
+      : []),
   ]
 
   const subHeaders = [
@@ -337,6 +351,23 @@ export function InvoiceItemsTableLayout({
                         <TableCell className='bg-blue-50 text-right font-semibold dark:bg-blue-900/30'>
                           {formatPrice(row.finalTotalValue)}
                         </TableCell>
+                        {showDelete ? (
+                          <TableCell className='text-center'>
+                            <Button
+                              type='button'
+                              size='icon'
+                              variant='ghost'
+                              className='h-8 w-8 text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:text-rose-300 dark:hover:bg-rose-900/30'
+                              onClick={(event) => {
+                                event.stopPropagation()
+                                onDeleteRow?.(idx)
+                              }}
+                            >
+                              <Trash2 className='h-4 w-4' />
+                              <span className='sr-only'>Delete item</span>
+                            </Button>
+                          </TableCell>
+                        ) : null}
                       </TableRow>
                     )
 
@@ -348,7 +379,7 @@ export function InvoiceItemsTableLayout({
                           align='center'
                           sideOffset={4}
                         >
-                          <p>Click to update this item</p>
+                          <p>{rowClickHint ?? 'Click to update this item'}</p>
                         </TooltipContent>
                       </Tooltip>
                     ) : (
@@ -394,13 +425,14 @@ export function InvoiceItemsTableLayout({
                     <TableCell
                       className={`${marketReturnCellClass} text-right text-rose-600 dark:text-rose-300`}
                     >
-                      {formatNegativeValue(
-                        aggregatedTotals.totalMarketReturnValue
-                      )}
+                    {formatNegativeValue(
+                      aggregatedTotals.totalMarketReturnValue
+                    )}
                     </TableCell>
                     <TableCell className='bg-blue-50 text-right font-semibold dark:bg-blue-900/30'>
                       {formatPrice(aggregatedTotals.totalFinalValue)}
                     </TableCell>
+                    {showDelete ? <TableCell /> : null}
                   </TableRow>
                 </TableBody>
               </Table>

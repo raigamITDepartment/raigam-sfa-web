@@ -3,6 +3,8 @@ import { useQuery } from '@tanstack/react-query'
 import {
   flexRender,
   getCoreRowModel,
+  getFacetedRowModel,
+  getFacetedUniqueValues,
   getFilteredRowModel,
   getPaginationRowModel,
   type ColumnDef,
@@ -14,8 +16,13 @@ import {
   type FinalGeoDTO,
   getFinalGeo,
 } from '@/services/userDemarcationApi'
+import { Download } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { CountBadge } from '@/components/ui/count-badge'
+import {
+  ExcelExportButton,
+  type ExcelExportColumn,
+} from '@/components/excel-export-button'
 import {
   Table,
   TableBody,
@@ -24,7 +31,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { DataTablePagination, DataTableToolbar } from '@/components/data-table'
+import {
+  DataTablePagination,
+  DataTableToolbar,
+  TableLoadingRows,
+} from '@/components/data-table'
 
 const formatValue = (value?: string | number | null) => {
   if (value === null || value === undefined || `${value}`.trim() === '') {
@@ -33,6 +44,9 @@ const formatValue = (value?: string | number | null) => {
 
   return `${value}`
 }
+
+const normalizeText = (value?: string | number | null) =>
+  typeof value === 'string' ? value.trim() : value == null ? '' : String(value)
 
 const buildFacetOptions = (values: (string | undefined | null)[]) => {
   const normalized = values
@@ -43,6 +57,19 @@ const buildFacetOptions = (values: (string | undefined | null)[]) => {
     label: value,
     value,
   }))
+}
+
+const matchesMultiSelect = (rowValue: unknown, filterValue: unknown) => {
+  const values = Array.isArray(filterValue)
+    ? filterValue
+    : filterValue
+      ? [String(filterValue)]
+      : []
+  if (!values.length) return true
+  if (rowValue === null || rowValue === undefined) return false
+  const normalizedValues = values.map((value) => value.trim().toLowerCase())
+  const normalizedRowValue = String(rowValue).trim().toLowerCase()
+  return normalizedValues.includes(normalizedRowValue)
 }
 
 const FinalGeographyMapping = () => {
@@ -111,26 +138,84 @@ const FinalGeographyMapping = () => {
     ]
   )
 
+  const exportColumns = useMemo<ExcelExportColumn<FinalGeoDTO>[]>(
+    () => [
+      {
+        header: 'Channel Name',
+        accessor: (row) => formatValue(row.channelName),
+      },
+      {
+        header: 'Sub Channel Name',
+        accessor: (row) => formatValue(row.subChannelName),
+      },
+      {
+        header: 'Region Name',
+        accessor: (row) => formatValue(row.regionName),
+      },
+      {
+        header: 'Area Name',
+        accessor: (row) => formatValue(row.areaName),
+      },
+      {
+        header: 'Territory Code',
+        accessor: (row) => formatValue(row.territoryCode),
+      },
+      {
+        header: 'Territory Name',
+        accessor: (row) => formatValue(row.territoryName),
+      },
+      {
+        header: 'Agency Code',
+        accessor: (row) => formatValue(row.agencyCode),
+      },
+      {
+        header: 'Distributor Name',
+        accessor: (row) => formatValue(row.distributorName),
+      },
+      {
+        header: 'SAP Agency Code',
+        accessor: (row) => formatValue(row.sapAgCode),
+      },
+      {
+        header: 'Warehouse Name',
+        accessor: (row) => formatValue(row.warehouseName),
+      },
+    ],
+    []
+  )
+
   const columns = useMemo<ColumnDef<FinalGeoDTO, string | number | null>[]>(
     () => [
       {
         header: 'Channel Name',
-        accessorKey: 'channelName',
+        id: 'channelName',
+        accessorFn: (row) => normalizeText(row.channelName),
+        filterFn: (row, columnId, filterValue) =>
+          matchesMultiSelect(row.getValue(columnId), filterValue),
         cell: (context) => formatValue(context.getValue()),
       },
       {
         header: 'Sub Channel Name',
-        accessorKey: 'subChannelName',
+        id: 'subChannelName',
+        accessorFn: (row) => normalizeText(row.subChannelName),
+        filterFn: (row, columnId, filterValue) =>
+          matchesMultiSelect(row.getValue(columnId), filterValue),
         cell: (context) => formatValue(context.getValue()),
       },
       {
         header: 'Region Name',
-        accessorKey: 'regionName',
+        id: 'regionName',
+        accessorFn: (row) => normalizeText(row.regionName),
+        filterFn: (row, columnId, filterValue) =>
+          matchesMultiSelect(row.getValue(columnId), filterValue),
         cell: (context) => formatValue(context.getValue()),
       },
       {
         header: 'Area Name',
-        accessorKey: 'areaName',
+        id: 'areaName',
+        accessorFn: (row) => normalizeText(row.areaName),
+        filterFn: (row, columnId, filterValue) =>
+          matchesMultiSelect(row.getValue(columnId), filterValue),
         cell: (context) => formatValue(context.getValue()),
       },
       {
@@ -140,7 +225,10 @@ const FinalGeographyMapping = () => {
       },
       {
         header: 'Territory Name',
-        accessorKey: 'territoryName',
+        id: 'territoryName',
+        accessorFn: (row) => normalizeText(row.territoryName),
+        filterFn: (row, columnId, filterValue) =>
+          matchesMultiSelect(row.getValue(columnId), filterValue),
         cell: (context) => formatValue(context.getValue()),
       },
       {
@@ -178,9 +266,16 @@ const FinalGeographyMapping = () => {
     onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    getFacetedRowModel: getFacetedRowModel(),
+    getFacetedUniqueValues: getFacetedUniqueValues(),
     getPaginationRowModel: getPaginationRowModel(),
     autoResetPageIndex: false,
   })
+  const tableState = table.getState()
+  const exportRows = useMemo(
+    () => table.getFilteredRowModel().rows.map((row) => row.original),
+    [table, rows, globalFilter, tableState.columnFilters]
+  )
   const filteredCount = table.getFilteredRowModel().rows.length
 
   return (
@@ -190,6 +285,18 @@ const FinalGeographyMapping = () => {
           Final Geography Mapping{' '}
           <CountBadge value={`${filteredCount}/${rows.length}`} />
         </CardTitle>
+        <ExcelExportButton
+          size='sm'
+          variant='outline'
+          className='gap-2'
+          data={exportRows}
+          columns={exportColumns}
+          fileName='final-geography-mapping'
+          worksheetName='Final Geography Mapping'
+        >
+          <Download className='size-4' aria-hidden='true' />
+          <span>Export Excel</span>
+        </ExcelExportButton>
       </CardHeader>
       <CardContent className='space-y-4'>
         <DataTableToolbar
@@ -220,14 +327,7 @@ const FinalGeographyMapping = () => {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={columns.length}
-                    className='h-20 text-center'
-                  >
-                    Loading final geography data...
-                  </TableCell>
-                </TableRow>
+                <TableLoadingRows columns={columns.length || 1} />
               ) : isError ? (
                 <TableRow>
                   <TableCell

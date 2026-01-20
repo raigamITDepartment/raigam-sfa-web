@@ -19,7 +19,19 @@ export async function getAllAvailableBookingInvoices(
     `${INVOICE_REPORT_BASE}/getAllAvailableBookingInvoices`,
     { params }
   )
-  return res.data
+  const data = res.data
+  const payload = data?.payload
+  if (!Array.isArray(payload)) return data
+  const normalized = payload.map((invoice) => {
+    const finalValue =
+      typeof invoice.totalBookFinalValue === 'number' &&
+      Number.isFinite(invoice.totalBookFinalValue)
+        ? invoice.totalBookFinalValue
+        : invoice.totalBookValue
+    if (finalValue === invoice.totalBookFinalValue) return invoice
+    return { ...invoice, totalBookFinalValue: finalValue }
+  })
+  return { ...data, payload: normalized }
 }
 
 export async function getInvoiceDetailsByStatus(params: InvoiceStatusParams) {

@@ -642,20 +642,19 @@ async function renderInvoiceIntoDoc(
         0
       const discountPct =
         item.bookDiscountPercentage ?? item.discountPercentage ?? 0
-      const value =
-        item.finalTotalValue ??
-        item.totalBookSellValue ??
-        item.sellTotalPrice ??
-        item.totalBookValue ??
-        0
-      totalValue += Number(value) || 0
+      const grossValue = Number((qty * unitPrice).toFixed(2))
+      const discountValue = Number(
+        ((grossValue * discountPct) / 100).toFixed(2)
+      )
+      const value = Number((grossValue - discountValue).toFixed(2))
+      totalValue += value
 
       drawRow(
         [
           `${idx + 1}. ${item.itemName ?? 'Item'}`,
           formatQty(qty),
           formatNumber(unitPrice),
-          `${formatNumber(discountPct)}%`,
+          formatNumber(discountValue),
           formatNumber(value),
         ],
         { shaded }
@@ -813,10 +812,21 @@ async function renderInvoiceIntoDoc(
     y -= 10
 
     // Ensure summary table is visible on the current page
-    const grossValue =
-      invoice.totalBookFinalValue ?? invoice.totalBookValue ?? totalValue
     const lineDiscountValue = invoice.totalDiscountValue ?? 0
     const lineDiscountPct = invoice.discountPercentage ?? 0
+    const marketReturnTotal = items.reduce(
+      (sum, item) => sum + Number(item.marketReturnTotalVal ?? 0),
+      0
+    )
+    const goodReturnTotal = items.reduce(
+      (sum, item) => sum + Number(item.goodReturnTotalVal ?? 0),
+      0
+    )
+    const grossValue = items.length
+      ? Number(
+          (totalValue - (marketReturnTotal + goodReturnTotal)).toFixed(2)
+        )
+      : invoice.totalBookValue ?? invoice.totalBookFinalValue ?? 0
     const invoiceValue = Math.max(grossValue - lineDiscountValue, 0)
     const summaryRows: Array<[string, number | string]> = [
       ['Gross Value(Rs.)', grossValue],

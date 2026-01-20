@@ -20,6 +20,7 @@ import {
   DialogDescription,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import ItemForm from './AddItemForm'
 import InvoiceItemsTableLayout, {
   type AggregatedTotals,
@@ -151,6 +152,12 @@ export function BookingInvoiceItemsTable({
   const [editIndex, setEditIndex] = useState<number | null>(null)
   const [localItems, setLocalItems] = useState<BookingInvoiceDetailDTO[]>(items)
   const [isUpdating, setIsUpdating] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [pendingDeleteIndex, setPendingDeleteIndex] = useState<number | null>(
+    null
+  )
+  const pendingDeleteItem =
+    pendingDeleteIndex !== null ? localItems[pendingDeleteIndex] : null
   const [summaryDiscountPct, setSummaryDiscountPct] = useState<number>(
     invoice.discountPercentage ?? 0
   )
@@ -381,8 +388,45 @@ export function BookingInvoiceItemsTable({
         setAddItemOpen(false)
         return
       }
-      const newItem = buildItemFromDraft(next)
-      setLocalItems((prev) => [...prev, newItem])
+      const existingIndex = localItems.findIndex(
+        (item) => item.itemId === next.itemId
+      )
+      if (existingIndex >= 0) {
+        const existing = localItems[existingIndex]
+        const existingDraft = mapDetailToDraft(existing)
+        const mergedDraft: ItemFormValues = {
+          ...existingDraft,
+          ...next,
+          totalBookQty:
+            safeNumber(existingDraft.totalBookQty) +
+            safeNumber(next.totalBookQty),
+          totalCancelQty:
+            safeNumber(existingDraft.totalCancelQty) +
+            safeNumber(next.totalCancelQty),
+          totalFreeQty:
+            safeNumber(existingDraft.totalFreeQty) +
+            safeNumber(next.totalFreeQty),
+          goodReturnTotalQty:
+            safeNumber(existingDraft.goodReturnTotalQty) +
+            safeNumber(next.goodReturnTotalQty),
+          goodReturnFreeQty:
+            safeNumber(existingDraft.goodReturnFreeQty) +
+            safeNumber(next.goodReturnFreeQty),
+          marketReturnTotalQty:
+            safeNumber(existingDraft.marketReturnTotalQty) +
+            safeNumber(next.marketReturnTotalQty),
+          marketReturnFreeQty:
+            safeNumber(existingDraft.marketReturnFreeQty) +
+            safeNumber(next.marketReturnFreeQty),
+        }
+        const mergedItem = buildItemFromDraft(mergedDraft, existing)
+        setLocalItems((prev) =>
+          prev.map((item, idx) => (idx === existingIndex ? mergedItem : item))
+        )
+      } else {
+        const newItem = buildItemFromDraft(next)
+        setLocalItems((prev) => [...prev, newItem])
+      }
       setAddItemOpen(false)
       setDraftItem(emptyDraft)
     } catch (err) {
@@ -419,6 +463,21 @@ export function BookingInvoiceItemsTable({
         err instanceof Error ? err.message : 'Failed to update item'
       toast.warning(message)
     }
+  }
+
+  const handleRequestDelete = (rowIndex: number) => {
+    if (!localItems[rowIndex]) return
+    setPendingDeleteIndex(rowIndex)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleConfirmDelete = () => {
+    if (pendingDeleteIndex === null) return
+    setLocalItems((prev) =>
+      prev.filter((_, idx) => idx !== pendingDeleteIndex)
+    )
+    setDeleteDialogOpen(false)
+    setPendingDeleteIndex(null)
   }
 
   const handleUpdate = async () => {
@@ -758,8 +817,40 @@ export function BookingInvoiceItemsTable({
         onCancel={_onCancel}
         isUpdating={isUpdating}
         onRowClick={handleRowClick}
+        onDeleteRow={handleRequestDelete}
+        rowClickHint='Edit mode: click to update item'
         updateLabel={mode === 'manual' ? 'Create Invoice' : 'Update'}
         updateDisabled={mode === 'manual' && tableRows.length === 0}
+      />
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={(open) => {
+          setDeleteDialogOpen(open)
+          if (!open) setPendingDeleteIndex(null)
+        }}
+        title='Delete item'
+        desc={
+          pendingDeleteItem ? (
+            <div className='space-y-1'>
+              <p>
+                Remove{' '}
+                <span className='font-semibold text-slate-900 dark:text-slate-100'>
+                  {pendingDeleteItem.itemName ?? 'this item'}
+                </span>{' '}
+                from the invoice?
+              </p>
+              <p className='text-xs text-slate-500 dark:text-slate-400'>
+                You can add it again later if needed.
+              </p>
+            </div>
+          ) : (
+            'Are you sure you want to remove this item from the invoice? You can add it again later if needed.'
+          )
+        }
+        cancelBtnText='Keep item'
+        confirmText='Delete'
+        destructive
+        handleConfirm={handleConfirmDelete}
       />
       <Dialog open={addItemOpen} onOpenChange={setAddItemOpen}>
         <DialogContent className='max-h-[85vh] max-w-4xl overflow-y-auto'>

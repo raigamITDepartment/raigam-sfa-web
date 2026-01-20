@@ -303,9 +303,6 @@ export default function WareHouseMapping() {
 
   const filteredCount = table.getFilteredRowModel().rows.length
   const totalCount = rows.length
-  const hasGlobalFilter = Boolean(table.getState().globalFilter)
-  const activeFiltersCount =
-    table.getState().columnFilters.length + (hasGlobalFilter ? 1 : 0)
 
   const handleConfirmToggle = () => {
     if (!pendingToggle) return

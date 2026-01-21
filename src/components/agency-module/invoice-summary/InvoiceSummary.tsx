@@ -21,6 +21,7 @@ import type {
   BookingInvoice,
   BookingInvoiceReportItem,
 } from '@/types/invoice'
+import { formatDate as formatDateTime } from '@/lib/format-date'
 import { formatPrice } from '@/lib/format-price'
 import { cn } from '@/lib/utils'
 import InvoiceSummaryFilter, {
@@ -196,7 +197,7 @@ const InvoiceSummary = () => {
         ),
         cell: ({ row }) => (
           <span className='block text-center'>
-            {formatDate(row.original.dateBook)}
+            {formatDateTime(row.original.dateBook)}
           </span>
         ),
         meta: { thClassName: 'text-center' },

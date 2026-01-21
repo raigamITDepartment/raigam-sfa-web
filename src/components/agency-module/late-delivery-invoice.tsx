@@ -21,6 +21,7 @@ import type {
 } from '@/types/invoice'
 import { Eye } from 'lucide-react'
 import { toast } from 'sonner'
+import { formatDate as formatDateTime } from '@/lib/format-date'
 import { formatPrice } from '@/lib/format-price'
 import { cn } from '@/lib/utils'
 import { SubRoleId } from '@/lib/authz'
@@ -373,7 +374,7 @@ const LateDeliveryInvoice = () => {
         ),
         cell: ({ row }) => (
           <span className='block text-center'>
-            {formatDate(row.original.dateBook)}
+            {formatDateTime(row.original.dateBook)}
           </span>
         ),
         meta: { thClassName: 'text-center' },

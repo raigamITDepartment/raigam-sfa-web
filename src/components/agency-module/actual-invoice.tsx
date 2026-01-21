@@ -21,6 +21,7 @@ import type {
 } from '@/types/invoice'
 import { toast } from 'sonner'
 import { Check, Eye, RotateCcw } from 'lucide-react'
+import { formatDate as formatDateTime } from '@/lib/format-date'
 import { formatPrice } from '@/lib/format-price'
 import { cn } from '@/lib/utils'
 import { SubRoleId } from '@/lib/authz'
@@ -295,7 +296,7 @@ const ActualInvoice = () => {
         ),
         cell: ({ row }) => (
           <span className='block text-center'>
-            {formatDate(row.original.dateBook)}
+            {formatDateTime(row.original.dateBook)}
           </span>
         ),
         meta: { thClassName: 'text-center' },

@@ -47,6 +47,7 @@ import {
   DataTableColumnHeader,
   DataTablePagination,
   DataTableToolbar,
+  TableLoadingRows,
 } from '@/components/data-table'
 import {
   ExcelExportButton,
@@ -522,14 +523,7 @@ export default function RouteComponent() {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={columns.length}
-                    className='h-20 text-center'
-                  >
-                    Loading routes...
-                  </TableCell>
-                </TableRow>
+                <TableLoadingRows columns={columns.length} />
               ) : isError ? (
                 <TableRow>
                   <TableCell

@@ -36,6 +36,7 @@ import {
   DataTableColumnHeader,
   DataTablePagination,
   DataTableToolbar,
+  TableLoadingRows,
 } from '@/components/data-table'
 import { Button } from '@/components/ui/button'
 import { CommonDialog } from '@/components/common-dialog'
@@ -475,14 +476,7 @@ export default function SubChannel() {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={columns.length}
-                    className='h-20 text-center'
-                  >
-                    Loading sub channels...
-                  </TableCell>
-                </TableRow>
+                <TableLoadingRows columns={columns.length} />
               ) : isError ? (
                 <TableRow>
                   <TableCell

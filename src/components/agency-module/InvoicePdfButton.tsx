@@ -11,6 +11,7 @@ import {
   type PDFPage,
 } from 'pdf-lib'
 import Logo from '@/assets/logo.png'
+import { formatDate as formatDateTime } from '@/lib/format-date'
 import { formatPrice } from '@/lib/format-price'
 import { Button } from '@/components/ui/button'
 import InvoiceNumber, { formatInvoiceNumber } from '@/components/InvoiceNumber'
@@ -227,7 +228,7 @@ async function renderInvoiceIntoDoc(
     normalize((invoice as any).dealerName) ||
     '-'
   const shopAddressText = formatAddressTwoLines(collectAddressParts())
-  const territoryCodeVal = getExtraString('territoryCode')
+  const territoryCodeVal = getExtraString('agencyCode')
   const routeCodeVal = getExtraString('routeCode')
   const shopCodeVal = getExtraString('shopCode')
   const territoryText =
@@ -250,6 +251,13 @@ async function renderInvoiceIntoDoc(
   })()
   const orderTimeText = getExtraString('orderTime', '-')
   const agentMobileText = getExtraString('agentMobileNumber', '-')
+  const orderDateTimeText = (() => {
+    const timePart = orderTimeText && orderTimeText !== '-' ? orderTimeText : ''
+    if (!timePart) return formatDateTime(invoice.dateBook)
+    const datePart = formatDateTime(invoice.dateBook, 'dd MMM yyyy')
+    if (datePart === '-' && !timePart) return '-'
+    return [datePart, timePart].filter(Boolean).join(', ')
+  })()
 
   const margin = 36
   let page: PDFPage = pdfDoc.addPage([595.28, 841.89]) // A4
@@ -373,16 +381,7 @@ async function renderInvoiceIntoDoc(
   const rightInfo: Array<[string, string]> = [
     ['Invoice No:', invoiceNumberText],
     ['Invoice Date & Time:', formatDate(invoice.dateActual)],
-    [
-      'Order Date & Time:',
-      (() => {
-        const datePart = formatDate(invoice.dateBook)
-        const timePart =
-          orderTimeText && orderTimeText !== '-' ? orderTimeText : ''
-        if (datePart === '-' && !timePart) return '-'
-        return [datePart, timePart].filter(Boolean).join(' ')
-      })(),
-    ],
+    ['Order Date & Time:', orderDateTimeText],
   ]
 
   const infoStartY = y
@@ -823,10 +822,8 @@ async function renderInvoiceIntoDoc(
       0
     )
     const grossValue = items.length
-      ? Number(
-          (totalValue - (marketReturnTotal + goodReturnTotal)).toFixed(2)
-        )
-      : invoice.totalBookValue ?? invoice.totalBookFinalValue ?? 0
+      ? Number((totalValue - (marketReturnTotal + goodReturnTotal)).toFixed(2))
+      : (invoice.totalBookValue ?? invoice.totalBookFinalValue ?? 0)
     const invoiceValue = Math.max(grossValue - lineDiscountValue, 0)
     const summaryRows: Array<[string, number | string]> = [
       ['Gross Value(Rs.)', grossValue],

@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { getAllSubRoles, getAllUserRoles } from '@/services/users/userApi'
+import { getAllRoles, getAllUserGroups } from '@/services/users/userApi'
 
 export type UserFormMode = 'create' | 'edit'
 
@@ -129,17 +129,17 @@ export function UserForm(props: UserFormProps) {
   const schema = useMemo(() => buildUserSchema(mode), [mode])
 
   const { data: rolesData = [] } = useQuery({
-    queryKey: ['user-roles', 'options'],
+    queryKey: ['user-groups', 'options'],
     queryFn: async () => {
-      const res = await getAllUserRoles()
+      const res = await getAllUserGroups()
       return res.payload
     },
   })
 
   const { data: subRolesData = [] } = useQuery({
-    queryKey: ['user-sub-roles', 'options'],
+    queryKey: ['user-roles', 'options'],
     queryFn: async () => {
-      const res = await getAllSubRoles()
+      const res = await getAllRoles()
       return res.payload
     },
   })

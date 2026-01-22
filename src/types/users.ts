@@ -41,6 +41,8 @@ export type UserRole = {
 
 export type UserSubRole = {
   id: number
+  userGroupId?: number | null
+  userGroupName?: string | null
   roleName?: string
   subRoleName?: string
 }
@@ -91,6 +93,6 @@ export type AddUserRequest = {
 
 export type GetAllUsersResponse = ApiResponse<UserDemarcationUser[]>
 export type GetAllUserRolesResponse = ApiResponse<UserRole[]>
-export type GetAllSubRolesResponse = ApiResponse<UserSubRole[]>
+export type GetAllRolesResponse = ApiResponse<UserSubRole[]>
 export type UserActivationResponse = ApiResponse<UserDemarcationUser>
 export type AddUserResponse = ApiResponse<UserDemarcationUser>

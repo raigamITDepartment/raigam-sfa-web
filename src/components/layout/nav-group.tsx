@@ -39,13 +39,18 @@ import type { RootState } from '@/store'
 export function NavGroup({ title, items }: NavGroupProps) {
   const { state, isMobile } = useSidebar()
   const href = useLocation({ select: (location) => location.href })
+  const userGroupId = useSelector((s: RootState) => s.auth.user?.userGroupId)
   const roleId = useSelector((s: RootState) => s.auth.user?.roleId)
-  const subRoleId = useSelector((s: RootState) => s.auth.user?.subRoleId)
   const permissions = useSelector((s: RootState) => s.auth.user?.permissions)
 
   const effectivePermissions = useMemo(
-    () => resolvePermissions({ permissions, roleId, subRoleId }),
-    [permissions, roleId, subRoleId]
+    () =>
+      resolvePermissions({
+        permissions,
+        roleId: userGroupId,
+        subRoleId: roleId,
+      }),
+    [permissions, userGroupId, roleId]
   )
 
   // Filter items by permission using centralized rules

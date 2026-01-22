@@ -44,8 +44,8 @@ const userFormSchemaBase = z.object({
   lastName: z.string().min(1, 'Please enter last name'),
   email: z.string().min(1, 'Please enter email').email('Invalid email'),
   mobileNo: z.string().min(1, 'Please enter mobile number'),
-  roleId: requiredNumber('Please select role'),
-  subRoleId: requiredNumber('Please select sub role'),
+  roleId: requiredNumber('Please select user group'),
+  subRoleId: requiredNumber('Please select role'),
   password: z.string().optional(),
   confirmPassword: z.string().optional(),
 })
@@ -150,7 +150,7 @@ export function UserForm(props: UserFormProps) {
         .slice()
         .sort((a, b) => Number(a.id) - Number(b.id))
         .map((role) => ({
-          label: role.roleName,
+          label: role.userGroupName ?? role.roleName ?? '-',
           value: String(role.id),
         })),
     [rolesData]
@@ -162,7 +162,7 @@ export function UserForm(props: UserFormProps) {
         .slice()
         .sort((a, b) => Number(a.id) - Number(b.id))
         .map((subRole) => ({
-          label: subRole.subRoleName,
+          label: subRole.roleName ?? subRole.subRoleName ?? '-',
           value: String(subRole.id),
         })),
     [subRolesData]
@@ -265,7 +265,7 @@ export function UserForm(props: UserFormProps) {
               name='roleId'
               render={({ field }) => (
                 <FormItem>
-                <FormLabel>Role</FormLabel>
+                <FormLabel>User Group</FormLabel>
                 <Select
                   value={toSelectValue(field.value)}
                   onValueChange={field.onChange}
@@ -273,7 +273,7 @@ export function UserForm(props: UserFormProps) {
                 >
                   <FormControl>
                     <SelectTrigger className='w-full'>
-                      <SelectValue placeholder='Select role' />
+                      <SelectValue placeholder='Select user group' />
                     </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -293,7 +293,7 @@ export function UserForm(props: UserFormProps) {
               name='subRoleId'
               render={({ field }) => (
                 <FormItem>
-                <FormLabel>Sub Role</FormLabel>
+                <FormLabel>Role</FormLabel>
                 <Select
                   value={toSelectValue(field.value)}
                   onValueChange={field.onChange}
@@ -301,7 +301,7 @@ export function UserForm(props: UserFormProps) {
                 >
                   <FormControl>
                     <SelectTrigger className='w-full'>
-                      <SelectValue placeholder='Select sub role' />
+                      <SelectValue placeholder='Select role' />
                     </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -324,7 +324,7 @@ export function UserForm(props: UserFormProps) {
               name='roleId'
               render={({ field }) => (
                 <FormItem>
-                <FormLabel>Role</FormLabel>
+                <FormLabel>User Group</FormLabel>
                 <Select
                   value={toSelectValue(field.value)}
                   onValueChange={field.onChange}
@@ -332,7 +332,7 @@ export function UserForm(props: UserFormProps) {
                 >
                   <FormControl>
                     <SelectTrigger className='w-full'>
-                      <SelectValue placeholder='Select role' />
+                      <SelectValue placeholder='Select user group' />
                     </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -352,7 +352,7 @@ export function UserForm(props: UserFormProps) {
               name='subRoleId'
               render={({ field }) => (
                 <FormItem>
-                <FormLabel>Sub Role</FormLabel>
+                <FormLabel>Role</FormLabel>
                 <Select
                   value={toSelectValue(field.value)}
                   onValueChange={field.onChange}
@@ -360,7 +360,7 @@ export function UserForm(props: UserFormProps) {
                 >
                   <FormControl>
                     <SelectTrigger className='w-full'>
-                      <SelectValue placeholder='Select sub role' />
+                      <SelectValue placeholder='Select role' />
                     </SelectTrigger>
                     </FormControl>
                     <SelectContent>

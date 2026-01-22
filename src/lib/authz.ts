@@ -380,14 +380,24 @@ export const RoleAccess: Record<string, RoleIdValue[]> = {
 export function getEffectiveRoleId(): number | undefined {
   // Prefer Redux state if already hydrated
   const u = store.getState().auth.user
-  if (u?.roleId != null) return u.roleId
+  if (u?.userGroupId != null) return u.userGroupId
+  if (u?.subRoleId != null && u?.roleId != null) return u.roleId
 
   // Fallback: read from localStorage persisted user
   try {
     const raw = localStorage.getItem('auth_user')
     if (raw) {
-      const parsed = JSON.parse(raw) as { roleId?: unknown }
-      const rid = (parsed?.roleId as number | string | undefined) ?? undefined
+      const parsed = JSON.parse(raw) as {
+        userGroupId?: unknown
+        roleId?: unknown
+        subRoleId?: unknown
+      }
+      const rid =
+        (parsed?.userGroupId as number | string | undefined) ??
+        (parsed?.subRoleId != null
+          ? (parsed?.roleId as number | string | undefined)
+          : undefined) ??
+        undefined
       if (typeof rid === 'number') return rid
       if (typeof rid === 'string') {
         const n = Number(rid)
@@ -402,13 +412,22 @@ export function getEffectiveRoleId(): number | undefined {
 
 export function getEffectiveSubRoleId(): number | undefined {
   const u = store.getState().auth.user
+  if (u?.roleId != null) return u.roleId
   if (u?.subRoleId != null) return u.subRoleId
 
   try {
     const raw = localStorage.getItem('auth_user')
     if (raw) {
-      const parsed = JSON.parse(raw) as { subRoleId?: unknown }
-      const rid = (parsed?.subRoleId as number | string | undefined) ?? undefined
+      const parsed = JSON.parse(raw) as {
+        userGroupId?: unknown
+        roleId?: unknown
+        subRoleId?: unknown
+      }
+      const rid =
+        (parsed?.userGroupId != null
+          ? (parsed?.roleId as number | string | undefined) ??
+            (parsed?.subRoleId as number | string | undefined)
+          : (parsed?.subRoleId as number | string | undefined)) ?? undefined
       if (typeof rid === 'number') return rid
       if (typeof rid === 'string') {
         const n = Number(rid)

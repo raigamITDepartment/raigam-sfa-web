@@ -67,7 +67,8 @@ function AddModifyUser() {
   const queryClient = useQueryClient()
   const currentUser = useAppSelector((state) => state.auth.user)
   const canToggleUserStatus =
-    currentUser?.roleId === RoleId.SystemAdmin && currentUser?.userId != null
+    currentUser?.userGroupId === RoleId.SystemAdmin &&
+    currentUser?.userId != null
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['user-demarcation', 'users'],
     queryFn: getAllUsers,
@@ -77,8 +78,10 @@ function AddModifyUser() {
   const roleFilterOptions = useMemo(() => {
     const seen = new Set<string>()
     rows.forEach((user) => {
-      const roleName = user.roleName?.trim()
-      if (roleName) seen.add(roleName)
+      const groupName =
+        user.userGroupName?.trim() ||
+        (user.subRoleName ? user.roleName?.trim() : undefined)
+      if (groupName) seen.add(groupName)
     })
     return Array.from(seen)
       .sort((a, b) => a.localeCompare(b))
@@ -96,8 +99,8 @@ function AddModifyUser() {
   const toolbarFilters = useMemo(
     () => [
       {
-        columnId: 'roleName',
-        title: 'Role Name',
+        columnId: 'userGroupName',
+        title: 'User Group Name',
         options: roleFilterOptions,
       },
       {

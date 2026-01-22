@@ -84,7 +84,7 @@ const ActualInvoice = () => {
   const baseTerritoryId = Number(
     user?.territoryId ?? user?.agencyTerritoryId ?? 0
   )
-  const roleId = Number(user?.subRoleId ?? user?.roleId)
+  const roleId = Number(user?.roleId ?? user?.userGroupId)
   const isAgent = roleId === SubRoleId.Agent
   const isRep = roleId === SubRoleId.Representative
   const isAreaRole =

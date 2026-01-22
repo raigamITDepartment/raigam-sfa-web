@@ -77,7 +77,7 @@ const LateDeliveryInvoice = () => {
   const baseTerritoryId = Number(
     user?.territoryId ?? user?.agencyTerritoryId ?? 0
   )
-  const roleId = Number(user?.subRoleId ?? user?.roleId)
+  const roleId = Number(user?.roleId ?? user?.userGroupId)
   const isAreaRole =
     roleId === SubRoleId.AreaSalesManager ||
     roleId === SubRoleId.AreaSalesExecutive

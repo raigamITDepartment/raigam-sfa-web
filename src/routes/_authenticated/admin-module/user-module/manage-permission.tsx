@@ -846,7 +846,11 @@ function ManageUserPermission() {
         groupId,
         roleIds: roleId ? [roleId] : [],
         status: user.isActive ? 'Active' : 'Inactive',
-        title: user.subRoleName?.trim() || user.roleName?.trim() || 'User',
+        title:
+          user.roleName?.trim() ||
+          user.subRoleName?.trim() ||
+          user.userGroupName?.trim() ||
+          'User',
         lastActive: formatOptionalDate(user.startDate),
         location: '-',
       }

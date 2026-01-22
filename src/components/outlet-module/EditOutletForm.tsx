@@ -98,7 +98,7 @@ const resolveBoolean = (...values: Array<boolean | null | undefined>) => {
 export function EditOutletForm({ outlet, onSubmit }: EditOutletFormProps) {
   const queryClient = useQueryClient()
   const user = useAppSelector((state) => state.auth.user)
-  const roleId = Number(user?.subRoleId ?? user?.roleId)
+  const roleId = Number(user?.roleId ?? user?.userGroupId)
   const isRep = roleId === SubRoleId.Representative
   const [formValues, setFormValues] = useState<EditOutletFormValues>(() => ({
     ...outlet,

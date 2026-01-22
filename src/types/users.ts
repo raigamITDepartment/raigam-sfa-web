@@ -3,9 +3,10 @@ import type { ApiResponse } from './common'
 export type UserDemarcationUser = {
   id: number
   roleId: number
-  roleName: string
+  userGroupName?: string
+  roleName?: string
   subRoleId: number
-  subRoleName: string
+  subRoleName?: string
   departmentId: number | null
   continentId: number | null
   countryId: number | null
@@ -34,12 +35,14 @@ export type UserDemarcationUser = {
 
 export type UserRole = {
   id: number
-  roleName: string
+  userGroupName?: string
+  roleName?: string
 }
 
 export type UserSubRole = {
   id: number
-  subRoleName: string
+  roleName?: string
+  subRoleName?: string
 }
 
 export type UpdateUserRequest = {

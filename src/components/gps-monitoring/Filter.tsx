@@ -4,7 +4,7 @@ import { format } from 'date-fns'
 import { CalendarIcon } from 'lucide-react'
 import {
   getAllArea,
-  getAllUserDetails,
+  getAllUserTerritoriesByTerritoryId,
   getTerritoriesByAreaId,
   type ApiResponse,
   type AreaDTO,
@@ -30,8 +30,11 @@ import { cn } from '@/lib/utils'
 export type GPSMonitoringFilters = {
   trackingDate?: string
   areaId?: number
+  areaLabel?: string
   territoryId?: number
+  territoryLabel?: string
   salesRepId?: number
+  salesRepLabel?: string
   fromTime?: string
   toTime?: string
 }
@@ -150,9 +153,12 @@ export function GPSMonitoringFilter({
   })
 
   const { data: salesReps = [], isLoading: loadingSalesReps } = useQuery({
-    queryKey: ['gps-monitoring', 'sales-reps'],
+    queryKey: ['gps-monitoring', 'sales-reps', territoryId],
+    enabled: Boolean(territoryId),
     queryFn: async () => {
-      const res = (await getAllUserDetails()) as ApiResponse<UserDetailsDTO[]>
+      const res = (await getAllUserTerritoriesByTerritoryId(
+        Number(territoryId)
+      )) as ApiResponse<UserDetailsDTO[]>
       return res.payload ?? []
     },
     staleTime: 5 * 60 * 1000,
@@ -161,18 +167,44 @@ export function GPSMonitoringFilter({
   const salesRepOptions = useMemo(
     () =>
       salesReps.map((rep) => ({
-        id: rep.id,
-        label: rep.name ?? `User ${rep.id}`,
+        id: (rep as { userId?: number | string }).userId ?? rep.id,
+        label: (rep as { userName?: string }).userName ?? rep.name ?? `User ${rep.id}`,
       })),
     [salesReps]
   )
+  const selectedAreaLabel = useMemo(() => {
+    if (!areaId) return undefined
+    const match = areas.find((area) => String(area.id) === areaId)
+    return match?.areaName ?? `Area ${areaId}`
+  }, [areas, areaId])
+  const selectedTerritoryLabel = useMemo(() => {
+    if (!territoryId) return undefined
+    const match = territories.find(
+      (territory) => String(territory.id) === territoryId
+    )
+    return (
+      match?.territoryName ??
+      match?.name ??
+      `Territory ${territoryId}`
+    )
+  }, [territories, territoryId])
+  const selectedSalesRepLabel = useMemo(() => {
+    if (!salesRepId) return undefined
+    const match = salesRepOptions.find(
+      (rep) => String(rep.id) === salesRepId
+    )
+    return match?.label ?? `User ${salesRepId}`
+  }, [salesRepOptions, salesRepId])
 
   const handleApply = () => {
     onApply?.({
       trackingDate: toIsoDate(trackingDate),
       areaId: areaId ? Number(areaId) : undefined,
+      areaLabel: selectedAreaLabel,
       territoryId: territoryId ? Number(territoryId) : undefined,
+      territoryLabel: selectedTerritoryLabel,
       salesRepId: salesRepId ? Number(salesRepId) : undefined,
+      salesRepLabel: selectedSalesRepLabel,
       fromTime: fromTime || undefined,
       toTime: toTime || undefined,
     })
@@ -227,6 +259,7 @@ export function GPSMonitoringFilter({
             onValueChange={(value) => {
               setAreaId(value)
               setTerritoryId('')
+              setSalesRepId('')
             }}
             disabled={loadingAreas}
           >
@@ -251,6 +284,7 @@ export function GPSMonitoringFilter({
             value={territoryId}
             onValueChange={(value) => {
               setTerritoryId(value)
+              setSalesRepId('')
             }}
             disabled={
               !areaId || loadingTerritories || fetchingTerritories
@@ -278,7 +312,7 @@ export function GPSMonitoringFilter({
           <Select
             value={salesRepId}
             onValueChange={setSalesRepId}
-            disabled={loadingSalesReps}
+            disabled={loadingSalesReps || !territoryId}
           >
             <SelectTrigger
               id='gps-sales-rep'

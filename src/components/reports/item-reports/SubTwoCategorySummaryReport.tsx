@@ -38,6 +38,9 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { formatPrice } from '@/lib/format-price'
+import { cn } from '@/lib/utils'
+
+const FILTER_STORAGE_KEY = 'sub-two-category-summary-report-filters'
 
 const formatHeader = (key: string) => {
   const withSpaces = key
@@ -95,6 +98,62 @@ const isTotalSoldValue = (key: string) =>
   normalizeKey(key) === 'totalsoldvalue'
 const isTotalCancelQty = (key: string) =>
   normalizeKey(key) === 'totalcancelqty'
+const isSubTwoCategoryIdKey = (key: string) =>
+  [
+    'subtwocatid',
+    'subtwocategoryid',
+    'sub2catid',
+    'sub2categoryid',
+  ].includes(normalizeKey(key))
+
+const unitOfMeasureKeyList = [
+  'unitofmeasure',
+  'unitmeasure',
+  'uom',
+  'uomname',
+]
+const quantityNoDecimalKeyList = [
+  'totalbookingqty',
+  'totalcancelqty',
+  'totalfreeqty',
+  'totalreturnqty',
+  'totalgoodreturnqty',
+  'totalmarketreturnqty',
+  'totalmarketreturnfreeqty',
+]
+const valueKeyList = [
+  'totalbookingvalue',
+  'totalsoldvalue',
+  'totalcancelvalue',
+  'totalfreevalue',
+  'totalreturnvalue',
+  'totalgoodreturnfreevalue',
+  'totalmarketreturnvalue',
+  'totalmarketretunvalue',
+  'totalmarketreturnfreevalue',
+  'totaldiscountvalue',
+]
+
+const isUnitOfMeasureKey = (key: string) =>
+  unitOfMeasureKeyList.includes(normalizeKey(key))
+const isQuantityNoDecimalKey = (key: string) =>
+  quantityNoDecimalKeyList.includes(normalizeKey(key))
+const isValueKey = (key: string) =>
+  valueKeyList.includes(normalizeKey(key))
+const isRightAlignedKey = (key: string) =>
+  isQuantityNoDecimalKey(key) || isValueKey(key) || isSoldQty(key)
+
+const getHeaderAlignmentClassName = (key: string) => {
+  if (isUnitOfMeasureKey(key)) return 'justify-center text-center'
+  if (isRightAlignedKey(key)) return 'justify-end text-right'
+  return ''
+}
+
+const getCellAlignmentClassName = (key: string) => {
+  if (isUnitOfMeasureKey(key)) return 'text-center'
+  if (isRightAlignedKey(key)) return 'text-right'
+  return ''
+}
 
 const orderColumnKeys = (keys: string[]) => {
   const filtered = keys.filter((key) => !isTotalFinalValue(key))
@@ -119,15 +178,57 @@ const orderColumnKeys = (keys: string[]) => {
 const isPriceKey = (key: string) =>
   /(price|amount|value|total|cost|net|sales)/i.test(key)
 
+const parseNumberValue = (value: unknown) => {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : null
+  }
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    if (!trimmed) return null
+    const normalized = trimmed.replace(/,/g, '')
+    const parsed = Number(normalized)
+    return Number.isNaN(parsed) ? null : parsed
+  }
+  return null
+}
+
 const formatValue = (key: string, value: unknown) => {
   if (value === null || value === undefined || value === '') return '-'
-  if (typeof value === 'number' && isPriceKey(key)) return formatPrice(value)
+  const numericValue = parseNumberValue(value)
+  if (numericValue !== null) {
+    if (isQuantityNoDecimalKey(key)) return String(Math.trunc(numericValue))
+    if (isValueKey(key) || isPriceKey(key)) return formatPrice(numericValue)
+  }
   if (typeof value === 'object') return JSON.stringify(value)
   return String(value)
 }
 
+const readStoredFilters = (): TerritoryWiseItemsFilters | null => {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = window.localStorage.getItem(FILTER_STORAGE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as TerritoryWiseItemsFilters
+    if (!parsed || typeof parsed !== 'object') return null
+    return parsed
+  } catch {
+    return null
+  }
+}
+
+const writeStoredFilters = (filters: TerritoryWiseItemsFilters | null) => {
+  if (typeof window === 'undefined') return
+  if (!filters) {
+    window.localStorage.removeItem(FILTER_STORAGE_KEY)
+    return
+  }
+  window.localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify(filters))
+}
+
 const SubTwoCategorySummaryReport = () => {
-  const [filters, setFilters] = useState<TerritoryWiseItemsFilters | null>(null)
+  const [filters, setFilters] = useState<TerritoryWiseItemsFilters | null>(() =>
+    readStoredFilters()
+  )
   const [globalFilter, setGlobalFilter] = useState('')
 
   const todayIso = useMemo(
@@ -257,7 +358,11 @@ const SubTwoCategorySummaryReport = () => {
       filterFn: (row, columnId, filterValue) =>
         isFilterMatch(row.getValue(columnId), filterValue),
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={formatHeader(key)} />
+        <DataTableColumnHeader
+          column={column}
+          title={formatHeader(key)}
+          className={getHeaderAlignmentClassName(key)}
+        />
       ),
       cell: ({ row }) => (
         <span className='block truncate'>
@@ -305,6 +410,12 @@ const SubTwoCategorySummaryReport = () => {
           <TerritoryWiseItemsFilter
             initialValues={filters ?? undefined}
             onApply={(next) => {
+              if (!next.subChannelId) {
+                writeStoredFilters(null)
+                setFilters(null)
+                return
+              }
+              writeStoredFilters(next)
               setFilters(next)
             }}
           />
@@ -368,13 +479,18 @@ const SubTwoCategorySummaryReport = () => {
                     {table.getHeaderGroups().map((headerGroup) => (
                       <TableRow key={headerGroup.id}>
                         {headerGroup.headers.map((header) => (
-                          <TableHead
-                            key={header.id}
-                            className='text-muted-foreground bg-gray-100 px-3 text-xs font-semibold tracking-wide uppercase dark:bg-gray-900'
-                          >
-                            {header.isPlaceholder
-                              ? null
-                              : flexRender(
+                        <TableHead
+                          key={header.id}
+                          className={cn(
+                            'text-muted-foreground bg-gray-100 px-3 text-xs font-semibold tracking-wide uppercase dark:bg-gray-900',
+                            getCellAlignmentClassName(String(header.column.id)),
+                            isSubTwoCategoryIdKey(String(header.column.id)) &&
+                              'pl-3'
+                          )}
+                        >
+                          {header.isPlaceholder
+                            ? null
+                            : flexRender(
                                   header.column.columnDef.header,
                                   header.getContext()
                                 )}
@@ -398,12 +514,22 @@ const SubTwoCategorySummaryReport = () => {
                     ) : (
                       table.getRowModel().rows.map((row) => (
                         <TableRow key={row.id}>
-                          {row.getVisibleCells().map((cell) => (
-                            <TableCell key={cell.id} className='px-3 py-2'>
-                              {flexRender(
-                                cell.column.columnDef.cell,
-                                cell.getContext()
+                          {row.getVisibleCells().map((cell, cellIndex) => (
+                            <TableCell
+                              key={cell.id}
+                              className={cn(
+                                'px-3 py-2',
+                                getCellAlignmentClassName(String(cell.column.id)),
+                                isSubTwoCategoryIdKey(String(cell.column.id)) &&
+                                  'pl-3'
                               )}
+                            >
+                              <div className={cn(cellIndex === 0 && 'pl-3')}>
+                                {flexRender(
+                                  cell.column.columnDef.cell,
+                                  cell.getContext()
+                                )}
+                              </div>
                             </TableCell>
                           ))}
                         </TableRow>

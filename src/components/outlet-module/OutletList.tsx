@@ -70,6 +70,21 @@ const writeStoredFilters = (filters: OutletFilterState | null) => {
   window.localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify(filters))
 }
 
+const getOutletKey = (row: OutletRecord) =>
+  pickFirstValue(row, ['uniqueCode', 'outletCode', 'outletId', 'id'])
+
+const dedupeOutlets = (items: OutletRecord[]) => {
+  const seen = new Set<string>()
+  return items.filter((row) => {
+    const key = getOutletKey(row)
+    if (key === null || key === undefined || key === '') return true
+    const normalized = String(key)
+    if (seen.has(normalized)) return false
+    seen.add(normalized)
+    return true
+  })
+}
+
 export const OutletList = () => {
   const storedFilters = readStoredFilters()
   const storedChannelId = storedFilters.channelId?.trim() ?? ''
@@ -120,6 +135,10 @@ export const OutletList = () => {
   })
 
   const outletRows = channelId ? rows : []
+  const uniqueOutletRows = useMemo(
+    () => dedupeOutlets(outletRows),
+    [outletRows]
+  )
 
   const columns = useMemo<ColumnDef<OutletRecord>[]>(
     () =>
@@ -131,14 +150,14 @@ export const OutletList = () => {
 
   const filteredData = useMemo(() => {
     if (!createdRange?.from) {
-      return outletRows
+      return uniqueOutletRows
     }
     if (!createdRange.to) {
       const target = new Date(createdRange.from)
       target.setHours(0, 0, 0, 0)
       const end = new Date(createdRange.from)
       end.setHours(23, 59, 59, 999)
-      return outletRows.filter((row) => {
+      return uniqueOutletRows.filter((row) => {
         const created = parseCreatedDate(row.created)
         if (!created) return false
         return created >= target && created <= end
@@ -146,8 +165,8 @@ export const OutletList = () => {
     }
     const from = createdRange.from
     const to = createdRange.to
-    if (!from || !to) return outletRows
-    return outletRows.filter((row) => {
+    if (!from || !to) return uniqueOutletRows
+    return uniqueOutletRows.filter((row) => {
       const created = parseCreatedDate(row.created)
       if (!created) return false
       const start = new Date(from)
@@ -156,7 +175,7 @@ export const OutletList = () => {
       end.setHours(23, 59, 59, 999)
       return created >= start && created <= end
     })
-  }, [outletRows, createdRange])
+  }, [uniqueOutletRows, createdRange])
 
   const table = useReactTable({
     data: filteredData,
@@ -265,7 +284,9 @@ export const OutletList = () => {
           <CardHeader className='flex items-center justify-between gap-2'>
             <CardTitle className='text-base font-semibold'>
               Outlet List{' '}
-              <CountBadge value={`${filteredCount}/${outletRows.length}`} />
+              <CountBadge
+                value={`${filteredCount}/${uniqueOutletRows.length}`}
+              />
             </CardTitle>
             <ExcelExportButton
               data={exportRows}

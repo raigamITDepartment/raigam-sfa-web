@@ -35,7 +35,7 @@ type NotificationItem = {
 const MAX_ITEMS = 5
 
 export function NotificationBell() {
-  const subRoleId = useAppSelector((state) => state.auth.user?.subRoleId)
+  const roleId = useAppSelector((state) => state.auth.user?.roleId)
   const [uid, setUid] = useState<string | null>(null)
   const [items, setItems] = useState<NotificationItem[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
@@ -53,7 +53,7 @@ export function NotificationBell() {
   }, [])
 
   useEffect(() => {
-    if (!uid && !subRoleId) {
+    if (!uid && !roleId) {
       setItems([])
       setUnreadCount(0)
       return
@@ -69,11 +69,11 @@ export function NotificationBell() {
         )
       )
     }
-    if (subRoleId) {
+    if (roleId) {
       queries.push(
         query(
           collection(db, 'notifications'),
-          where('recipientSubRoleId', '==', subRoleId)
+          where('recipientSubRoleId', '==', roleId)
         )
       )
     }
@@ -132,7 +132,7 @@ export function NotificationBell() {
       active = false
       window.clearInterval(interval)
     }
-  }, [uid, subRoleId])
+  }, [uid, roleId])
 
   const headerLabel = useMemo(() => {
     if (!uid) return 'Notifications'
@@ -186,11 +186,11 @@ export function NotificationBell() {
                     )
                   )
                 }
-                if (subRoleId) {
+                if (roleId) {
                   unreadQueries.push(
                     query(
                       collection(db, 'notifications'),
-                      where('recipientSubRoleId', '==', subRoleId),
+                      where('recipientSubRoleId', '==', roleId),
                       where('status', '==', 'UNREAD')
                     )
                   )

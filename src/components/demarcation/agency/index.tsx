@@ -44,6 +44,7 @@ import {
   DataTableColumnHeader,
   DataTablePagination,
   DataTableToolbar,
+  TableLoadingRows,
 } from '@/components/data-table'
 import {
   ExcelExportButton,
@@ -507,14 +508,7 @@ export default function Agency() {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={columns.length}
-                    className='h-20 text-center'
-                  >
-                    Loading agencies...
-                  </TableCell>
-                </TableRow>
+                <TableLoadingRows columns={columns.length} />
               ) : isError ? (
                 <TableRow>
                   <TableCell

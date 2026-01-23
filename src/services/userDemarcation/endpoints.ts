@@ -260,9 +260,23 @@ export function getAllOutletsByRouteId(routeId: Id) {
   )
 }
 
-export function getAllOutletsByChannelId(channelId: Id) {
+export type GetAllOutletsByRequiredArgsParams = {
+  channelId: Id
+  subChannelId: Id
+  areaId: Id
+  territoryId: Id
+  routeId: Id
+}
+
+export function getAllOutletsByRequiredArgs({
+  channelId,
+  subChannelId,
+  areaId,
+  territoryId,
+  routeId,
+}: GetAllOutletsByRequiredArgsParams) {
   return get<OutletDTO[]>(
-    `${USER_DEMARC_BASE}/outlet/getAllOutletsByChannelId?channelId=${channelId}`
+    `${USER_DEMARC_BASE}/outlet/getAllOutletsByRequiredArgs?channelId=${channelId}&subChannelId=${subChannelId}&areaId=${areaId}&territoryId=${territoryId}&routeId=${routeId}`
   )
 }
 

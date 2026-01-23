@@ -58,7 +58,9 @@ export const createUserColumns = ({
     ),
   },
   {
-    accessorKey: 'roleName',
+    id: 'userGroupName',
+    accessorFn: (row) =>
+      row.userGroupName ?? (row.subRoleName ? row.roleName : undefined) ?? '',
     filterFn: (row, columnId, filterValue) => {
       const values = Array.isArray(filterValue)
         ? filterValue
@@ -70,19 +72,20 @@ export const createUserColumns = ({
       return values.includes(String(cellValue))
     },
     header: ({ column }) => (
+      <DataTableColumnHeader column={column} title='User Group Name' />
+    ),
+    cell: ({ row }) => (
+      <span className='pl-4'>{formatText(row.getValue('userGroupName'))}</span>
+    ),
+  },
+  {
+    id: 'roleName',
+    accessorFn: (row) => row.roleName ?? row.subRoleName ?? '',
+    header: ({ column }) => (
       <DataTableColumnHeader column={column} title='Role Name' />
     ),
     cell: ({ row }) => (
       <span className='pl-4'>{formatText(row.getValue('roleName'))}</span>
-    ),
-  },
-  {
-    accessorKey: 'subRoleName',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title='Sub Role Name' />
-    ),
-    cell: ({ row }) => (
-      <span className='pl-4'>{formatText(row.getValue('subRoleName'))}</span>
     ),
   },
   {

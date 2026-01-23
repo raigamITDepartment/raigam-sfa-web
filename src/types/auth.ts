@@ -11,10 +11,11 @@ export type LoginResponsePayload = {
   refreshToken: string
   refreshTokenExpiry: number
   userId: number
-  roleId: number
+  userGroupId?: number
+  roleId?: number
   role: string
-  subRoleId: number
-  subRole: string
+  subRoleId?: number
+  subRole?: string
   subChannelId?: number | null
   userTypeId: number
   userType: string

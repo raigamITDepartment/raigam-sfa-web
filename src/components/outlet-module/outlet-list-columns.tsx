@@ -8,6 +8,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { formatDate } from '@/lib/format-date'
 import type { OutletRecord } from '@/types/outlet'
 import { formatValue, normalizeBool, pickFirstValue } from './outlet-list-utils'
 
@@ -62,7 +63,7 @@ export const createOutletColumns = ({
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title='Created' />
     ),
-    cell: ({ row }) => formatValue(row.getValue('created')),
+    cell: ({ row }) => formatDate(row.original.created),
   },
   {
     id: 'uniqueCode',

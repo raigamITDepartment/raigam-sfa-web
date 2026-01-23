@@ -40,6 +40,7 @@ import {
   DataTableColumnHeader,
   DataTablePagination,
   DataTableToolbar,
+  TableLoadingRows,
 } from '@/components/data-table'
 import { Button } from '@/components/ui/button'
 import { CommonDialog } from '@/components/common-dialog'
@@ -718,14 +719,7 @@ export default function Territory() {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={territoryColumns.length}
-                    className='h-20 text-center'
-                  >
-                    Loading territories...
-                  </TableCell>
-                </TableRow>
+                <TableLoadingRows columns={territoryColumns.length} />
               ) : isError ? (
                 <TableRow>
                   <TableCell

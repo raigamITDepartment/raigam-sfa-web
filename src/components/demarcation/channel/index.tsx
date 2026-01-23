@@ -41,6 +41,7 @@ import {
   DataTableColumnHeader,
   DataTablePagination,
   DataTableToolbar,
+  TableLoadingRows,
 } from '@/components/data-table'
 import { CommonDialog } from '@/components/common-dialog'
 import { toast } from 'sonner'
@@ -233,7 +234,9 @@ export default function Channel() {
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title='Channel Code' />
         ),
-        cell: ({ row }) => <span className='block'>{row.getValue('channelCode')}</span>,
+        cell: ({ row }) => (
+          <span className='block pl-3'>{row.getValue('channelCode')}</span>
+        ),
         meta: { thClassName: 'w-[180px] text-left' },
       },
       {
@@ -447,14 +450,7 @@ export default function Channel() {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={columns.length}
-                    className='h-20 text-center'
-                  >
-                    Loading channels...
-                  </TableCell>
-                </TableRow>
+                <TableLoadingRows columns={columns.length} />
               ) : isError ? (
                 <TableRow>
                   <TableCell

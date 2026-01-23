@@ -3,7 +3,7 @@ import type { ApiResponse } from '@/types/common'
 import type {
   AddUserRequest,
   AddUserResponse,
-  GetAllSubRolesResponse,
+  GetAllRolesResponse,
   GetAllUserRolesResponse,
   GetAllUsersResponse,
   UpdateUserRequest,
@@ -12,8 +12,8 @@ import type {
 } from '@/types/users'
 
 export const USER_BASE = '/api/v1/userDemarcation/user'
+export const USER_GROUP_BASE = '/api/v1/userDemarcation/userGroup'
 export const USER_ROLE_BASE = '/api/v1/userDemarcation/role'
-export const USER_SUB_ROLE_BASE = '/api/v1/userDemarcation/subRole'
 export const USER_SIGNUP_BASE = '/api/v1/auth/signup'
 
 export async function getAllUsers(): Promise<GetAllUsersResponse> {
@@ -21,13 +21,13 @@ export async function getAllUsers(): Promise<GetAllUsersResponse> {
   return res.data
 }
 
-export async function getAllUserRoles(): Promise<GetAllUserRolesResponse> {
-  const res = await http.get<GetAllUserRolesResponse>(USER_ROLE_BASE)
+export async function getAllUserGroups(): Promise<GetAllUserRolesResponse> {
+  const res = await http.get<GetAllUserRolesResponse>(USER_GROUP_BASE)
   return res.data
 }
 
-export async function getAllSubRoles(): Promise<GetAllSubRolesResponse> {
-  const res = await http.get<GetAllSubRolesResponse>(USER_SUB_ROLE_BASE)
+export async function getAllRoles(): Promise<GetAllRolesResponse> {
+  const res = await http.get<GetAllRolesResponse>(USER_ROLE_BASE)
   return res.data
 }
 

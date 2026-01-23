@@ -37,6 +37,29 @@ const initialState: AuthState = {
 
 const AUTH_USER_KEY = 'auth_user'
 
+function normalizeAuthUser(user: AuthUser): AuthUser {
+  const hasLegacySubRoleId = user.subRoleId != null
+  let userGroupId = user.userGroupId ?? undefined
+  let roleId = user.roleId ?? undefined
+
+  if (userGroupId == null && hasLegacySubRoleId) {
+    userGroupId = user.roleId ?? undefined
+    roleId = user.subRoleId ?? roleId
+  } else if (roleId == null && hasLegacySubRoleId) {
+    roleId = user.subRoleId ?? roleId
+  }
+
+  if (userGroupId == null && !hasLegacySubRoleId && roleId != null) {
+    userGroupId = roleId
+    roleId = undefined
+  }
+
+  if (userGroupId === user.userGroupId && roleId === user.roleId) {
+    return user
+  }
+  return { ...user, userGroupId, roleId }
+}
+
 function clearBrowserStorage() {
   try {
     localStorage.clear()
@@ -61,7 +84,16 @@ function setStoredUser(user: AuthUser) {
 function getStoredUser(): AuthUser | null {
   try {
     const raw = localStorage.getItem(AUTH_USER_KEY)
-    return raw ? (JSON.parse(raw) as AuthUser) : null
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as AuthUser
+    const normalized = normalizeAuthUser(parsed)
+    if (
+      normalized.userGroupId !== parsed.userGroupId ||
+      normalized.roleId !== parsed.roleId
+    ) {
+      setStoredUser(normalized)
+    }
+    return normalized
   } catch {
     return null
   }
@@ -86,7 +118,7 @@ export const loginThunk = createAsyncThunk(
     setRememberPreference(!!payload.remember)
     // If remember is true, persist refresh cookie with API expiry; otherwise use session cookie
     setRefreshToken(p.refreshToken, p.refreshTokenExpiry, !payload.remember)
-    const user: AuthUser = p
+    const user: AuthUser = normalizeAuthUser(p as AuthUser)
     setStoredUser(user)
     const firebaseToken =
       p.firebaseCustomToken ?? p.firebaseToken ?? p.customToken

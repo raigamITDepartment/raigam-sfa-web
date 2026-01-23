@@ -28,13 +28,12 @@ import { EditOutletForm } from '@/components/outlet-module/EditOutletForm'
 import { Calendar } from '@/components/ui/calendar'
 import type { DateRange } from 'react-day-picker'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { getAllOutletsByChannelId } from '@/services/userDemarcation/endpoints'
+import { getAllOutletsByRequiredArgs } from '@/services/userDemarcation/endpoints'
 import type { ApiResponse } from '@/types/common'
 import type { OutletRecord } from '@/types/outlet'
 import { createOutletColumns } from '@/components/outlet-module/outlet-list-columns'
 import { createOutletExportColumns } from '@/components/outlet-module/outlet-list-export'
 import {
-  buildFacetOptions,
   formatRangeLabel,
   parseCreatedDate,
   pickFirstValue,
@@ -44,6 +43,10 @@ const FILTER_STORAGE_KEY = 'outlet-list-filters'
 
 type OutletFilterState = {
   channelId?: string
+  subChannelId?: string
+  areaId?: string
+  territoryId?: string
+  routeId?: string
 }
 
 const readStoredFilters = (): OutletFilterState => {
@@ -70,7 +73,15 @@ const writeStoredFilters = (filters: OutletFilterState | null) => {
 export const OutletList = () => {
   const storedFilters = readStoredFilters()
   const storedChannelId = storedFilters.channelId?.trim() ?? ''
+  const storedSubChannelId = storedFilters.subChannelId?.trim() ?? '0'
+  const storedAreaId = storedFilters.areaId?.trim() ?? '0'
+  const storedTerritoryId = storedFilters.territoryId?.trim() ?? '0'
+  const storedRouteId = storedFilters.routeId?.trim() ?? '0'
   const [channelId, setChannelId] = useState<string>(storedChannelId)
+  const [subChannelId, setSubChannelId] = useState<string>(storedSubChannelId)
+  const [areaId, setAreaId] = useState<string>(storedAreaId)
+  const [territoryId, setTerritoryId] = useState<string>(storedTerritoryId)
+  const [routeId, setRouteId] = useState<string>(storedRouteId)
   const [editOutlet, setEditOutlet] = useState<OutletRecord | null>(null)
   const [globalFilter, setGlobalFilter] = useState('')
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 })
@@ -88,14 +99,22 @@ export const OutletList = () => {
     queryKey: [
       'user-demarcation',
       'outlets',
-      'by-channel',
+      'by-required-args',
       channelId,
+      subChannelId,
+      areaId,
+      territoryId,
+      routeId,
     ],
     enabled: Boolean(channelId),
     queryFn: async () => {
-      const res = (await getAllOutletsByChannelId(channelId)) as ApiResponse<
-        OutletRecord[]
-      >
+      const res = (await getAllOutletsByRequiredArgs({
+        channelId,
+        subChannelId,
+        areaId,
+        territoryId,
+        routeId,
+      })) as ApiResponse<OutletRecord[]>
       return res.payload ?? []
     },
   })
@@ -175,21 +194,6 @@ export const OutletList = () => {
     }))
   }, [filteredData])
 
-  const areaFilterOptions = useMemo(
-    () =>
-      buildFacetOptions(
-        filteredData.map((row) =>
-          pickFirstValue(row, ['areaName', 'rangeName', 'range'])
-        )
-      ),
-    [filteredData]
-  )
-
-  const routeFilterOptions = useMemo(
-    () => buildFacetOptions(filteredData.map((row) => row.routeName)),
-    [filteredData]
-  )
-
   const approvedFilterOptions = useMemo(
     () => [
       { label: 'Yes', value: 'true' },
@@ -217,18 +221,36 @@ export const OutletList = () => {
         initialValues={storedFilters}
         onApply={(filters) => {
           const nextChannelId = filters.channelId?.trim() ?? ''
+          const nextSubChannelId = filters.subChannelId?.trim() ?? '0'
+          const nextAreaId = filters.areaId?.trim() ?? '0'
+          const nextTerritoryId = filters.territoryId?.trim() ?? '0'
+          const nextRouteId = filters.routeId?.trim() ?? '0'
           if (!nextChannelId) {
             setApplyError(true)
             return
           }
           setApplyError(false)
-          writeStoredFilters({ channelId: nextChannelId })
+          writeStoredFilters({
+            channelId: nextChannelId,
+            subChannelId: nextSubChannelId,
+            areaId: nextAreaId,
+            territoryId: nextTerritoryId,
+            routeId: nextRouteId,
+          })
           setChannelId(nextChannelId)
+          setSubChannelId(nextSubChannelId)
+          setAreaId(nextAreaId)
+          setTerritoryId(nextTerritoryId)
+          setRouteId(nextRouteId)
         }}
         onReset={() => {
           setApplyError(false)
           writeStoredFilters(null)
           setChannelId('')
+          setSubChannelId('0')
+          setAreaId('0')
+          setTerritoryId('0')
+          setRouteId('0')
         }}
       />
       {showFilterAlert && (
@@ -263,16 +285,6 @@ export const OutletList = () => {
                     columnId: 'category',
                     title: 'Category',
                     options: categoryFilterOptions,
-                  },
-                  {
-                    columnId: 'areaName',
-                    title: 'Area',
-                    options: areaFilterOptions,
-                  },
-                  {
-                    columnId: 'route',
-                    title: 'Route',
-                    options: routeFilterOptions,
                   },
                   {
                     columnId: 'approved',

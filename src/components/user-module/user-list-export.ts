@@ -4,8 +4,15 @@ import { formatUserFullName } from './user-list-utils'
 
 export const createUserExportColumns = (): ExcelExportColumn<UserDemarcationUser>[] => [
   { header: 'Username', accessor: (row) => row.userName },
-  { header: 'Role Name', accessor: (row) => row.roleName },
-  { header: 'Sub Role Name', accessor: (row) => row.subRoleName },
+  {
+    header: 'User Group Name',
+    accessor: (row) =>
+      row.userGroupName ?? (row.subRoleName ? row.roleName : undefined) ?? '-',
+  },
+  {
+    header: 'Role Name',
+    accessor: (row) => row.roleName ?? row.subRoleName ?? '-',
+  },
   {
     header: 'Full Name',
     accessor: (row) => formatUserFullName(row) || '-',

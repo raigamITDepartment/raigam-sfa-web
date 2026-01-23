@@ -53,6 +53,30 @@ const deriveStatus = (row: BookingInvoiceReportItem) => {
   return 'Pending'
 }
 
+const toTimestamp = (value?: string | null) => {
+  if (!value) return 0
+  const ts = Date.parse(value)
+  return Number.isNaN(ts) ? 0 : ts
+}
+
+const compareInvoiceIds = (
+  aValue: unknown,
+  bValue: unknown,
+  aFallback?: unknown,
+  bFallback?: unknown
+) => {
+  const aRaw = aValue ?? aFallback
+  const bRaw = bValue ?? bFallback
+  const aText = aRaw == null ? '' : String(aRaw)
+  const bText = bRaw == null ? '' : String(bRaw)
+  const aNum = Number(aText)
+  const bNum = Number(bText)
+  if (Number.isFinite(aNum) && Number.isFinite(bNum)) {
+    return aNum - bNum
+  }
+  return aText.localeCompare(bText)
+}
+
 const CanceledInvoice = () => {
   const user = useAppSelector((s) => s.auth.user)
   const savedFilters = useAppSelector(
@@ -212,6 +236,13 @@ const CanceledInvoice = () => {
             <InvoiceNumber invoiceId={row.original.invoiceNo} />
           </button>
         ),
+        sortingFn: (a, b) =>
+          compareInvoiceIds(
+            a.original.invoiceNo,
+            b.original.invoiceNo,
+            a.original.id,
+            b.original.id
+          ),
         meta: { thClassName: 'pl-2' },
       },
       {
@@ -270,6 +301,8 @@ const CanceledInvoice = () => {
             {formatDateTime(row.original.dateBook)}
           </span>
         ),
+        sortingFn: (a, b) =>
+          toTimestamp(a.original.dateBook) - toTimestamp(b.original.dateBook),
         meta: { thClassName: 'text-center' },
       },
       {
@@ -374,6 +407,10 @@ const CanceledInvoice = () => {
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     initialState: {
+      sorting: [
+        { id: 'dateBook', desc: true },
+        { id: 'invoiceNo', desc: true },
+      ],
       pagination: {
         pageSize: 10,
       },

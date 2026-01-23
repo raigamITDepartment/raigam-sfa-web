@@ -5,13 +5,22 @@ import {
   Polyline,
   useJsApiLoader,
 } from '@react-google-maps/api'
-import { Maximize2, Minimize2, Pause, Play, Rabbit, Turtle } from 'lucide-react'
+import {
+  Maximize2,
+  Minimize2,
+  Pause,
+  Play,
+  Rabbit,
+  RotateCcw,
+  Turtle,
+} from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Slider } from '@/components/ui/slider'
 import { GPSMonitoringFilter } from '@/components/gps-monitoring/Filter'
 import { mockRouteResponse } from '@/components/gps-monitoring/MockRouteResponse'
+import { cn } from '@/lib/utils'
 
 type AgentStatus = 'online' | 'idle' | 'offline'
 
@@ -25,6 +34,7 @@ type MockAgent = {
   latitude: number
   longitude: number
   speedKmh: number
+  batteryPercent: number
 }
 
 const REPLAY_INTERVAL_MS = 800
@@ -67,6 +77,7 @@ const mockAgents: MockAgent[] = [
     latitude: 6.9271,
     longitude: 79.8612,
     speedKmh: 32,
+    batteryPercent: 78,
   },
 ]
 
@@ -97,6 +108,32 @@ export const GPSMonitoring = () => {
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as
     | string
     | undefined
+  const parseBatteryPercent = (value?: string | number | null) => {
+    if (value === null || value === undefined) return null
+    if (typeof value === 'number') {
+      return Number.isFinite(value) ? Math.round(value) : null
+    }
+    const trimmed = value.trim()
+    if (!trimmed) return null
+    const normalized = trimmed.replace('%', '')
+    const parsed = Number(normalized)
+    return Number.isNaN(parsed) ? null : Math.round(parsed)
+  }
+  const routeBattery = parseBatteryPercent(
+    routeData[routeIndex]?.batteryPercentage
+  )
+  const agentBattery = parseBatteryPercent(activeAgent?.batteryPercent)
+  const batteryPercentRaw = routeBattery ?? agentBattery ?? 0
+  const batteryPercent = Math.min(
+    100,
+    Math.max(0, Math.round(batteryPercentRaw))
+  )
+  const batteryTone =
+    batteryPercent >= 65
+      ? 'good'
+      : batteryPercent >= 35
+        ? 'warn'
+        : 'low'
 
   useEffect(() => {
     if (!import.meta.env.DEV) return
@@ -322,6 +359,18 @@ export const GPSMonitoring = () => {
                     <Play className='h-4 w-4' />
                   )}
                 </Button>
+                <Button
+                  size='icon'
+                  variant='outline'
+                  className='h-8 w-8'
+                  onClick={() => {
+                    setRouteIndex(0)
+                    setIsPlaying(true)
+                  }}
+                  aria-label='Replay route'
+                >
+                  <RotateCcw className='h-4 w-4' />
+                </Button>
                 <div className='flex h-8 items-center gap-2 rounded-md border border-slate-200 bg-white px-2 dark:border-slate-700 dark:bg-slate-900/60'>
                   <Turtle className='h-4 w-4 text-slate-500' />
                   <Slider
@@ -436,6 +485,42 @@ export const GPSMonitoring = () => {
                         <p className='text-[11px] text-slate-500 dark:text-slate-400'>
                           Last ping {activeAgent.lastPing}
                         </p>
+                      </div>
+
+                      <div className='mt-3 rounded-md border border-slate-200/80 bg-slate-50/80 px-2 py-2 dark:border-slate-700/70 dark:bg-slate-800/60'>
+                        <div className='flex items-center justify-between text-[10px] font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400'>
+                          <span>Battery</span>
+                          <span
+                            className={cn(
+                              'text-[11px]',
+                              batteryTone === 'good' &&
+                                'text-emerald-700 dark:text-emerald-300',
+                              batteryTone === 'warn' &&
+                                'text-amber-700 dark:text-amber-300',
+                              batteryTone === 'low' &&
+                                'text-rose-700 dark:text-rose-300'
+                            )}
+                          >
+                            {batteryPercent}%
+                          </span>
+                        </div>
+                        <div className='mt-2 flex items-center gap-2'>
+                          <div className='relative h-2.5 w-full rounded-full bg-slate-200/80 dark:bg-slate-700/80'>
+                            <div
+                              className={cn(
+                                'h-full rounded-full transition-all',
+                                batteryTone === 'good' &&
+                                  'bg-gradient-to-r from-emerald-500 to-emerald-400',
+                                batteryTone === 'warn' &&
+                                  'bg-gradient-to-r from-amber-500 to-amber-400',
+                                batteryTone === 'low' &&
+                                  'bg-gradient-to-r from-rose-500 to-rose-400'
+                              )}
+                              style={{ width: `${batteryPercent}%` }}
+                            />
+                          </div>
+                          <div className='h-3 w-1.5 rounded-sm border border-slate-300 bg-slate-100 dark:border-slate-600 dark:bg-slate-700' />
+                        </div>
                       </div>
 
                       <div className='mt-3 grid grid-cols-2 gap-3 text-[11px] text-slate-500 dark:text-slate-400'>

@@ -3,6 +3,7 @@ export type RoutePoint = {
   lng: number
   time: string
   label?: string
+  batteryPercentage?: string
 }
 
 export type RouteResponse = {
@@ -57,6 +58,7 @@ export function expandRouteEveryMinute(
         lng: Number(lng.toFixed(6)),
         time,
         label: a.label,
+        batteryPercentage: a.batteryPercentage ?? b.batteryPercentage,
       })
     }
 
@@ -71,20 +73,104 @@ export function expandRouteEveryMinute(
 // Your anchor route
 // ---------------------
 export const ANCHOR_ROUTE: RoutePoint[] = [
-  { lat: 6.5854, lng: 79.9607, time: '2025-12-16T03:30:00Z', label: 'Kalutara' },
-  { lat: 6.6038, lng: 79.9502, time: '2025-12-16T03:40:00Z', label: 'Payagala' },
-  { lat: 6.6289, lng: 79.9349, time: '2025-12-16T03:50:00Z', label: 'Maggona' },
-  { lat: 6.6509, lng: 79.9256, time: '2025-12-16T04:00:00Z', label: 'Wadduwa' },
-  { lat: 6.7202, lng: 79.9024, time: '2025-12-16T04:15:00Z', label: 'Panadura' },
-  { lat: 6.7426, lng: 79.8961, time: '2025-12-16T04:25:00Z', label: 'Egodauyana' },
-  { lat: 6.767, lng: 79.8901, time: '2025-12-16T04:35:00Z', label: 'Moratuwa' },
-  { lat: 6.7894, lng: 79.8871, time: '2025-12-16T04:45:00Z', label: 'Katubedda' },
-  { lat: 6.8098, lng: 79.8789, time: '2025-12-16T04:55:00Z', label: 'Ratmalana' },
-  { lat: 6.8295, lng: 79.8659, time: '2025-12-16T05:05:00Z', label: 'Dehiwala' },
-  { lat: 6.8526, lng: 79.8623, time: '2025-12-16T05:15:00Z', label: 'Wellawatte' },
-  { lat: 6.8741, lng: 79.8612, time: '2025-12-16T05:20:00Z', label: 'Bambalapitiya' },
-  { lat: 6.9, lng: 79.8588, time: '2025-12-16T05:25:00Z', label: 'Kollupitiya' },
-  { lat: 6.9271, lng: 79.8612, time: '2025-12-16T05:30:00Z', label: 'Colombo' },
+  {
+    lat: 6.5854,
+    lng: 79.9607,
+    time: '2025-12-16T03:30:00Z',
+    label: 'Kalutara',
+    batteryPercentage: '99%',
+  },
+  {
+    lat: 6.6038,
+    lng: 79.9502,
+    time: '2025-12-16T03:40:00Z',
+    label: 'Payagala',
+    batteryPercentage: '99%',
+  },
+  {
+    lat: 6.6289,
+    lng: 79.9349,
+    time: '2025-12-16T03:50:00Z',
+    label: 'Maggona',
+    batteryPercentage: '98%',
+  },
+  {
+    lat: 6.6509,
+    lng: 79.9256,
+    time: '2025-12-16T04:00:00Z',
+    label: 'Wadduwa',
+    batteryPercentage: '98%',
+  },
+  {
+    lat: 6.7202,
+    lng: 79.9024,
+    time: '2025-12-16T04:15:00Z',
+    label: 'Panadura',
+    batteryPercentage: '98%',
+  },
+  {
+    lat: 6.7426,
+    lng: 79.8961,
+    time: '2025-12-16T04:25:00Z',
+    label: 'Egodauyana',
+    batteryPercentage: '96%',
+  },
+  {
+    lat: 6.767,
+    lng: 79.8901,
+    time: '2025-12-16T04:35:00Z',
+    label: 'Moratuwa',
+    batteryPercentage: '96%',
+  },
+  {
+    lat: 6.7894,
+    lng: 79.8871,
+    time: '2025-12-16T04:45:00Z',
+    label: 'Katubedda',
+    batteryPercentage: '95%',
+  },
+  {
+    lat: 6.8098,
+    lng: 79.8789,
+    time: '2025-12-16T04:55:00Z',
+    label: 'Ratmalana',
+    batteryPercentage: '95%',
+  },
+  {
+    lat: 6.8295,
+    lng: 79.8659,
+    time: '2025-12-16T05:05:00Z',
+    label: 'Dehiwala',
+    batteryPercentage: '94%',
+  },
+  {
+    lat: 6.8526,
+    lng: 79.8623,
+    time: '2025-12-16T05:15:00Z',
+    label: 'Wellawatte',
+    batteryPercentage: '93%',
+  },
+  {
+    lat: 6.8741,
+    lng: 79.8612,
+    time: '2025-12-16T05:20:00Z',
+    label: 'Bambalapitiya',
+    batteryPercentage: '92%',
+  },
+  {
+    lat: 6.9,
+    lng: 79.8588,
+    time: '2025-12-16T05:25:00Z',
+    label: 'Kollupitiya',
+    batteryPercentage: '90%',
+  },
+  {
+    lat: 6.9271,
+    lng: 79.8612,
+    time: '2025-12-16T05:30:00Z',
+    label: 'Colombo',
+    batteryPercentage: '88%',
+  },
 ]
 
 // Build per-minute points:

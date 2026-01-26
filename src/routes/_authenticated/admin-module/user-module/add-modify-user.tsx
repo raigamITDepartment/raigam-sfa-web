@@ -132,8 +132,8 @@ function AddModifyUser() {
   const createMutation = useMutation({
     mutationFn: async (values: UserFormValues) => {
       const payload: AddUserRequest = {
+        userGroupId: values.userGroupId,
         roleId: values.roleId,
-        subRoleId: values.subRoleId,
         departmentId: null,
         continentId: null,
         countryId: null,
@@ -174,8 +174,8 @@ function AddModifyUser() {
       }
       const payload: UpdateUserRequest = {
         id: editingUser.id,
+        userGroupId: values.userGroupId,
         roleId: values.roleId,
-        subRoleId: values.subRoleId,
         userLevelId: editingUser.userLevelId,
         userName: values.userName,
         firstName: values.firstName,
@@ -293,18 +293,24 @@ function AddModifyUser() {
   const countLabel = isLoading ? '.../...' : `${filteredCount}/${totalCount}`
 
   const userFormInitialValues = useMemo<Partial<UserFormValues> | undefined>(
-    () =>
-      editingUser
-        ? {
-            userName: editingUser.userName,
-            firstName: editingUser.firstName,
-            lastName: editingUser.lastName,
-            email: editingUser.email,
-            mobileNo: editingUser.mobileNo,
-            roleId: editingUser.roleId,
-            subRoleId: editingUser.subRoleId,
-          }
-        : undefined,
+    () => {
+      if (!editingUser) return undefined
+      const resolvedGroupId =
+        editingUser.userGroupId ?? editingUser.roleId
+      const resolvedRoleId =
+        editingUser.userGroupId != null
+          ? editingUser.roleId
+          : editingUser.subRoleId
+      return {
+        userName: editingUser.userName,
+        firstName: editingUser.firstName,
+        lastName: editingUser.lastName,
+        email: editingUser.email,
+        mobileNo: editingUser.mobileNo,
+        userGroupId: resolvedGroupId,
+        roleId: resolvedRoleId,
+      }
+    },
     [editingUser]
   )
 

@@ -44,8 +44,8 @@ const userFormSchemaBase = z.object({
   lastName: z.string().min(1, 'Please enter last name'),
   email: z.string().min(1, 'Please enter email').email('Invalid email'),
   mobileNo: z.string().min(1, 'Please enter mobile number'),
-  roleId: requiredNumber('Please select user group'),
-  subRoleId: requiredNumber('Please select role'),
+  userGroupId: requiredNumber('Please select user group'),
+  roleId: requiredNumber('Please select role'),
   password: z.string().optional(),
   confirmPassword: z.string().optional(),
 })
@@ -109,13 +109,14 @@ const getDefaultValues = (
   lastName: initialValues?.lastName ?? '',
   email: initialValues?.email ?? '',
   mobileNo: initialValues?.mobileNo ?? '',
+  userGroupId:
+    initialValues?.userGroupId !== undefined &&
+    initialValues?.userGroupId !== null
+      ? String(initialValues.userGroupId)
+      : '',
   roleId:
     initialValues?.roleId !== undefined && initialValues?.roleId !== null
       ? String(initialValues.roleId)
-      : '',
-  subRoleId:
-    initialValues?.subRoleId !== undefined && initialValues?.subRoleId !== null
-      ? String(initialValues.subRoleId)
       : '',
   password: initialValues?.password ?? '',
   confirmPassword: initialValues?.confirmPassword ?? '',
@@ -262,7 +263,7 @@ export function UserForm(props: UserFormProps) {
           <div className='grid gap-4 sm:grid-cols-2'>
             <FormField
               control={form.control}
-              name='roleId'
+              name='userGroupId'
               render={({ field }) => (
                 <FormItem>
                 <FormLabel>User Group</FormLabel>
@@ -290,19 +291,19 @@ export function UserForm(props: UserFormProps) {
             />
             <FormField
               control={form.control}
-              name='subRoleId'
+              name='roleId'
               render={({ field }) => (
                 <FormItem>
-                <FormLabel>Role</FormLabel>
-                <Select
-                  value={toSelectValue(field.value)}
-                  onValueChange={field.onChange}
-                  disabled={!subRoleOptions.length}
-                >
-                  <FormControl>
-                    <SelectTrigger className='w-full'>
-                      <SelectValue placeholder='Select role' />
-                    </SelectTrigger>
+                  <FormLabel>Role</FormLabel>
+                  <Select
+                    value={toSelectValue(field.value)}
+                    onValueChange={field.onChange}
+                    disabled={!subRoleOptions.length}
+                  >
+                    <FormControl>
+                      <SelectTrigger className='w-full'>
+                        <SelectValue placeholder='Select role' />
+                      </SelectTrigger>
                     </FormControl>
                     <SelectContent>
                       {subRoleOptions.map((option) => (
@@ -321,7 +322,7 @@ export function UserForm(props: UserFormProps) {
           <>
             <FormField
               control={form.control}
-              name='roleId'
+              name='userGroupId'
               render={({ field }) => (
                 <FormItem>
                 <FormLabel>User Group</FormLabel>
@@ -349,19 +350,19 @@ export function UserForm(props: UserFormProps) {
             />
             <FormField
               control={form.control}
-              name='subRoleId'
+              name='roleId'
               render={({ field }) => (
                 <FormItem>
-                <FormLabel>Role</FormLabel>
-                <Select
-                  value={toSelectValue(field.value)}
-                  onValueChange={field.onChange}
-                  disabled={!subRoleOptions.length}
-                >
-                  <FormControl>
-                    <SelectTrigger className='w-full'>
-                      <SelectValue placeholder='Select role' />
-                    </SelectTrigger>
+                  <FormLabel>Role</FormLabel>
+                  <Select
+                    value={toSelectValue(field.value)}
+                    onValueChange={field.onChange}
+                    disabled={!subRoleOptions.length}
+                  >
+                    <FormControl>
+                      <SelectTrigger className='w-full'>
+                        <SelectValue placeholder='Select role' />
+                      </SelectTrigger>
                     </FormControl>
                     <SelectContent>
                       {subRoleOptions.map((option) => (

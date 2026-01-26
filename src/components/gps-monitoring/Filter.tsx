@@ -46,11 +46,14 @@ type GPSMonitoringFilterProps = {
 }
 
 const toIsoDate = (value?: Date | null) =>
-  value ? value.toISOString().slice(0, 10) : undefined
+  value ? format(value, 'yyyy-MM-dd') : undefined
 
 const parseDate = (value?: string) => {
   if (!value) return undefined
-  const parsed = new Date(value)
+  const plainMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  const parsed = plainMatch
+    ? new Date(`${value}T00:00:00`)
+    : new Date(value)
   return Number.isNaN(parsed.getTime()) ? undefined : parsed
 }
 
@@ -222,38 +225,8 @@ export function GPSMonitoringFilter({
 
   return (
     <div className='rounded-sm border bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900'>
-      <div className='flex flex-wrap items-end gap-2'>
-        <div className='flex min-w-[210px] flex-col gap-2'>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                id='gps-tracking-date'
-                variant='outline'
-                className={cn(
-                  controlHeight,
-                  'w-full justify-between text-left font-normal',
-                  !trackingDate && 'text-muted-foreground'
-                )}
-              >
-                <span className='truncate'>{formatDateLabel(trackingDate)}</span>
-                <CalendarIcon className='h-4 w-4 opacity-50' />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className='w-auto p-0' align='start'>
-              <Calendar
-                mode='single'
-                captionLayout='dropdown'
-                selected={trackingDate}
-                onSelect={setTrackingDate}
-                disabled={(date: Date) =>
-                  date > new Date() || date < new Date('1900-01-01')
-                }
-              />
-                </PopoverContent>
-          </Popover>
-        </div>
-
-        <div className='flex min-w-[240px] flex-col gap-2'>
+      <div className='flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end'>
+        <div className='flex w-full flex-col gap-2 sm:w-[240px]'>
           <Select
             value={areaId}
             onValueChange={(value) => {
@@ -279,7 +252,7 @@ export function GPSMonitoringFilter({
           </Select>
         </div>
 
-        <div className='flex min-w-[240px] flex-col gap-2'>
+        <div className='flex w-full flex-col gap-2 sm:w-[240px]'>
           <Select
             value={territoryId}
             onValueChange={(value) => {
@@ -308,7 +281,7 @@ export function GPSMonitoringFilter({
           </Select>
         </div>
 
-        <div className='flex min-w-[220px] flex-col gap-2'>
+        <div className='flex w-full flex-col gap-2 sm:w-[220px]'>
           <Select
             value={salesRepId}
             onValueChange={setSalesRepId}
@@ -330,7 +303,37 @@ export function GPSMonitoringFilter({
           </Select>
         </div>
 
-        <div className='flex flex-col gap-2'>
+        <div className='flex w-full flex-col gap-2 sm:w-[210px]'>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                id='gps-tracking-date'
+                variant='outline'
+                className={cn(
+                  controlHeight,
+                  'w-full justify-between text-left font-normal',
+                  !trackingDate && 'text-muted-foreground'
+                )}
+              >
+                <span className='truncate'>{formatDateLabel(trackingDate)}</span>
+                <CalendarIcon className='h-4 w-4 opacity-50' />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className='w-auto p-0' align='start'>
+              <Calendar
+                mode='single'
+                captionLayout='dropdown'
+                selected={trackingDate}
+                onSelect={setTrackingDate}
+                disabled={(date: Date) =>
+                  date > new Date() || date < new Date('1900-01-01')
+                }
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+
+        <div className='flex w-full flex-col gap-2 sm:w-[160px]'>
           <Select value={fromTime} onValueChange={setFromTime}>
             <SelectTrigger id='gps-from-time' className={timeTriggerClass}>
               <SelectValue placeholder='From time' />
@@ -345,7 +348,7 @@ export function GPSMonitoringFilter({
           </Select>
         </div>
 
-        <div className='flex flex-col gap-2'>
+        <div className='flex w-full flex-col gap-2 sm:w-[160px]'>
           <Select value={toTime} onValueChange={setToTime}>
             <SelectTrigger id='gps-to-time' className={timeTriggerClass}>
               <SelectValue placeholder='To time' />
@@ -360,16 +363,13 @@ export function GPSMonitoringFilter({
           </Select>
         </div>
 
-        <div className='flex items-end'>
+        <div className='flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-end'>
           <Button
             className={cn(controlHeight, 'min-w-[150px]')}
             onClick={handleApply}
           >
             Apply Filters
           </Button>
-        </div>
-
-        <div className='flex items-end'>
           <Button
             variant='outline'
             className={cn(controlHeight, 'min-w-[150px]')}

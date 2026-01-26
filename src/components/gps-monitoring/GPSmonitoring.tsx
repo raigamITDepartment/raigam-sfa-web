@@ -13,13 +13,23 @@ import {
   Pause,
   Play,
   Rabbit,
+  Receipt,
   RotateCcw,
+  Store,
   Turtle,
 } from 'lucide-react'
 import { CommonAlert } from '@/components/common-alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import InvoiceNumber from '@/components/InvoiceNumber'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Slider } from '@/components/ui/slider'
 import {
   GPSMonitoringFilter,
@@ -76,6 +86,17 @@ type GpsRoutePoint = {
   batteryPercentage?: string | number | null
   isCheckIn?: boolean
   isCheckOut?: boolean
+  outletName?: string | null
+  invoiceNumber?: string | number | null
+}
+
+type GpsSummaryRow = {
+  key: string
+  title: string
+  lat: number
+  lng: number
+  batteryPercent: number | null
+  timeKey: number
 }
 
 const REPLAY_INTERVAL_MS = 800
@@ -160,6 +181,27 @@ const normalizeTimeValue = (value: unknown) => {
   return null
 }
 
+const formatLatLng = (lat: number, lng: number) =>
+  `${lat.toFixed(4)}, ${lng.toFixed(4)}`
+
+const formatBatteryLabel = (value: number | null) =>
+  value === null ? '—' : `${value}%`
+
+const parseBatteryPercent = (value?: string | number | null) => {
+  if (value === null || value === undefined) return null
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? Math.round(value) : null
+  }
+  const trimmed = value.trim()
+  if (!trimmed) return null
+  const normalized = trimmed.replace('%', '')
+  const parsed = Number(normalized)
+  return Number.isNaN(parsed) ? null : Math.round(parsed)
+}
+
+const buildAddressKey = (lat: number, lng: number) =>
+  `${lat.toFixed(4)},${lng.toFixed(4)}`
+
 const resolveRecordTime = (record: GpsMonitoringRecord, fallback: string) => {
   for (const key of TIME_KEYS) {
     const normalized = normalizeTimeValue(record[key])
@@ -238,6 +280,9 @@ export const GPSMonitoring = () => {
   const [isPlaying, setIsPlaying] = useState(true)
   const [speedIndex, setSpeedIndex] = useState(1)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [outletDialogOpen, setOutletDialogOpen] = useState(false)
+  const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false)
+  const [addressLookup, setAddressLookup] = useState<Record<string, string>>({})
   const [directionsPath, setDirectionsPath] = useState<
     { lat: number; lng: number }[] | null
   >(null)
@@ -319,6 +364,13 @@ export const GPSMonitoring = () => {
         typeof record.batteryPercentage === 'number'
           ? record.batteryPercentage
           : undefined
+      const outletName =
+        typeof record.outletName === 'string' ? record.outletName : null
+      const invoiceNumber =
+        typeof record.invoiceNumber === 'string' ||
+        typeof record.invoiceNumber === 'number'
+          ? record.invoiceNumber
+          : null
       acc.push({
         lat,
         lng,
@@ -327,6 +379,8 @@ export const GPSMonitoring = () => {
         batteryPercentage,
         isCheckIn,
         isCheckOut,
+        outletName,
+        invoiceNumber,
       })
       return acc
     }, [])
@@ -368,17 +422,82 @@ export const GPSMonitoring = () => {
     }
     return formatDistanceToNow(parsed, { addSuffix: true })
   }, [routeData, routeIndex, activeAgent?.lastPing])
-  const parseBatteryPercent = (value?: string | number | null) => {
-    if (value === null || value === undefined) return null
-    if (typeof value === 'number') {
-      return Number.isFinite(value) ? Math.round(value) : null
+  const batteryEstimates = useMemo(() => {
+    const raw = routeData.map((point) =>
+      parseBatteryPercent(point.batteryPercentage)
+    )
+    const prevValues: Array<number | null> = new Array(raw.length).fill(null)
+    let lastKnown: number | null = null
+    for (let i = 0; i < raw.length; i += 1) {
+      if (raw[i] !== null) lastKnown = raw[i]
+      prevValues[i] = lastKnown
     }
-    const trimmed = value.trim()
-    if (!trimmed) return null
-    const normalized = trimmed.replace('%', '')
-    const parsed = Number(normalized)
-    return Number.isNaN(parsed) ? null : Math.round(parsed)
-  }
+    const nextValues: Array<number | null> = new Array(raw.length).fill(null)
+    let nextKnown: number | null = null
+    for (let i = raw.length - 1; i >= 0; i -= 1) {
+      if (raw[i] !== null) nextKnown = raw[i]
+      nextValues[i] = nextKnown
+    }
+    return raw.map((value, index) => {
+      if (value !== null) return value
+      const prevVal = prevValues[index]
+      const nextVal = nextValues[index]
+      if (prevVal !== null && nextVal !== null) {
+        return Math.round((prevVal + nextVal) / 2)
+      }
+      return prevVal ?? nextVal ?? null
+    })
+  }, [routeData])
+  const { outletRows, invoiceRows } = useMemo(() => {
+    const outlets = new Map<string, GpsSummaryRow>()
+    const invoices = new Map<string, GpsSummaryRow>()
+    for (let index = 0; index < routeData.length; index += 1) {
+      const point = routeData[index]
+      const parsedTime = Date.parse(point.time)
+      const timeKey = Number.isNaN(parsedTime) ? index : parsedTime
+      if (point.outletName) {
+        const trimmed = point.outletName.trim()
+        if (trimmed) {
+          const existing = outlets.get(trimmed)
+          if (!existing || timeKey >= existing.timeKey) {
+            outlets.set(trimmed, {
+              key: trimmed,
+              title: trimmed,
+              lat: point.lat,
+              lng: point.lng,
+              batteryPercent: batteryEstimates[index] ?? null,
+              timeKey,
+            })
+          }
+        }
+      }
+      if (
+        point.invoiceNumber !== null &&
+        point.invoiceNumber !== undefined
+      ) {
+        const trimmed = String(point.invoiceNumber).trim()
+        if (trimmed) {
+          const existing = invoices.get(trimmed)
+          if (!existing || timeKey >= existing.timeKey) {
+            invoices.set(trimmed, {
+              key: trimmed,
+              title: trimmed,
+              lat: point.lat,
+              lng: point.lng,
+              batteryPercent: batteryEstimates[index] ?? null,
+              timeKey,
+            })
+          }
+        }
+      }
+    }
+    return {
+      outletRows: Array.from(outlets.values()),
+      invoiceRows: Array.from(invoices.values()),
+    }
+  }, [batteryEstimates, routeData])
+  const outletCount = outletRows.length
+  const invoiceCount = invoiceRows.length
   const routeBattery = parseBatteryPercent(
     routeData[routeIndex]?.batteryPercentage
   )
@@ -430,6 +549,7 @@ export const GPSMonitoring = () => {
     () => routeData.map((point) => ({ lat: point.lat, lng: point.lng })),
     [routeData]
   )
+  const addressCacheRef = useRef(new Map<string, string>())
   const directionsWaypoints = useMemo(() => {
     if (routePath.length <= 2) return []
     const raw = routePath.slice(1, -1)
@@ -562,6 +682,46 @@ export const GPSMonitoring = () => {
       }
     )
   }, [isLoaded, markerPosition.lat, markerPosition.lng])
+
+  useEffect(() => {
+    if (!isLoaded || (!outletDialogOpen && !invoiceDialogOpen)) return
+    const googleMaps = (window as any).google
+    if (!googleMaps?.maps?.Geocoder) return
+    const rows = [...outletRows, ...invoiceRows]
+    const pending = rows
+      .map((row) => ({
+        key: buildAddressKey(row.lat, row.lng),
+        lat: row.lat,
+        lng: row.lng,
+      }))
+      .filter((entry) => !addressCacheRef.current.has(entry.key))
+    if (!pending.length) return
+    let cancelled = false
+    const geocoder = new googleMaps.maps.Geocoder()
+    const lookupNext = (index: number) => {
+      if (cancelled || index >= pending.length) return
+      const entry = pending[index]
+      geocoder.geocode(
+        { location: { lat: entry.lat, lng: entry.lng } },
+        (results: any[], status: string) => {
+          if (!cancelled && status === 'OK' && results?.length) {
+            const address = pickCityLabel(results)
+            if (address) {
+              addressCacheRef.current.set(entry.key, address)
+              setAddressLookup((prev) =>
+                prev[entry.key] ? prev : { ...prev, [entry.key]: address }
+              )
+            }
+          }
+          window.setTimeout(() => lookupNext(index + 1), 200)
+        }
+      )
+    }
+    lookupNext(0)
+    return () => {
+      cancelled = true
+    }
+  }, [invoiceDialogOpen, isLoaded, outletDialogOpen, outletRows, invoiceRows])
 
   useEffect(() => {
     if (!isLoaded || routePath.length < 2) {
@@ -781,7 +941,7 @@ export const GPSMonitoring = () => {
                     </Button>
                   </div>
                   {activeAgent ? (
-                    <div className='pointer-events-none absolute bottom-3 left-3 w-[320px] rounded-lg border border-slate-200/80 bg-white/95 p-4 text-xs text-slate-600 shadow-lg backdrop-blur dark:border-slate-700/70 dark:bg-slate-900/95 dark:text-slate-200'>
+                    <div className='pointer-events-auto absolute bottom-3 left-3 w-[320px] rounded-lg border border-slate-200/80 bg-white/95 p-4 text-xs text-slate-600 shadow-lg backdrop-blur dark:border-slate-700/70 dark:bg-slate-900/95 dark:text-slate-200'>
                       <div className='flex items-center justify-between gap-3'>
                         <div>
                           <p className='text-[11px] font-semibold tracking-[0.2em] text-slate-500 uppercase dark:text-slate-400'>
@@ -859,6 +1019,37 @@ export const GPSMonitoring = () => {
                         </div>
                       </div>
 
+                      <div className='mt-3 grid grid-cols-2 gap-3 text-[11px] text-slate-500 dark:text-slate-400'>
+                        <button
+                          type='button'
+                          onClick={() => setOutletDialogOpen(true)}
+                          className='rounded-md border border-emerald-200/80 bg-emerald-50/80 px-2 py-1.5 text-emerald-600 transition hover:border-emerald-300 hover:bg-emerald-100/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/70 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300 dark:hover:border-emerald-400/50 dark:hover:bg-emerald-500/20'
+                          aria-label='View outlets list'
+                        >
+                          <div className='flex items-center gap-2 text-[10px] tracking-wide uppercase'>
+                            <Store className='h-3.5 w-3.5' />
+                            <span>Outlets</span>
+                          </div>
+                          <p className='mt-1 truncate text-sm font-semibold text-emerald-700 dark:text-emerald-200'>
+                            {outletCount}
+                          </p>
+                        </button>
+                        <button
+                          type='button'
+                          onClick={() => setInvoiceDialogOpen(true)}
+                          className='rounded-md border border-sky-200/80 bg-sky-50/80 px-2 py-1.5 text-sky-600 transition hover:border-sky-300 hover:bg-sky-100/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/70 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-300 dark:hover:border-sky-400/50 dark:hover:bg-sky-500/20'
+                          aria-label='View invoices list'
+                        >
+                          <div className='flex items-center gap-2 text-[10px] tracking-wide uppercase'>
+                            <Receipt className='h-3.5 w-3.5' />
+                            <span>Invoices</span>
+                          </div>
+                          <p className='mt-1 truncate text-sm font-semibold text-sky-700 dark:text-sky-200'>
+                            {invoiceCount}
+                          </p>
+                        </button>
+                      </div>
+
                       <div className='mt-3 flex gap-3 text-[10px] font-mono text-slate-500 dark:text-slate-400'>
                         <span>Lat {markerPosition.lat.toFixed(4)}</span>
                         <span>Lng {markerPosition.lng.toFixed(4)}</span>
@@ -872,6 +1063,175 @@ export const GPSMonitoring = () => {
           </div>
         </CardContent>
       </Card>
+      <Dialog open={outletDialogOpen} onOpenChange={setOutletDialogOpen}>
+        <DialogContent className='gap-0 p-0 sm:max-w-6xl'>
+          <DialogHeader className='border-b px-6 py-4 text-left'>
+            <DialogTitle className='flex items-center gap-3 text-base font-semibold'>
+              <span className='flex h-9 w-9 items-center justify-center rounded-md bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-300'>
+                <Store className='h-4 w-4' />
+              </span>
+              Outlets created
+            </DialogTitle>
+            <DialogDescription>
+              {outletCount} outlets from the selected filters.
+            </DialogDescription>
+          </DialogHeader>
+          <div className='px-6 py-5'>
+            <div className='rounded-lg border border-slate-200/70 bg-white/70 dark:border-slate-800/60 dark:bg-slate-950/40'>
+              <div className='grid grid-cols-[1.1fr_0.8fr_1.4fr_0.6fr] gap-3 border-b border-slate-200/70 bg-slate-100/80 px-3 py-2 text-[10px] font-semibold tracking-[0.2em] text-slate-500 uppercase dark:border-slate-800/60 dark:bg-slate-900/60 dark:text-slate-400'>
+                <span>Outlet</span>
+                <span>Location</span>
+                <span>Address</span>
+                <span>Battery</span>
+              </div>
+              <div className='max-h-[50vh] overflow-y-auto'>
+                {outletRows.length ? (
+                  outletRows.map((row) => {
+                    const batteryTone =
+                      row.batteryPercent === null
+                        ? 'unknown'
+                        : row.batteryPercent >= 65
+                          ? 'good'
+                          : row.batteryPercent >= 35
+                            ? 'warn'
+                            : 'low'
+                    const addressKey = buildAddressKey(row.lat, row.lng)
+                    const addressLabel =
+                      addressLookup[addressKey] ??
+                      (isLoaded ? 'Resolving...' : '—')
+                    return (
+                      <div
+                        key={row.key}
+                        className='grid grid-cols-[1.1fr_0.8fr_1.4fr_0.6fr] items-center gap-3 border-b border-slate-200/60 px-3 py-2 text-sm last:border-b-0 dark:border-slate-800/50'
+                      >
+                        <div className='min-w-0'>
+                          <p className='truncate font-semibold text-slate-900 dark:text-slate-100'>
+                            {row.title}
+                          </p>
+                        </div>
+                        <div className='text-xs text-slate-500 dark:text-slate-400'>
+                          {formatLatLng(row.lat, row.lng)}
+                        </div>
+                        <div
+                          className='truncate text-xs text-slate-500 dark:text-slate-400'
+                          title={addressLabel}
+                        >
+                          {addressLabel}
+                        </div>
+                        <Badge
+                          variant='outline'
+                          className={cn(
+                            'justify-center border px-2 py-0.5 text-[11px] font-semibold',
+                            batteryTone === 'unknown' &&
+                              'border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-300',
+                            batteryTone === 'good' &&
+                              'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-200',
+                            batteryTone === 'warn' &&
+                              'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200',
+                            batteryTone === 'low' &&
+                              'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-200'
+                          )}
+                        >
+                          {formatBatteryLabel(row.batteryPercent)}
+                        </Badge>
+                      </div>
+                    )
+                  })
+                ) : (
+                  <div className='px-3 py-6 text-sm text-slate-500 dark:text-slate-400'>
+                    No outlets created for the selected filters.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={invoiceDialogOpen} onOpenChange={setInvoiceDialogOpen}>
+        <DialogContent className='gap-0 p-0 sm:max-w-6xl'>
+          <DialogHeader className='border-b px-6 py-4 text-left'>
+            <DialogTitle className='flex items-center gap-3 text-base font-semibold'>
+              <span className='flex h-9 w-9 items-center justify-center rounded-md bg-sky-100 text-sky-600 dark:bg-sky-500/20 dark:text-sky-300'>
+                <Receipt className='h-4 w-4' />
+              </span>
+              Invoices created
+            </DialogTitle>
+            <DialogDescription>
+              {invoiceCount} invoices from the selected filters.
+            </DialogDescription>
+          </DialogHeader>
+          <div className='px-6 py-5'>
+            <div className='rounded-lg border border-slate-200/70 bg-white/70 dark:border-slate-800/60 dark:bg-slate-950/40'>
+              <div className='grid grid-cols-[1.1fr_0.8fr_1.4fr_0.6fr] gap-3 border-b border-slate-200/70 bg-slate-100/80 px-3 py-2 text-[10px] font-semibold tracking-[0.2em] text-slate-500 uppercase dark:border-slate-800/60 dark:bg-slate-900/60 dark:text-slate-400'>
+                <span>Invoice</span>
+                <span>Location</span>
+                <span>Address</span>
+                <span>Battery</span>
+              </div>
+              <div className='max-h-[50vh] overflow-y-auto'>
+                {invoiceRows.length ? (
+                  invoiceRows.map((row) => {
+                    const batteryTone =
+                      row.batteryPercent === null
+                        ? 'unknown'
+                        : row.batteryPercent >= 65
+                          ? 'good'
+                          : row.batteryPercent >= 35
+                            ? 'warn'
+                            : 'low'
+                    const addressKey = buildAddressKey(row.lat, row.lng)
+                    const addressLabel =
+                      addressLookup[addressKey] ??
+                      (isLoaded ? 'Resolving...' : '—')
+                    return (
+                      <div
+                        key={row.key}
+                        className='grid grid-cols-[1.1fr_0.8fr_1.4fr_0.6fr] items-center gap-3 border-b border-slate-200/60 px-3 py-2 text-sm last:border-b-0 dark:border-slate-800/50'
+                      >
+                        <div className='min-w-0'>
+                          <InvoiceNumber
+                            invoiceId={row.title}
+                            className='block truncate font-mono text-[13px] font-semibold text-slate-900 dark:text-slate-100'
+                          />
+                        </div>
+                        <div className='text-xs text-slate-500 dark:text-slate-400'>
+                          {formatLatLng(row.lat, row.lng)}
+                        </div>
+                        <div
+                          className='truncate text-xs text-slate-500 dark:text-slate-400'
+                          title={addressLabel}
+                        >
+                          {addressLabel}
+                        </div>
+                        <Badge
+                          variant='outline'
+                          className={cn(
+                            'justify-center border px-2 py-0.5 text-[11px] font-semibold',
+                            batteryTone === 'unknown' &&
+                              'border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-300',
+                            batteryTone === 'good' &&
+                              'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-200',
+                            batteryTone === 'warn' &&
+                              'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200',
+                            batteryTone === 'low' &&
+                              'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-200'
+                          )}
+                        >
+                          {formatBatteryLabel(row.batteryPercent)}
+                        </Badge>
+                      </div>
+                    )
+                  })
+                ) : (
+                  <div className='px-3 py-6 text-sm text-slate-500 dark:text-slate-400'>
+                    No invoices created for the selected filters.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

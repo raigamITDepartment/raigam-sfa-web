@@ -342,7 +342,10 @@ const FinalGeographyMapping = () => {
                 table.getRowModel().rows.map((row) => (
                   <TableRow key={row.id}>
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className='px-2 py-3 text-sm'>
+                      <TableCell
+                        key={cell.id}
+                        className='px-2 py-3 text-sm whitespace-nowrap'
+                      >
                         {flexRender(
                           cell.column.columnDef.cell,
                           cell.getContext()

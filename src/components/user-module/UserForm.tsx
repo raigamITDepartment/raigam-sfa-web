@@ -13,6 +13,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { MultiSelect } from '@/components/ui/multi-select'
 import {
   Select,
   SelectContent,
@@ -20,6 +21,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { SubRoleId } from '@/lib/authz'
+import {
+  type ApiResponse,
+  type ChannelDTO,
+  type SubChannelDTO,
+  type RegionDTO,
+  type AreaDTO,
+  type AreaRegionDTO,
+  type RangeDTO,
+  type TerritoryDTO,
+  type AgencyDTO,
+  getAllChannel,
+  getAllSubChannel,
+  getAllRegion,
+  getAllArea,
+  getAllAreaRegions,
+  getAllRange,
+  getAllTerritories,
+  getAllAgency,
+} from '@/services/userDemarcationApi'
 import { getAllRoles, getAllUserGroups } from '@/services/users/userApi'
 
 export type UserFormMode = 'create' | 'edit'
@@ -38,6 +59,17 @@ const requiredNumber = (message: string) =>
       message,
     })
 
+const optionalNumber = () =>
+  z.preprocess((value) => {
+    if (value === '' || value === null || value === undefined) return undefined
+    if (typeof value === 'string') {
+      const trimmed = value.trim()
+      if (!trimmed) return undefined
+      return trimmed
+    }
+    return value
+  }, z.coerce.number().optional())
+
 const userFormSchemaBase = z.object({
   userName: z.string().trim().min(1, 'Please enter user name'),
   firstName: z.string().min(1, 'Please enter first name'),
@@ -46,6 +78,14 @@ const userFormSchemaBase = z.object({
   mobileNo: z.string().min(1, 'Please enter mobile number'),
   userGroupId: requiredNumber('Please select user group'),
   roleId: requiredNumber('Please select role'),
+  channelId: optionalNumber(),
+  subChannelId: optionalNumber(),
+  regionId: optionalNumber(),
+  areaId: optionalNumber(),
+  areaIds: z.array(z.string()).optional(),
+  rangeId: optionalNumber(),
+  territoryId: optionalNumber(),
+  agencyId: optionalNumber(),
   password: z.string().optional(),
   confirmPassword: z.string().optional(),
 })
@@ -61,10 +101,14 @@ type UserFormProps = {
   submitLabel?: string
 }
 
+const hasNumberValue = (value: unknown) =>
+  typeof value === 'number' && !Number.isNaN(value)
+
 const buildUserSchema = (mode: UserFormMode) =>
   userFormSchemaBase.superRefine((values, ctx) => {
     const password = values.password?.trim() ?? ''
     const confirm = values.confirmPassword?.trim() ?? ''
+    const roleId = values.roleId
 
     if (mode === 'create') {
       if (!password) {
@@ -81,6 +125,109 @@ const buildUserSchema = (mode: UserFormMode) =>
           path: ['confirmPassword'],
         })
       }
+    }
+
+    const isChannelHead = roleId === SubRoleId.ChannelHead
+    const isSubChannelHead = roleId === SubRoleId.SubChannelHead
+    const isRegionalManager = roleId === SubRoleId.RegionSalesManager
+    const isAreaManager = roleId === SubRoleId.AreaSalesManager
+    const isAreaExecutive = roleId === SubRoleId.AreaSalesExecutive
+    const isRepresentative = roleId === SubRoleId.Representative
+    const isAgent = roleId === SubRoleId.Agent
+
+    const requiresChannel =
+      isChannelHead ||
+      isSubChannelHead ||
+      isRegionalManager ||
+      isAreaManager ||
+      isAreaExecutive ||
+      isRepresentative ||
+      isAgent
+    const requiresSubChannel =
+      isSubChannelHead ||
+      isRegionalManager ||
+      isAreaManager ||
+      isAreaExecutive ||
+      isRepresentative ||
+      isAgent
+    const requiresRegion =
+      isRegionalManager ||
+      isAreaManager ||
+      isAreaExecutive ||
+      isRepresentative ||
+      isAgent
+    const requiresAreaMulti = isAreaManager
+    const requiresAreaSingle =
+      isAreaExecutive || isRepresentative || isAgent
+    const requiresRange = isAreaExecutive || isRepresentative || isAgent
+    const requiresTerritory = isRepresentative || isAgent
+    const requiresAgency = isAgent
+
+    if (requiresChannel && !hasNumberValue(values.channelId)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Please select channel',
+        path: ['channelId'],
+      })
+    }
+
+    if (requiresSubChannel && !hasNumberValue(values.subChannelId)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Please select sub channel',
+        path: ['subChannelId'],
+      })
+    }
+
+    if (requiresRegion && !hasNumberValue(values.regionId)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Please select region',
+        path: ['regionId'],
+      })
+    }
+
+    if (requiresAreaMulti) {
+      const areaIds = values.areaIds ?? []
+      if (!Array.isArray(areaIds) || areaIds.length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Please select at least one area',
+          path: ['areaIds'],
+        })
+      }
+    }
+
+    if (requiresAreaSingle && !hasNumberValue(values.areaId)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Please select area',
+        path: ['areaId'],
+      })
+    }
+
+    if (requiresRange && !hasNumberValue(values.rangeId)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Please select range',
+        path: ['rangeId'],
+      })
+    }
+
+    if (requiresTerritory && !hasNumberValue(values.territoryId)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Please select territory',
+        path: ['territoryId'],
+      })
+    }
+
+    if (requiresAgency && !hasNumberValue(values.agencyId)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Please select agency',
+        path: ['agencyId'],
+      })
     }
 
     if (password || confirm) {
@@ -118,12 +265,70 @@ const getDefaultValues = (
     initialValues?.roleId !== undefined && initialValues?.roleId !== null
       ? String(initialValues.roleId)
       : '',
+  channelId:
+    initialValues?.channelId !== undefined && initialValues?.channelId !== null
+      ? String(initialValues.channelId)
+      : '',
+  subChannelId:
+    initialValues?.subChannelId !== undefined &&
+    initialValues?.subChannelId !== null
+      ? String(initialValues.subChannelId)
+      : '',
+  regionId:
+    initialValues?.regionId !== undefined && initialValues?.regionId !== null
+      ? String(initialValues.regionId)
+      : '',
+  areaId:
+    initialValues?.areaId !== undefined && initialValues?.areaId !== null
+      ? String(initialValues.areaId)
+      : '',
+  areaIds: Array.isArray(initialValues?.areaIds)
+    ? initialValues?.areaIds.map((value) => String(value))
+    : [],
+  rangeId:
+    initialValues?.rangeId !== undefined && initialValues?.rangeId !== null
+      ? String(initialValues.rangeId)
+      : '',
+  territoryId:
+    initialValues?.territoryId !== undefined &&
+    initialValues?.territoryId !== null
+      ? String(initialValues.territoryId)
+      : '',
+  agencyId:
+    initialValues?.agencyId !== undefined && initialValues?.agencyId !== null
+      ? String(initialValues.agencyId)
+      : '',
   password: initialValues?.password ?? '',
   confirmPassword: initialValues?.confirmPassword ?? '',
 })
 
 const toSelectValue = (value: unknown) =>
   value === null || value === undefined ? '' : String(value)
+
+const mergeById = <T,>(
+  list: T[],
+  extras: T[],
+  getId: (item: T) => string
+) => {
+  const seen = new Set<string>()
+  const result: T[] = []
+
+  for (const item of extras) {
+    const id = getId(item)
+    if (!id || seen.has(id)) continue
+    seen.add(id)
+    result.push(item)
+  }
+
+  for (const item of list) {
+    const id = getId(item)
+    if (!id || seen.has(id)) continue
+    seen.add(id)
+    result.push(item)
+  }
+
+  return result
+}
 
 export function UserForm(props: UserFormProps) {
   const { mode, initialValues, onSubmit, onCancel, submitLabel } = props
@@ -141,6 +346,70 @@ export function UserForm(props: UserFormProps) {
     queryKey: ['user-roles', 'options'],
     queryFn: async () => {
       const res = await getAllRoles()
+      return res.payload
+    },
+  })
+
+  const { data: channelsData = [] } = useQuery({
+    queryKey: ['channels', 'options'],
+    queryFn: async () => {
+      const res = (await getAllChannel()) as ApiResponse<ChannelDTO[]>
+      return res.payload
+    },
+  })
+
+  const { data: subChannelsData = [] } = useQuery({
+    queryKey: ['sub-channels', 'options'],
+    queryFn: async () => {
+      const res = (await getAllSubChannel()) as ApiResponse<SubChannelDTO[]>
+      return res.payload
+    },
+  })
+
+  const { data: regionsData = [] } = useQuery({
+    queryKey: ['regions', 'options'],
+    queryFn: async () => {
+      const res = (await getAllRegion()) as ApiResponse<RegionDTO[]>
+      return res.payload
+    },
+  })
+
+  const { data: areasData = [] } = useQuery({
+    queryKey: ['areas', 'options'],
+    queryFn: async () => {
+      const res = (await getAllArea()) as ApiResponse<AreaDTO[]>
+      return res.payload
+    },
+  })
+
+  const { data: areaRegionsData = [] } = useQuery({
+    queryKey: ['area-region-mappings', 'options'],
+    queryFn: async () => {
+      const res = (await getAllAreaRegions()) as ApiResponse<AreaRegionDTO[]>
+      return res.payload
+    },
+  })
+
+  const { data: rangesData = [] } = useQuery({
+    queryKey: ['ranges', 'options'],
+    queryFn: async () => {
+      const res = (await getAllRange()) as ApiResponse<RangeDTO[]>
+      return res.payload
+    },
+  })
+
+  const { data: territoriesData = [] } = useQuery({
+    queryKey: ['territories', 'options'],
+    queryFn: async () => {
+      const res = (await getAllTerritories()) as ApiResponse<TerritoryDTO[]>
+      return res.payload
+    },
+  })
+
+  const { data: agenciesData = [] } = useQuery({
+    queryKey: ['agencies', 'options'],
+    queryFn: async () => {
+      const res = (await getAllAgency()) as ApiResponse<AgencyDTO[]>
       return res.payload
     },
   })
@@ -178,6 +447,321 @@ export function UserForm(props: UserFormProps) {
     form.reset(getDefaultValues(initialValues))
   }, [form, initialValues])
 
+  const selectedRoleValue = form.watch('roleId')
+  const selectedRoleId = useMemo(() => {
+    if (selectedRoleValue === undefined || selectedRoleValue === null) {
+      return undefined
+    }
+    const raw =
+      typeof selectedRoleValue === 'string'
+        ? selectedRoleValue.trim()
+        : String(selectedRoleValue)
+    if (!raw) return undefined
+    const parsed = Number(raw)
+    return Number.isNaN(parsed) ? undefined : parsed
+  }, [selectedRoleValue])
+  const selectedRoleLabel = useMemo(() => {
+    if (selectedRoleValue === undefined || selectedRoleValue === null) return ''
+    const lookup = String(selectedRoleValue)
+    return subRoleOptions.find((option) => option.value === lookup)?.label ?? ''
+  }, [selectedRoleValue, subRoleOptions])
+  const normalizedRoleLabel = selectedRoleLabel.trim().toLowerCase()
+
+  const isChannelHead =
+    selectedRoleId === SubRoleId.ChannelHead ||
+    normalizedRoleLabel === 'channel head'
+  const isSubChannelHead =
+    selectedRoleId === SubRoleId.SubChannelHead ||
+    normalizedRoleLabel === 'sub channel head'
+  const isRegionalManager =
+    selectedRoleId === SubRoleId.RegionSalesManager ||
+    normalizedRoleLabel === 'regional sales manager'
+  const isAreaManager =
+    selectedRoleId === SubRoleId.AreaSalesManager ||
+    normalizedRoleLabel === 'area sales manager'
+  const isAreaExecutive =
+    selectedRoleId === SubRoleId.AreaSalesExecutive ||
+    normalizedRoleLabel === 'area sales executive'
+  const isRepresentative =
+    selectedRoleId === SubRoleId.Representative ||
+    normalizedRoleLabel === 'representative'
+  const isAgent =
+    selectedRoleId === SubRoleId.Agent || normalizedRoleLabel === 'agent'
+
+  const requiresChannel =
+    isChannelHead ||
+    isSubChannelHead ||
+    isRegionalManager ||
+    isAreaManager ||
+    isAreaExecutive ||
+    isRepresentative ||
+    isAgent
+  const requiresSubChannel =
+    isSubChannelHead ||
+    isRegionalManager ||
+    isAreaManager ||
+    isAreaExecutive ||
+    isRepresentative ||
+    isAgent
+  const requiresRegion =
+    isRegionalManager ||
+    isAreaManager ||
+    isAreaExecutive ||
+    isRepresentative ||
+    isAgent
+  const requiresAreaMulti = isAreaManager
+  const requiresAreaSingle = isAreaExecutive || isRepresentative || isAgent
+  const requiresRange = isAreaExecutive || isRepresentative || isAgent
+  const requiresTerritory = isRepresentative || isAgent
+  const requiresAgency = isAgent
+
+  const channelValue = toSelectValue(form.watch('channelId'))
+  const subChannelValue = toSelectValue(form.watch('subChannelId'))
+  const regionValue = toSelectValue(form.watch('regionId'))
+  const areaValue = toSelectValue(form.watch('areaId'))
+  const areaIdsValue = form.watch('areaIds') ?? []
+  const rangeValue = toSelectValue(form.watch('rangeId'))
+  const territoryValue = toSelectValue(form.watch('territoryId'))
+  const agencyValue = toSelectValue(form.watch('agencyId'))
+
+  const showChannel =
+    requiresChannel || (mode === 'edit' && Boolean(channelValue))
+  const showSubChannel =
+    requiresSubChannel || (mode === 'edit' && Boolean(subChannelValue))
+  const showRegion =
+    requiresRegion || (mode === 'edit' && Boolean(regionValue))
+  const showAreaMulti =
+    requiresAreaMulti ||
+    (mode === 'edit' && Array.isArray(areaIdsValue) && areaIdsValue.length > 0)
+  const showAreaSingle =
+    (requiresAreaSingle || (mode === 'edit' && Boolean(areaValue))) &&
+    !showAreaMulti
+  const showRange =
+    requiresRange || (mode === 'edit' && Boolean(rangeValue))
+  const showTerritory =
+    requiresTerritory || (mode === 'edit' && Boolean(territoryValue))
+  const showAgency =
+    requiresAgency || (mode === 'edit' && Boolean(agencyValue))
+
+  const filteredSubChannels = useMemo(() => {
+    if (!subChannelsData.length) return []
+    if (!channelValue) return subChannelsData
+    const base = subChannelsData.filter(
+      (item) => String(item.channelId ?? '') === channelValue
+    )
+    if (
+      subChannelValue &&
+      !base.some((item) => String(item.id) === subChannelValue)
+    ) {
+      const selected = subChannelsData.find(
+        (item) => String(item.id) === subChannelValue
+      )
+      if (selected) return mergeById(base, [selected], (item) => String(item.id))
+    }
+    return base
+  }, [subChannelsData, channelValue, subChannelValue])
+
+  const filteredRegions = useMemo(() => {
+    if (!regionsData.length) return []
+    let base = regionsData
+    if (subChannelValue) {
+      base = regionsData.filter(
+        (region) => String(region.subChannelId ?? '') === subChannelValue
+      )
+    } else if (channelValue) {
+      base = regionsData.filter(
+        (region) => String(region.channelId ?? '') === channelValue
+      )
+    }
+
+    if (
+      regionValue &&
+      !base.some((region) => String(region.id) === regionValue)
+    ) {
+      const selected = regionsData.find(
+        (region) => String(region.id) === regionValue
+      )
+      if (selected) return mergeById(base, [selected], (item) => String(item.id))
+    }
+    return base
+  }, [regionsData, subChannelValue, channelValue, regionValue])
+
+  const filteredAreas = useMemo(() => {
+    if (!areasData.length) return []
+    if (!regionValue) {
+      const selectedAreas = areasData.filter((area) => {
+        const id = String(area.id)
+        return (
+          (areaValue && id === areaValue) ||
+          areaIdsValue.includes(id)
+        )
+      })
+      return selectedAreas.length
+        ? mergeById(areasData, selectedAreas, (area) => String(area.id))
+        : areasData
+    }
+    if (!areaRegionsData.length) return areasData
+    const allowedAreaIds = new Set(
+      areaRegionsData
+        .filter(
+          (mapping) =>
+            String(mapping.regionId ?? '') === regionValue &&
+            mapping.areaId !== undefined &&
+            mapping.areaId !== null
+        )
+        .map((mapping) => String(mapping.areaId))
+    )
+    if (!allowedAreaIds.size) {
+      const selectedAreas = areasData.filter((area) => {
+        const id = String(area.id)
+        return (
+          (areaValue && id === areaValue) ||
+          areaIdsValue.includes(id)
+        )
+      })
+      return selectedAreas
+    }
+    const base = areasData.filter((area) =>
+      allowedAreaIds.has(String(area.id))
+    )
+    const selectedAreas = areasData.filter((area) => {
+      const id = String(area.id)
+      return (
+        (areaValue && id === areaValue) ||
+        areaIdsValue.includes(id)
+      )
+    })
+    return selectedAreas.length
+      ? mergeById(base, selectedAreas, (area) => String(area.id))
+      : base
+  }, [areasData, areaRegionsData, regionValue, areaValue, areaIdsValue])
+
+  const filteredRanges = useMemo(() => {
+    if (!rangesData.length) return []
+    if (!subChannelValue) return rangesData
+    const map: Record<number, number[]> = {
+      1: [1, 3],
+      2: [2, 3],
+      3: [4],
+      4: [6],
+      5: [7],
+      6: [9],
+      7: [8],
+    }
+    const allowed = map[Number(subChannelValue)]
+    if (!allowed) return rangesData
+    const base = rangesData.filter((rangeItem) => {
+      const optionId = rangeItem.id ?? rangeItem.rangeId
+      if (optionId === undefined || optionId === null) return false
+      return allowed.includes(Number(optionId))
+    })
+    if (
+      rangeValue &&
+      !base.some(
+        (rangeItem) =>
+          String(rangeItem.id ?? rangeItem.rangeId ?? '') === rangeValue
+      )
+    ) {
+      const selected = rangesData.find(
+        (rangeItem) =>
+          String(rangeItem.id ?? rangeItem.rangeId ?? '') === rangeValue
+      )
+      if (selected)
+        return mergeById(
+          base,
+          [selected],
+          (item) => String(item.id ?? item.rangeId ?? '')
+        )
+    }
+    return base
+  }, [rangesData, subChannelValue, rangeValue])
+
+  const filteredTerritories = useMemo(() => {
+    if (!territoriesData.length) return []
+    let filtered = territoriesData.slice()
+    if (channelValue) {
+      filtered = filtered.filter(
+        (item) => String(item.channelId ?? '') === channelValue
+      )
+    }
+    if (subChannelValue) {
+      filtered = filtered.filter(
+        (item) => String(item.subChannelId ?? '') === subChannelValue
+      )
+    }
+    if (areaValue) {
+      filtered = filtered.filter(
+        (item) => String(item.areaId ?? '') === areaValue
+      )
+    }
+    if (rangeValue) {
+      filtered = filtered.filter(
+        (item) => String(item.rangeId ?? '') === rangeValue
+      )
+    }
+    if (
+      territoryValue &&
+      !filtered.some((item) => String(item.id) === territoryValue)
+    ) {
+      const selected = territoriesData.find(
+        (item) => String(item.id) === territoryValue
+      )
+      if (selected)
+        return mergeById(filtered, [selected], (item) => String(item.id))
+    }
+    return filtered
+  }, [
+    territoriesData,
+    channelValue,
+    subChannelValue,
+    areaValue,
+    rangeValue,
+    territoryValue,
+  ])
+
+  const filteredAgencies = useMemo(() => {
+    if (!agenciesData.length) return []
+    let filtered = agenciesData.slice()
+    if (channelValue) {
+      filtered = filtered.filter(
+        (item) => String(item.channelId ?? '') === channelValue
+      )
+    }
+    if (subChannelValue) {
+      filtered = filtered.filter(
+        (item) => String(item.subChannelId ?? '') === subChannelValue
+      )
+    }
+    if (rangeValue) {
+      filtered = filtered.filter(
+        (item) => String(item.rangeId ?? '') === rangeValue
+      )
+    }
+    if (territoryValue) {
+      filtered = filtered.filter(
+        (item) => String(item.territoryId ?? '') === territoryValue
+      )
+    }
+    if (
+      agencyValue &&
+      !filtered.some((item) => String(item.id) === agencyValue)
+    ) {
+      const selected = agenciesData.find(
+        (item) => String(item.id) === agencyValue
+      )
+      if (selected)
+        return mergeById(filtered, [selected], (item) => String(item.id))
+    }
+    return filtered
+  }, [
+    agenciesData,
+    channelValue,
+    subChannelValue,
+    rangeValue,
+    territoryValue,
+    agencyValue,
+  ])
+
   const isSubmitting = form.formState.isSubmitting
   const buttonLabel =
     submitLabel ?? (mode === 'create' ? 'Add User' : 'Update User')
@@ -187,6 +771,14 @@ export function UserForm(props: UserFormProps) {
       ...values,
       password: values.password?.trim() || undefined,
       confirmPassword: values.confirmPassword?.trim() || undefined,
+      channelId: requiresChannel ? values.channelId : undefined,
+      subChannelId: requiresSubChannel ? values.subChannelId : undefined,
+      regionId: requiresRegion ? values.regionId : undefined,
+      areaIds: requiresAreaMulti ? values.areaIds : undefined,
+      areaId: requiresAreaSingle ? values.areaId : undefined,
+      rangeId: requiresRange ? values.rangeId : undefined,
+      territoryId: requiresTerritory ? values.territoryId : undefined,
+      agencyId: requiresAgency ? values.agencyId : undefined,
     }
     await onSubmit?.(normalized)
   }
@@ -378,36 +970,331 @@ export function UserForm(props: UserFormProps) {
             />
           </>
         )}
-        <FormField
-          control={form.control}
-          name='password'
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Password</FormLabel>
-              <FormControl>
-                <Input type='password' placeholder='Password' {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name='confirmPassword'
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Confirm Password</FormLabel>
-              <FormControl>
-                <Input
-                  type='password'
-                  placeholder='Confirm Password'
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className='grid gap-4 sm:grid-cols-2'>
+          {showChannel ? (
+            <FormField
+              control={form.control}
+              name='channelId'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Select Channel</FormLabel>
+                  <Select
+                    value={toSelectValue(field.value)}
+                    onValueChange={(value) => {
+                      field.onChange(value)
+                      form.setValue('subChannelId', '')
+                      form.setValue('regionId', '')
+                      form.setValue('areaId', '')
+                      form.setValue('areaIds', [])
+                      form.setValue('rangeId', '')
+                      form.setValue('territoryId', '')
+                      form.setValue('agencyId', '')
+                    }}
+                    disabled={!channelsData.length}
+                  >
+                    <FormControl>
+                      <SelectTrigger className='w-full'>
+                        <SelectValue placeholder='Select Channel' />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {channelsData.map((channel) => (
+                        <SelectItem key={channel.id} value={String(channel.id)}>
+                          {channel.channelName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          ) : null}
+          {showSubChannel ? (
+            <FormField
+              control={form.control}
+              name='subChannelId'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Select Sub Channel</FormLabel>
+                  <Select
+                    value={toSelectValue(field.value)}
+                    onValueChange={(value) => {
+                      field.onChange(value)
+                      form.setValue('regionId', '')
+                      form.setValue('areaId', '')
+                      form.setValue('areaIds', [])
+                      form.setValue('rangeId', '')
+                      form.setValue('territoryId', '')
+                      form.setValue('agencyId', '')
+                    }}
+                    disabled={!filteredSubChannels.length || !channelValue}
+                  >
+                    <FormControl>
+                      <SelectTrigger className='w-full'>
+                        <SelectValue placeholder='Select Sub Channel' />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {filteredSubChannels.map((subChannel) => (
+                        <SelectItem
+                          key={subChannel.id}
+                          value={String(subChannel.id)}
+                        >
+                          {subChannel.subChannelName ??
+                            subChannel.subChannelCode ??
+                            `Sub Channel ${subChannel.id}`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          ) : null}
+          {showRegion ? (
+            <FormField
+              control={form.control}
+              name='regionId'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Select Region</FormLabel>
+                  <Select
+                    value={toSelectValue(field.value)}
+                    onValueChange={(value) => {
+                      field.onChange(value)
+                      form.setValue('areaId', '')
+                      form.setValue('areaIds', [])
+                      form.setValue('rangeId', '')
+                      form.setValue('territoryId', '')
+                      form.setValue('agencyId', '')
+                    }}
+                    disabled={!filteredRegions.length || !subChannelValue}
+                  >
+                    <FormControl>
+                      <SelectTrigger className='w-full'>
+                        <SelectValue placeholder='Select Region' />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {filteredRegions.map((region) => (
+                        <SelectItem key={region.id} value={String(region.id)}>
+                          {region.regionName ??
+                            region.name ??
+                            `Region ${region.id}`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          ) : null}
+          {showAreaMulti ? (
+            <FormField
+              control={form.control}
+              name='areaIds'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Select Area</FormLabel>
+                  <FormControl>
+                    <MultiSelect
+                      options={filteredAreas.map((area) => ({
+                        label: area.areaName ?? `Area ${area.id}`,
+                        value: String(area.id),
+                      }))}
+                      value={field.value ?? []}
+                      onValueChange={(value) => field.onChange(value)}
+                      placeholder='Select Area'
+                      disabled={!filteredAreas.length || !regionValue}
+                      className='w-full justify-between'
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          ) : null}
+          {showAreaSingle ? (
+            <FormField
+              control={form.control}
+              name='areaId'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Select Area</FormLabel>
+                  <Select
+                    value={toSelectValue(field.value)}
+                    onValueChange={(value) => {
+                      field.onChange(value)
+                      form.setValue('rangeId', '')
+                      form.setValue('territoryId', '')
+                      form.setValue('agencyId', '')
+                    }}
+                    disabled={!filteredAreas.length || !regionValue}
+                  >
+                    <FormControl>
+                      <SelectTrigger className='w-full'>
+                        <SelectValue placeholder='Select Area' />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {filteredAreas.map((area) => (
+                        <SelectItem key={area.id} value={String(area.id)}>
+                          {area.areaName ?? `Area ${area.id}`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          ) : null}
+          {showRange ? (
+            <FormField
+              control={form.control}
+              name='rangeId'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Select Range</FormLabel>
+                  <Select
+                    value={toSelectValue(field.value)}
+                    onValueChange={(value) => {
+                      field.onChange(value)
+                      form.setValue('territoryId', '')
+                      form.setValue('agencyId', '')
+                    }}
+                    disabled={!filteredRanges.length || !subChannelValue || !areaValue}
+                  >
+                    <FormControl>
+                      <SelectTrigger className='w-full'>
+                        <SelectValue placeholder='Select Range' />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {filteredRanges.map((rangeItem, index) => {
+                        const optionId = rangeItem.id ?? rangeItem.rangeId
+                        if (optionId === undefined || optionId === null) return null
+                        return (
+                          <SelectItem
+                            key={`${optionId}-${index}`}
+                            value={String(optionId)}
+                          >
+                            {rangeItem.rangeName ?? `Range ${optionId}`}
+                          </SelectItem>
+                        )
+                      })}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          ) : null}
+          {showTerritory ? (
+            <FormField
+              control={form.control}
+              name='territoryId'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Select Territory</FormLabel>
+                  <Select
+                    value={toSelectValue(field.value)}
+                    onValueChange={(value) => {
+                      field.onChange(value)
+                      form.setValue('agencyId', '')
+                    }}
+                    disabled={
+                      !filteredTerritories.length || !areaValue || !rangeValue
+                    }
+                  >
+                    <FormControl>
+                      <SelectTrigger className='w-full'>
+                        <SelectValue placeholder='Select Territory' />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {filteredTerritories.map((territory) => (
+                        <SelectItem key={territory.id} value={String(territory.id)}>
+                          {territory.territoryName ??
+                            territory.name ??
+                            `Territory ${territory.id}`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          ) : null}
+          {showAgency ? (
+            <FormField
+              control={form.control}
+              name='agencyId'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Select Agency</FormLabel>
+                  <Select
+                    value={toSelectValue(field.value)}
+                    onValueChange={field.onChange}
+                    disabled={!filteredAgencies.length || !territoryValue}
+                  >
+                    <FormControl>
+                      <SelectTrigger className='w-full'>
+                        <SelectValue placeholder='Select Agency' />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {filteredAgencies.map((agency) => (
+                        <SelectItem key={agency.id} value={String(agency.id)}>
+                          {agency.agencyName ??
+                            agency.agencyCode ??
+                            `Agency ${agency.id}`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          ) : null}
+        </div>
+        <div className='grid grid-cols-2 gap-4'>
+          <FormField
+            control={form.control}
+            name='password'
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Password</FormLabel>
+                <FormControl>
+                  <Input type='password' placeholder='Password' {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name='confirmPassword'
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Confirm Password</FormLabel>
+                <FormControl>
+                  <Input
+                    type='password'
+                    placeholder='Confirm Password'
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
         <div className='flex flex-wrap items-center justify-end gap-2'>
           {onCancel ? (
             <Button

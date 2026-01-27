@@ -52,6 +52,14 @@ export type UpdateUserRequest = {
   id: number
   userGroupId: number
   roleId: number
+  channelId?: number | null
+  subChannelId?: number | null
+  regionId?: number | null
+  areaId?: number | null
+  territoryId?: number | null
+  agencyId?: number | null
+  rangeId?: number | null
+  areaIds?: number[]
   userLevelId: number
   userName: string
   firstName: string
@@ -79,6 +87,8 @@ export type AddUserRequest = {
   areaId: number | null
   territoryId: number | null
   agencyId: number | null
+  rangeId?: number | null
+  areaIds?: number[]
   userLevelId: number
   userName: string
   firstName: string

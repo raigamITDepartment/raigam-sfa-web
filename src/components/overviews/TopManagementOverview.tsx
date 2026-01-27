@@ -37,14 +37,13 @@ import type {
 import { useAppSelector } from '@/store/hooks'
 import { cn } from '@/lib/utils'
 
-const DEFAULT_SUB_CHANNEL_LABEL = 'Bakery & horeca'
-const DEFAULT_RANGE_LABEL = 'B'
+const DEFAULT_SUB_CHANNEL_ID = 3
+const DEFAULT_RANGE_ID = 4
+const DEFAULT_AREA_ID = 0
 const FILTER_STORAGE_KEY = 'home-report-filters'
 
 const normalizeLabel = (value: string) =>
   value.toLowerCase().replace(/[^a-z0-9]+/g, '')
-const normalizeMatch = (value: string) =>
-  normalizeLabel(value).replace(/and/g, '')
 
 const normalizeId = (value: unknown) => {
   const parsed = Number(value)
@@ -58,9 +57,9 @@ export function TopManagementOverview() {
   const [params, setParams] = useState<HomeReportParams>(() => {
     const now = new Date()
     return {
-      subChannelId: undefined,
-      rangeId: undefined,
-      areaId: 0,
+      subChannelId: DEFAULT_SUB_CHANNEL_ID,
+      rangeId: DEFAULT_RANGE_ID,
+      areaId: DEFAULT_AREA_ID,
       month: now.getMonth() + 1,
       year: now.getFullYear(),
     }
@@ -78,23 +77,14 @@ export function TopManagementOverview() {
   const subChannels = subChannelsQuery.data?.payload ?? []
   const ranges = rangesQuery.data?.payload ?? []
 
-  const defaultSubChannelId = useMemo(() => {
-    const target = normalizeMatch(DEFAULT_SUB_CHANNEL_LABEL)
-    const match = subChannels.find(
-      (item) => normalizeMatch(item.subChannelName ?? '') === target
-    )
-    return normalizeId(match?.id)
-  }, [subChannels])
-
-  const defaultRangeId = useMemo(() => {
-    const target = normalizeLabel(DEFAULT_RANGE_LABEL)
-    const targetRange = normalizeLabel(`range ${DEFAULT_RANGE_LABEL}`)
-    const match = ranges.find((item) => {
-      const name = normalizeLabel(item.rangeName ?? '')
-      return name === target || name === targetRange || name.startsWith(target)
-    })
-    return normalizeId(match?.id ?? match?.rangeId)
-  }, [ranges])
+  const defaultSubChannelId = useMemo(
+    () => normalizeId(DEFAULT_SUB_CHANNEL_ID),
+    []
+  )
+  const defaultRangeId = useMemo(
+    () => normalizeId(DEFAULT_RANGE_ID),
+    []
+  )
 
   useEffect(() => {
     if (typeof window === 'undefined') {

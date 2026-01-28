@@ -90,8 +90,8 @@ const userFormSchemaBase = z.object({
   confirmPassword: z.string().optional(),
 })
 
-export type UserFormInput = z.input<typeof userFormSchemaBase>
 export type UserFormValues = z.output<typeof userFormSchemaBase>
+export type UserFormInput = UserFormValues
 
 type UserFormProps = {
   mode: UserFormMode
@@ -246,58 +246,28 @@ const buildUserSchema = (mode: UserFormMode) =>
         })
       }
     }
-  })
+  }) as z.ZodType<UserFormValues, UserFormValues>
 
 const getDefaultValues = (
   initialValues?: Partial<UserFormValues>
-): UserFormInput => ({
+): Partial<UserFormValues> => ({
   userName: initialValues?.userName ?? '',
   firstName: initialValues?.firstName ?? '',
   lastName: initialValues?.lastName ?? '',
   email: initialValues?.email ?? '',
   mobileNo: initialValues?.mobileNo ?? '',
-  userGroupId:
-    initialValues?.userGroupId !== undefined &&
-    initialValues?.userGroupId !== null
-      ? String(initialValues.userGroupId)
-      : '',
-  roleId:
-    initialValues?.roleId !== undefined && initialValues?.roleId !== null
-      ? String(initialValues.roleId)
-      : '',
-  channelId:
-    initialValues?.channelId !== undefined && initialValues?.channelId !== null
-      ? String(initialValues.channelId)
-      : '',
-  subChannelId:
-    initialValues?.subChannelId !== undefined &&
-    initialValues?.subChannelId !== null
-      ? String(initialValues.subChannelId)
-      : '',
-  regionId:
-    initialValues?.regionId !== undefined && initialValues?.regionId !== null
-      ? String(initialValues.regionId)
-      : '',
-  areaId:
-    initialValues?.areaId !== undefined && initialValues?.areaId !== null
-      ? String(initialValues.areaId)
-      : '',
+  userGroupId: initialValues?.userGroupId ?? undefined,
+  roleId: initialValues?.roleId ?? undefined,
+  channelId: initialValues?.channelId ?? undefined,
+  subChannelId: initialValues?.subChannelId ?? undefined,
+  regionId: initialValues?.regionId ?? undefined,
+  areaId: initialValues?.areaId ?? undefined,
   areaIds: Array.isArray(initialValues?.areaIds)
-    ? initialValues?.areaIds.map((value) => String(value))
+    ? initialValues.areaIds
     : [],
-  rangeId:
-    initialValues?.rangeId !== undefined && initialValues?.rangeId !== null
-      ? String(initialValues.rangeId)
-      : '',
-  territoryId:
-    initialValues?.territoryId !== undefined &&
-    initialValues?.territoryId !== null
-      ? String(initialValues.territoryId)
-      : '',
-  agencyId:
-    initialValues?.agencyId !== undefined && initialValues?.agencyId !== null
-      ? String(initialValues.agencyId)
-      : '',
+  rangeId: initialValues?.rangeId ?? undefined,
+  territoryId: initialValues?.territoryId ?? undefined,
+  agencyId: initialValues?.agencyId ?? undefined,
   password: initialValues?.password ?? '',
   confirmPassword: initialValues?.confirmPassword ?? '',
 })
@@ -438,7 +408,7 @@ export function UserForm(props: UserFormProps) {
     [subRolesData]
   )
 
-  const form = useForm<UserFormInput, any, UserFormValues>({
+  const form = useForm<UserFormValues>({
     resolver: zodResolver(schema),
     defaultValues: getDefaultValues(initialValues),
   })
@@ -452,10 +422,7 @@ export function UserForm(props: UserFormProps) {
     if (selectedRoleValue === undefined || selectedRoleValue === null) {
       return undefined
     }
-    const raw =
-      typeof selectedRoleValue === 'string'
-        ? selectedRoleValue.trim()
-        : String(selectedRoleValue)
+    const raw = String(selectedRoleValue).trim()
     if (!raw) return undefined
     const parsed = Number(raw)
     return Number.isNaN(parsed) ? undefined : parsed
@@ -861,7 +828,9 @@ export function UserForm(props: UserFormProps) {
                 <FormLabel>User Group</FormLabel>
                 <Select
                   value={toSelectValue(field.value)}
-                  onValueChange={field.onChange}
+                  onValueChange={(value) =>
+                    field.onChange(value ? Number(value) : undefined)
+                  }
                   disabled={!roleOptions.length}
                 >
                   <FormControl>
@@ -887,11 +856,13 @@ export function UserForm(props: UserFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Role</FormLabel>
-                  <Select
-                    value={toSelectValue(field.value)}
-                    onValueChange={field.onChange}
-                    disabled={!subRoleOptions.length}
-                  >
+                <Select
+                  value={toSelectValue(field.value)}
+                  onValueChange={(value) =>
+                    field.onChange(value ? Number(value) : undefined)
+                  }
+                  disabled={!subRoleOptions.length}
+                >
                     <FormControl>
                       <SelectTrigger className='w-full'>
                         <SelectValue placeholder='Select role' />
@@ -920,7 +891,9 @@ export function UserForm(props: UserFormProps) {
                 <FormLabel>User Group</FormLabel>
                 <Select
                   value={toSelectValue(field.value)}
-                  onValueChange={field.onChange}
+                  onValueChange={(value) =>
+                    field.onChange(value ? Number(value) : undefined)
+                  }
                   disabled={!roleOptions.length}
                 >
                   <FormControl>
@@ -946,11 +919,13 @@ export function UserForm(props: UserFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Role</FormLabel>
-                  <Select
-                    value={toSelectValue(field.value)}
-                    onValueChange={field.onChange}
-                    disabled={!subRoleOptions.length}
-                  >
+                <Select
+                  value={toSelectValue(field.value)}
+                  onValueChange={(value) =>
+                    field.onChange(value ? Number(value) : undefined)
+                  }
+                  disabled={!subRoleOptions.length}
+                >
                     <FormControl>
                       <SelectTrigger className='w-full'>
                         <SelectValue placeholder='Select role' />
@@ -978,20 +953,20 @@ export function UserForm(props: UserFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Select Channel</FormLabel>
-                  <Select
-                    value={toSelectValue(field.value)}
-                    onValueChange={(value) => {
-                      field.onChange(value)
-                      form.setValue('subChannelId', '')
-                      form.setValue('regionId', '')
-                      form.setValue('areaId', '')
-                      form.setValue('areaIds', [])
-                      form.setValue('rangeId', '')
-                      form.setValue('territoryId', '')
-                      form.setValue('agencyId', '')
-                    }}
-                    disabled={!channelsData.length}
-                  >
+                <Select
+                  value={toSelectValue(field.value)}
+                  onValueChange={(value) => {
+                    field.onChange(value ? Number(value) : undefined)
+                    form.setValue('subChannelId', undefined)
+                    form.setValue('regionId', undefined)
+                    form.setValue('areaId', undefined)
+                    form.setValue('areaIds', [])
+                    form.setValue('rangeId', undefined)
+                    form.setValue('territoryId', undefined)
+                    form.setValue('agencyId', undefined)
+                  }}
+                  disabled={!channelsData.length}
+                >
                     <FormControl>
                       <SelectTrigger className='w-full'>
                         <SelectValue placeholder='Select Channel' />
@@ -1017,19 +992,19 @@ export function UserForm(props: UserFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Select Sub Channel</FormLabel>
-                  <Select
-                    value={toSelectValue(field.value)}
-                    onValueChange={(value) => {
-                      field.onChange(value)
-                      form.setValue('regionId', '')
-                      form.setValue('areaId', '')
-                      form.setValue('areaIds', [])
-                      form.setValue('rangeId', '')
-                      form.setValue('territoryId', '')
-                      form.setValue('agencyId', '')
-                    }}
-                    disabled={!filteredSubChannels.length || !channelValue}
-                  >
+                <Select
+                  value={toSelectValue(field.value)}
+                  onValueChange={(value) => {
+                    field.onChange(value ? Number(value) : undefined)
+                    form.setValue('regionId', undefined)
+                    form.setValue('areaId', undefined)
+                    form.setValue('areaIds', [])
+                    form.setValue('rangeId', undefined)
+                    form.setValue('territoryId', undefined)
+                    form.setValue('agencyId', undefined)
+                  }}
+                  disabled={!filteredSubChannels.length || !channelValue}
+                >
                     <FormControl>
                       <SelectTrigger className='w-full'>
                         <SelectValue placeholder='Select Sub Channel' />
@@ -1060,18 +1035,18 @@ export function UserForm(props: UserFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Select Region</FormLabel>
-                  <Select
-                    value={toSelectValue(field.value)}
-                    onValueChange={(value) => {
-                      field.onChange(value)
-                      form.setValue('areaId', '')
-                      form.setValue('areaIds', [])
-                      form.setValue('rangeId', '')
-                      form.setValue('territoryId', '')
-                      form.setValue('agencyId', '')
-                    }}
-                    disabled={!filteredRegions.length || !subChannelValue}
-                  >
+                <Select
+                  value={toSelectValue(field.value)}
+                  onValueChange={(value) => {
+                    field.onChange(value ? Number(value) : undefined)
+                    form.setValue('areaId', undefined)
+                    form.setValue('areaIds', [])
+                    form.setValue('rangeId', undefined)
+                    form.setValue('territoryId', undefined)
+                    form.setValue('agencyId', undefined)
+                  }}
+                  disabled={!filteredRegions.length || !subChannelValue}
+                >
                     <FormControl>
                       <SelectTrigger className='w-full'>
                         <SelectValue placeholder='Select Region' />
@@ -1124,16 +1099,16 @@ export function UserForm(props: UserFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Select Area</FormLabel>
-                  <Select
-                    value={toSelectValue(field.value)}
-                    onValueChange={(value) => {
-                      field.onChange(value)
-                      form.setValue('rangeId', '')
-                      form.setValue('territoryId', '')
-                      form.setValue('agencyId', '')
-                    }}
-                    disabled={!filteredAreas.length || !regionValue}
-                  >
+                <Select
+                  value={toSelectValue(field.value)}
+                  onValueChange={(value) => {
+                    field.onChange(value ? Number(value) : undefined)
+                    form.setValue('rangeId', undefined)
+                    form.setValue('territoryId', undefined)
+                    form.setValue('agencyId', undefined)
+                  }}
+                  disabled={!filteredAreas.length || !regionValue}
+                >
                     <FormControl>
                       <SelectTrigger className='w-full'>
                         <SelectValue placeholder='Select Area' />
@@ -1159,15 +1134,15 @@ export function UserForm(props: UserFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Select Range</FormLabel>
-                  <Select
-                    value={toSelectValue(field.value)}
-                    onValueChange={(value) => {
-                      field.onChange(value)
-                      form.setValue('territoryId', '')
-                      form.setValue('agencyId', '')
-                    }}
-                    disabled={!filteredRanges.length || !subChannelValue || !areaValue}
-                  >
+                <Select
+                  value={toSelectValue(field.value)}
+                  onValueChange={(value) => {
+                    field.onChange(value ? Number(value) : undefined)
+                    form.setValue('territoryId', undefined)
+                    form.setValue('agencyId', undefined)
+                  }}
+                  disabled={!filteredRanges.length || !subChannelValue || !areaValue}
+                >
                     <FormControl>
                       <SelectTrigger className='w-full'>
                         <SelectValue placeholder='Select Range' />
@@ -1200,16 +1175,16 @@ export function UserForm(props: UserFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Select Territory</FormLabel>
-                  <Select
-                    value={toSelectValue(field.value)}
-                    onValueChange={(value) => {
-                      field.onChange(value)
-                      form.setValue('agencyId', '')
-                    }}
-                    disabled={
-                      !filteredTerritories.length || !areaValue || !rangeValue
-                    }
-                  >
+                <Select
+                  value={toSelectValue(field.value)}
+                  onValueChange={(value) => {
+                    field.onChange(value ? Number(value) : undefined)
+                    form.setValue('agencyId', undefined)
+                  }}
+                  disabled={
+                    !filteredTerritories.length || !areaValue || !rangeValue
+                  }
+                >
                     <FormControl>
                       <SelectTrigger className='w-full'>
                         <SelectValue placeholder='Select Territory' />
@@ -1237,11 +1212,13 @@ export function UserForm(props: UserFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Select Agency</FormLabel>
-                  <Select
-                    value={toSelectValue(field.value)}
-                    onValueChange={field.onChange}
-                    disabled={!filteredAgencies.length || !territoryValue}
-                  >
+                <Select
+                  value={toSelectValue(field.value)}
+                  onValueChange={(value) =>
+                    field.onChange(value ? Number(value) : undefined)
+                  }
+                  disabled={!filteredAgencies.length || !territoryValue}
+                >
                     <FormControl>
                       <SelectTrigger className='w-full'>
                         <SelectValue placeholder='Select Agency' />

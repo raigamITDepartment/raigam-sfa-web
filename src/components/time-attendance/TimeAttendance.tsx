@@ -48,7 +48,6 @@ import {
 import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
 import { CommonDialog } from '@/components/common-dialog'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import {
@@ -125,7 +124,9 @@ const formatDecimal = (value?: number | string | null, fractionDigits = 2) => {
   })
 }
 
-const formatText = (value?: string | number | null) =>
+type TextCellValue = string | number | boolean | null | undefined
+
+const formatText = (value?: TextCellValue) =>
   value === null || value === undefined || value === '' ? '—' : String(value)
 
 const formatTime = (value?: string | number | null) => {
@@ -306,7 +307,7 @@ export function TimeAttendance() {
   const uniqueAttendanceRows = useMemo(() => {
     const seen = new Set<string>()
     const result: AttendanceReportRow[] = []
-    attendanceRows.forEach((row, index) => {
+    attendanceRows.forEach((row) => {
       const keyParts = [
         row.salesRepId ?? row.salesRepName ?? 'rep',
         row.workingDate ?? 'date',

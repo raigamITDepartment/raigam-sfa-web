@@ -99,8 +99,8 @@ type GpsSummaryRow = {
   timeKey: number
 }
 
-const REPLAY_INTERVAL_MS = 800
-const SPEED_OPTIONS = [0.5, 1, 2, 4]
+const REPLAY_INTERVAL_MS = 1400
+const SPEED_OPTIONS = [0.25, 0.5, 1, 2]
 const MARKER_ICON_URL = '/map_maker.png'
 const LINE_COLOR = '#f40203'
 const EARTH_RADIUS_KM = 6371
@@ -181,8 +181,42 @@ const normalizeTimeValue = (value: unknown) => {
   return null
 }
 
+const interpolateLatLng = (
+  start: { lat: number; lng: number },
+  end: { lat: number; lng: number },
+  ratio: number
+) => ({
+  lat: start.lat + (end.lat - start.lat) * ratio,
+  lng: start.lng + (end.lng - start.lng) * ratio,
+})
+
+const getInterpolatedPosition = (
+  path: { lat: number; lng: number }[],
+  index: number
+) => {
+  if (!path.length) return null
+  const maxIndex = Math.max(0, path.length - 1)
+  const clamped = Math.min(Math.max(index, 0), maxIndex)
+  const baseIndex = Math.floor(clamped)
+  const nextIndex = Math.min(baseIndex + 1, maxIndex)
+  if (baseIndex === nextIndex) return path[baseIndex]
+  const ratio = clamped - baseIndex
+  return interpolateLatLng(path[baseIndex], path[nextIndex], ratio)
+}
+
 const formatLatLng = (lat: number, lng: number) =>
   `${lat.toFixed(4)}, ${lng.toFixed(4)}`
+
+const formatTimeLabel = (value?: string) => {
+  if (!value) return '--'
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return value
+  return parsed.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  })
+}
 
 const formatBatteryLabel = (value: number | null) =>
   value === null ? '—' : `${value}%`
@@ -276,7 +310,7 @@ export const GPSMonitoring = () => {
   const [appliedFilters, setAppliedFilters] =
     useState<GPSMonitoringFilters | null>(null)
   const [filterError, setFilterError] = useState<string | null>(null)
-  const [routeIndex, setRouteIndex] = useState(0)
+  const [playhead, setPlayhead] = useState(0)
   const [isPlaying, setIsPlaying] = useState(true)
   const [speedIndex, setSpeedIndex] = useState(1)
   const [isFullscreen, setIsFullscreen] = useState(false)
@@ -290,6 +324,9 @@ export const GPSMonitoring = () => {
   const [geocodeLabel, setGeocodeLabel] = useState<string | null>(null)
   const mapRef = useRef<google.maps.Map | null>(null)
   const mapWrapperRef = useRef<HTMLDivElement | null>(null)
+  const playheadRef = useRef(0)
+  const rafRef = useRef<number | null>(null)
+  const lastFrameRef = useRef<number | null>(null)
   const speedMultiplier = SPEED_OPTIONS[speedIndex] ?? 1
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as
     | string
@@ -385,6 +422,16 @@ export const GPSMonitoring = () => {
       return acc
     }, [])
   }, [gpsRecords, appliedFilters])
+
+  useEffect(() => {
+    playheadRef.current = playhead
+  }, [playhead])
+
+  const routeIndex = Math.min(
+    Math.floor(playhead),
+    Math.max(routeData.length - 1, 0)
+  )
+
   const currentStatus = useMemo<AgentStatus>(() => {
     const point = routeData[routeIndex]
     if (point?.isCheckOut) return 'offline'
@@ -563,12 +610,32 @@ export const GPSMonitoring = () => {
   }, [routePath])
   const snappedPath = directionsPath ?? routePath
   const routeProgress = Math.max(1, routePath.length - 1)
-  const markerIndex = directionsPath
-    ? Math.round((routeIndex / routeProgress) * (snappedPath.length - 1))
-    : routeIndex
-  const displayPath = snappedPath.slice(0, markerIndex + 1)
+  const clampedPlayhead = Math.min(playhead, routeProgress)
+  const snappedMaxIndex = Math.max(0, snappedPath.length - 1)
+  const snappedIndexFloat =
+    snappedMaxIndex > 0
+      ? (clampedPlayhead / routeProgress) * snappedMaxIndex
+      : 0
+  const displayPath = useMemo(() => {
+    if (!snappedPath.length) return []
+    const baseIndex = Math.floor(snappedIndexFloat)
+    const basePath = snappedPath.slice(0, baseIndex + 1)
+    if (baseIndex >= snappedPath.length - 1) return basePath
+    const ratio = snappedIndexFloat - baseIndex
+    if (ratio <= 0) return basePath
+    const interpolated = interpolateLatLng(
+      snappedPath[baseIndex],
+      snappedPath[baseIndex + 1],
+      ratio
+    )
+    return [...basePath, interpolated]
+  }, [snappedPath, snappedIndexFloat])
   const mapCenter = snappedPath[0] ?? { lat: 6.9271, lng: 79.8612 }
-  const markerPosition = snappedPath[markerIndex] ?? mapCenter
+  const markerPosition =
+    getInterpolatedPosition(snappedPath, snappedIndexFloat) ?? mapCenter
+  const playheadPercent =
+    routeProgress > 0 ? (clampedPlayhead / routeProgress) * 100 : 0
+  const playheadTimeLabel = formatTimeLabel(routeData[routeIndex]?.time)
   const currentLocationLabel =
     geocodeLabel ??
     routeData[routeIndex]?.label ??
@@ -624,11 +691,25 @@ export const GPSMonitoring = () => {
       anchor: new googleMaps.maps.Point(20, 40),
     }
   }, [isLoaded])
+  const pointMarkerIcon = useMemo(() => {
+    const googleMaps = (window as any).google
+    if (!isLoaded || !googleMaps?.maps?.SymbolPath) return undefined
+    return {
+      path: googleMaps.maps.SymbolPath.CIRCLE,
+      scale: 4,
+      fillColor: '#2563eb',
+      fillOpacity: 0.8,
+      strokeColor: '#ffffff',
+      strokeOpacity: 0.9,
+      strokeWeight: 1.2,
+    }
+  }, [isLoaded])
   const geocodeCacheRef = useRef(new Map<string, string>())
   const lastGeocodeRef = useRef(0)
 
   useEffect(() => {
-    setRouteIndex(0)
+    playheadRef.current = 0
+    setPlayhead(0)
   }, [routePath])
 
   useEffect(() => {
@@ -759,14 +840,35 @@ export const GPSMonitoring = () => {
 
   useEffect(() => {
     if (!isPlaying || routePath.length < 2) return
-    const interval = Math.max(100, REPLAY_INTERVAL_MS / speedMultiplier)
-    const timer = window.setInterval(() => {
-      setRouteIndex((prev) =>
-        prev < routePath.length - 1 ? prev + 1 : prev
+    if (playheadRef.current >= routePath.length - 1) return
+    const stepMs = Math.max(80, REPLAY_INTERVAL_MS / speedMultiplier)
+    const tick = (timestamp: number) => {
+      if (lastFrameRef.current === null) {
+        lastFrameRef.current = timestamp
+      }
+      const delta = timestamp - lastFrameRef.current
+      lastFrameRef.current = timestamp
+      const next = Math.min(
+        playheadRef.current + delta / stepMs,
+        routePath.length - 1
       )
-    }, interval)
-    return () => window.clearInterval(timer)
-  }, [isPlaying, routePath, speedMultiplier])
+      if (next !== playheadRef.current) {
+        playheadRef.current = next
+        setPlayhead(next)
+      }
+      if (next < routePath.length - 1) {
+        rafRef.current = window.requestAnimationFrame(tick)
+      }
+    }
+    rafRef.current = window.requestAnimationFrame(tick)
+    return () => {
+      if (rafRef.current !== null) {
+        window.cancelAnimationFrame(rafRef.current)
+        rafRef.current = null
+      }
+      lastFrameRef.current = null
+    }
+  }, [isPlaying, routePath.length, speedMultiplier])
 
   return (
     <div className='space-y-4'>
@@ -823,7 +925,8 @@ export const GPSMonitoring = () => {
                   variant='outline'
                   className='h-8 w-8'
                   onClick={() => {
-                    setRouteIndex(0)
+                    playheadRef.current = 0
+                    setPlayhead(0)
                     setIsPlaying(true)
                   }}
                   aria-label='Replay route'
@@ -914,6 +1017,15 @@ export const GPSMonitoring = () => {
                         strokeWeight: 4,
                       }}
                     />
+                    {routeData.map((point, index) => (
+                      <Marker
+                        key={`route-point-${index}`}
+                        position={{ lat: point.lat, lng: point.lng }}
+                        icon={pointMarkerIcon}
+                        clickable={false}
+                        zIndex={1}
+                      />
+                    ))}
                     <Marker
                       position={markerPosition}
                       icon={markerIcon}
@@ -1059,6 +1171,36 @@ export const GPSMonitoring = () => {
                 </div>
               )}
             </div>
+            {!isFullscreen ? (
+              <div className='mt-3 rounded-lg border border-slate-200/80 bg-white/95 px-4 py-3 text-xs text-slate-600 shadow-sm dark:border-slate-700/70 dark:bg-slate-950/90 dark:text-slate-200'>
+                <div className='flex flex-wrap items-center justify-between gap-2 text-[10px] font-semibold tracking-wide text-slate-500 uppercase dark:text-slate-400'>
+                  <span>Tracker</span>
+                  <span>{playheadPercent.toFixed(0)}%</span>
+                </div>
+                <div className='mt-2 flex items-center gap-3'>
+                  <span className='min-w-[72px] text-[11px] font-semibold text-slate-700 dark:text-slate-200'>
+                    {playheadTimeLabel}
+                  </span>
+                  <Slider
+                    min={0}
+                    max={routeProgress}
+                    step={0.01}
+                    value={[clampedPlayhead]}
+                    onValueChange={(value) => {
+                      const next = value[0] ?? 0
+                      playheadRef.current = next
+                      setPlayhead(next)
+                      if (isPlaying) setIsPlaying(false)
+                    }}
+                    className='flex-1'
+                    aria-label='Replay seeker'
+                  />
+                  <span className='min-w-[52px] text-right text-[11px] font-semibold text-slate-700 dark:text-slate-200'>
+                    {Math.max(routeProgress - clampedPlayhead, 0).toFixed(0)} pts
+                  </span>
+                </div>
+              </div>
+            ) : null}
 
           </div>
         </CardContent>

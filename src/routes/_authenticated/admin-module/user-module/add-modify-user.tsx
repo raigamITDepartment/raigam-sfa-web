@@ -63,6 +63,29 @@ export const Route = createFileRoute(
   component: AddModifyUser,
 })
 
+const parseAreaIds = (
+  user: UserDemarcationUser | null | undefined
+): string[] => {
+  if (!user) return []
+  const list = user.areaList
+  if (!Array.isArray(list)) return []
+  return list
+    .map((item) => {
+      if (typeof item === 'number' || typeof item === 'string') {
+        return String(item)
+      }
+      if (item && typeof item === 'object') {
+        const candidate = (item as { id?: unknown; areaId?: unknown }).areaId ??
+          (item as { id?: unknown }).id
+        if (candidate !== undefined && candidate !== null) {
+          return String(candidate)
+        }
+      }
+      return null
+    })
+    .filter((item): item is string => Boolean(item))
+}
+
 function AddModifyUser() {
   const queryClient = useQueryClient()
   const currentUser = useAppSelector((state) => state.auth.user)
@@ -132,17 +155,21 @@ function AddModifyUser() {
   const createMutation = useMutation({
     mutationFn: async (values: UserFormValues) => {
       const payload: AddUserRequest = {
+        userGroupId: values.userGroupId,
         roleId: values.roleId,
-        subRoleId: values.subRoleId,
         departmentId: null,
         continentId: null,
         countryId: null,
-        channelId: null,
-        subChannelId: null,
-        regionId: null,
-        areaId: null,
-        territoryId: null,
-        agencyId: null,
+        channelId: values.channelId ?? null,
+        subChannelId: values.subChannelId ?? null,
+        regionId: values.regionId ?? null,
+        areaId: values.areaId ?? null,
+        territoryId: values.territoryId ?? null,
+        agencyId: values.agencyId ?? null,
+        rangeId: values.rangeId ?? null,
+        areaIds: values.areaIds?.length
+          ? values.areaIds.map((id) => Number(id))
+          : undefined,
         userLevelId: 0,
         userName: values.userName,
         firstName: values.firstName,
@@ -174,8 +201,18 @@ function AddModifyUser() {
       }
       const payload: UpdateUserRequest = {
         id: editingUser.id,
+        userGroupId: values.userGroupId,
         roleId: values.roleId,
-        subRoleId: values.subRoleId,
+        channelId: values.channelId ?? null,
+        subChannelId: values.subChannelId ?? null,
+        regionId: values.regionId ?? null,
+        areaId: values.areaId ?? null,
+        territoryId: values.territoryId ?? null,
+        agencyId: values.agencyId ?? null,
+        rangeId: values.rangeId ?? null,
+        areaIds: values.areaIds?.length
+          ? values.areaIds.map((id) => Number(id))
+          : undefined,
         userLevelId: editingUser.userLevelId,
         userName: values.userName,
         firstName: values.firstName,
@@ -293,18 +330,33 @@ function AddModifyUser() {
   const countLabel = isLoading ? '.../...' : `${filteredCount}/${totalCount}`
 
   const userFormInitialValues = useMemo<Partial<UserFormValues> | undefined>(
-    () =>
-      editingUser
-        ? {
-            userName: editingUser.userName,
-            firstName: editingUser.firstName,
-            lastName: editingUser.lastName,
-            email: editingUser.email,
-            mobileNo: editingUser.mobileNo,
-            roleId: editingUser.roleId,
-            subRoleId: editingUser.subRoleId,
-          }
-        : undefined,
+    () => {
+      if (!editingUser) return undefined
+      const resolvedGroupId =
+        editingUser.userGroupId ?? editingUser.roleId
+      const resolvedRoleId =
+        editingUser.userGroupId != null
+          ? editingUser.roleId
+          : editingUser.subRoleId
+      const areaIds = parseAreaIds(editingUser)
+      return {
+        userName: editingUser.userName,
+        firstName: editingUser.firstName,
+        lastName: editingUser.lastName,
+        email: editingUser.email,
+        mobileNo: editingUser.mobileNo,
+        userGroupId: resolvedGroupId,
+        roleId: resolvedRoleId,
+        channelId: editingUser.channelId ?? undefined,
+        subChannelId: editingUser.subChannelId ?? undefined,
+        regionId: editingUser.regionId ?? undefined,
+        areaId: editingUser.areaId ?? undefined,
+        rangeId: editingUser.rangeId ?? undefined,
+        territoryId: editingUser.territoryId ?? undefined,
+        agencyId: editingUser.agencyId ?? undefined,
+        areaIds: areaIds.length ? areaIds : undefined,
+      }
+    },
     [editingUser]
   )
 
@@ -436,6 +488,7 @@ function AddModifyUser() {
             : 'Update user details.'
         }
         contentClassName='max-w-xl'
+        bodyClassName='max-h-[70vh] overflow-y-auto pr-1'
         hideFooter
       >
         <UserForm

@@ -197,6 +197,7 @@ const formatValue = (key: string, value: unknown) => {
   return String(value)
 }
 
+
 const readStoredFilters = (): TerritoryWiseItemsFilters | null => {
   if (typeof window === 'undefined') return null
   try {
@@ -344,6 +345,7 @@ const ItemSummaryReport = () => {
     filterColumnKeys.subOneCategory,
     filterColumnKeys.mainCategory,
   ])
+
 
   const columns = useMemo<ColumnDef<Record<string, unknown>>[]>(() => {
     if (!rows.length) return []

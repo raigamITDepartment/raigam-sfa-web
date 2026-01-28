@@ -1,16 +1,21 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { ensureRoleAccess, RoleId } from '@/lib/authz'
+import { ensureRoleAccess, RoleId, SubRoleId } from '@/lib/authz'
 import { Main } from '@/components/layout/main'
 import { PageHeader } from '@/components/layout/page-header'
-import { ComingSoon } from '@/components/coming-soon'
+import { TimeAttendance } from '@/components/time-attendance/TimeAttendance'
 
 export const Route = createFileRoute('/_authenticated/hr-module/time-attendance')({
   beforeLoad: () =>
     ensureRoleAccess([
       RoleId.SystemAdmin,
       RoleId.SeniorManagerSales,
+      RoleId.ManagerSales,
       RoleId.ExecutiveSales,
+      RoleId.ExecutiveCompany,
       RoleId.OperationCompany,
+      SubRoleId.AreaSalesManager,
+      SubRoleId.RegionSalesManager,
+      SubRoleId.CCU,
     ]),
   component: () => (
     <Main>
@@ -22,7 +27,7 @@ export const Route = createFileRoute('/_authenticated/hr-module/time-attendance'
           { label: 'Time Attendance' },
         ]}
       />
-      <ComingSoon />
+      <TimeAttendance />
     </Main>
   ),
 })

@@ -3,6 +3,7 @@ import type { ApiResponse } from './common'
 export type UserDemarcationUser = {
   id: number
   roleId: number
+  userGroupId?: number
   userGroupName?: string
   roleName?: string
   subRoleId: number
@@ -49,8 +50,16 @@ export type UserSubRole = {
 
 export type UpdateUserRequest = {
   id: number
+  userGroupId: number
   roleId: number
-  subRoleId: number
+  channelId?: number | null
+  subChannelId?: number | null
+  regionId?: number | null
+  areaId?: number | null
+  territoryId?: number | null
+  agencyId?: number | null
+  rangeId?: number | null
+  areaIds?: number[]
   userLevelId: number
   userName: string
   firstName: string
@@ -67,8 +76,8 @@ export type UpdateUserRequest = {
 }
 
 export type AddUserRequest = {
+  userGroupId: number
   roleId: number
-  subRoleId: number
   departmentId: number | null
   continentId: number | null
   countryId: number | null
@@ -78,6 +87,8 @@ export type AddUserRequest = {
   areaId: number | null
   territoryId: number | null
   agencyId: number | null
+  rangeId?: number | null
+  areaIds?: number[]
   userLevelId: number
   userName: string
   firstName: string

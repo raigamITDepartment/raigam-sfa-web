@@ -311,8 +311,13 @@ export const RoleAccess: Record<string, RoleIdValue[]> = {
   '/hr-module/time-attendance': [
     RoleId.SystemAdmin,
     RoleId.SeniorManagerSales,
+    RoleId.ManagerSales,
     RoleId.ExecutiveSales,
+    RoleId.ExecutiveCompany,
     RoleId.OperationCompany,
+    SubRoleId.AreaSalesManager,
+    SubRoleId.RegionSalesManager,
+    SubRoleId.CCU,
   ],
 
   // Admin Module

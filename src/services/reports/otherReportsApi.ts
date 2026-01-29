@@ -4,6 +4,7 @@ import type { ApiResponse } from '@/types/common'
 const ITEM_REPORT_BASE = '/api/v1/reports/itemReport'
 const HR_ATTENDANCE_REPORT_BASE = '/api/v1/reports/hrAttendanceReport'
 const HR_WORKING_DAY_BASE = '/api/v1/sales/hrWorkingDayType'
+const HR_ATTENDANCE_COMMENTS_BASE = '/api/v1/sales/hrAttendanceComments'
 
 export type TerritoryWiseItemSummeryParams = {
   territoryId: number | string
@@ -39,6 +40,17 @@ export type AttendanceStatusItem = {
   id: number | string
   workingDayType: string
   isActive?: boolean | null
+}
+
+export type SaveHrAttendanceCommentsPayload = {
+  userId: number | string
+  areaId: number | string
+  salesRepId: number | string
+  checkInDate: string
+  eveningStatusId: number | string | null
+  morningStatusId: number | string | null
+  rsmComment: string
+  aseComment: string
 }
 
 export async function territoryWiseItemSummeryByRequiredArgs(
@@ -101,6 +113,16 @@ export async function getAttendanceReport(params: AttendanceReportParams) {
 export async function getAttendanceStatusList() {
   const res = await http.get<ApiResponse<AttendanceStatusItem[]>>(
     HR_WORKING_DAY_BASE
+  )
+  return res.data
+}
+
+export async function saveHrAttendanceComments(
+  payload: SaveHrAttendanceCommentsPayload
+) {
+  const res = await http.post<ApiResponse<unknown>>(
+    HR_ATTENDANCE_COMMENTS_BASE,
+    payload
   )
   return res.data
 }

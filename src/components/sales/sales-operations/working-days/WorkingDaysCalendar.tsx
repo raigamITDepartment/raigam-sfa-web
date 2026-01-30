@@ -15,7 +15,6 @@ import {
   endOfMonth,
   format,
   getDay,
-  isAfter,
   isBefore,
   isWeekend,
   parse,
@@ -178,13 +177,6 @@ const WorkingDaysCalendar = ({
   const today = useMemo(() => startOfDay(new Date()), [])
   const isCurrentMonth =
     year === today.getFullYear() && month === today.getMonth() + 1
-  const handleNavigate = (
-    date: Date,
-    _view: View,
-    _action: NavigateAction
-  ) => {
-    onDateChange(date)
-  }
 
   const { data: entries = [], isFetched } = useQuery({
     queryKey: ['working-day-calendar', year, month],
@@ -359,14 +351,6 @@ const WorkingDaysCalendar = ({
     [entriesByDate]
   )
 
-  const handleSelectSlot = (slotInfo: SlotInfo) => {
-    openUpdateDialog(slotInfo.start)
-  }
-
-  const handleSelectEvent = (event: CalendarEvent) => {
-    openUpdateDialog(event.start)
-  }
-
   const handleUpdateDay = async () => {
     const userId = user?.userId
     if (!userId) {
@@ -397,30 +381,6 @@ const WorkingDaysCalendar = ({
 
     await updateMutation.mutateAsync(payload)
   }
-
-  const events = useMemo<CalendarEvent[]>(() => {
-    return entries
-      .filter((entry) => entry.isActive !== false)
-      .map((entry) => {
-        const start = new Date(`${entry.workingDate}T00:00:00`)
-        const end = addDays(start, 1)
-        const isHoliday = Boolean(entry.isHoliday)
-        const isWorkingDay = Boolean(entry.isWorkingDay)
-        const title = isHoliday
-          ? 'Holiday'
-          : isWorkingDay
-            ? 'Working Day'
-            : 'Off'
-        return {
-          id: entry.id,
-          title,
-          start,
-          end,
-          allDay: true,
-          resource: entry,
-        }
-      })
-  }, [entries])
 
   return (
     <div className='w-full rounded-sm border bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900'>
@@ -719,21 +679,45 @@ const WorkingDaysCalendar = ({
         </DialogContent>
       </Dialog>
       <div className='h-[720px] w-full'>
-        <BigCalendar<CalendarEvent>
+        <BigCalendar
           localizer={localizer}
-          events={events}
+          events={entries
+            .filter((entry) => entry.isActive !== false)
+            .map((entry) => {
+              const start = new Date(`${entry.workingDate}T00:00:00`)
+              const end = addDays(start, 1)
+              const isHoliday = Boolean(entry.isHoliday)
+              const isWorkingDay = Boolean(entry.isWorkingDay)
+              const title = isHoliday
+                ? 'Holiday'
+                : isWorkingDay
+                  ? 'Working Day'
+                  : 'Off'
+              return {
+                id: entry.id,
+                title,
+                start,
+                end,
+                allDay: true,
+                resource: entry,
+              }
+            })}
           startAccessor='start'
           endAccessor='end'
           date={currentDate}
           view={currentView}
           onView={setCurrentView}
-          onNavigate={handleNavigate}
+          onNavigate={(date: Date) => onDateChange(date)}
           selectable
-          onSelectSlot={handleSelectSlot}
-          onSelectEvent={handleSelectEvent}
+          onSelectSlot={(slotInfo: SlotInfo) =>
+            openUpdateDialog(slotInfo.start)
+          }
+          onSelectEvent={(event: CalendarEvent) =>
+            openUpdateDialog(event.start)
+          }
           views={viewOptions.map((option) => option.key)}
           components={{ toolbar: WorkingDaysToolbar }}
-          dayPropGetter={(date) => {
+          dayPropGetter={(date: Date) => {
             const key = format(date, 'yyyy-MM-dd')
             const entry = entriesByDate.get(key)
             if (!entry) return {}
@@ -745,7 +729,7 @@ const WorkingDaysCalendar = ({
             }
             return {}
           }}
-          eventPropGetter={(event) => {
+          eventPropGetter={(event: CalendarEvent) => {
             const entry = event.resource
             if (entry?.isHoliday) {
               return {

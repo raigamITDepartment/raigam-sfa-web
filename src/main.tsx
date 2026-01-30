@@ -18,6 +18,7 @@ import { ThemeProvider } from './context/theme-provider'
 // Generated Routes
 import { routeTree } from './routeTree.gen'
 // Styles
+import 'react-big-calendar/lib/css/react-big-calendar.css'
 import './styles/index.css'
 
 const queryClient = new QueryClient({

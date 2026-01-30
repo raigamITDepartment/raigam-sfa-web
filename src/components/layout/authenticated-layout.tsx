@@ -59,7 +59,8 @@ export function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
             <footer className='mt-auto border-t px-4 py-3 text-xs text-slate-600 dark:text-slate-300'>
               <div className='flex flex-col items-center gap-2 sm:flex-row sm:justify-between'>
                 <span>
-                  Copyright © 2025 Raigam IT Department All rights reserved.
+                  Copyright © {new Date().getFullYear()} Raigam IT Department
+                  All rights reserved.
                 </span>
                 <span>Term &amp; Conditions | Privacy &amp; Policy</span>
               </div>

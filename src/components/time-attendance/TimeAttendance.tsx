@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   type ColumnDef,
   flexRender,
@@ -16,7 +16,9 @@ import type { ApiResponse } from '@/types/common'
 import {
   getAttendanceReport,
   getAttendanceStatusList,
+  saveHrAttendanceComments,
   type AttendanceStatusItem,
+  type SaveHrAttendanceCommentsPayload,
 } from '@/services/reports/otherReportsApi'
 import { CommonAlert } from '@/components/common-alert'
 import {
@@ -63,6 +65,8 @@ import TimeAttendanceFilter, {
 import { cn } from '@/lib/utils'
 import { formatDate } from '@/lib/format-date'
 import { formatPrice } from '@/lib/format-price'
+import { useAppSelector } from '@/store/hooks'
+import { toast } from 'sonner'
 
 type AttendanceReportRow = {
   userId?: number | string | null
@@ -128,6 +132,20 @@ type TextCellValue = string | number | boolean | null | undefined
 
 const formatText = (value?: TextCellValue) =>
   value === null || value === undefined || value === '' ? '—' : String(value)
+
+const resolveTextValue = (...values: Array<string | null | undefined>) => {
+  for (const value of values) {
+    if (value !== null && value !== undefined && value !== '') return value
+  }
+  return ''
+}
+
+const STATUS_EMPTY_VALUE = '__none__'
+const resolveDefaultStatusValue = (options: AttendanceStatusItem[]) => {
+  if (!options.length) return STATUS_EMPTY_VALUE
+  const activeOption = options.find((option) => option.isActive !== false)
+  return String((activeOption ?? options[0]).id)
+}
 
 const formatTime = (value?: string | number | null) => {
   if (value === null || value === undefined || value === '') return '—'
@@ -235,16 +253,18 @@ const writeStoredFilters = (filters?: TimeAttendanceFilters | null) => {
 }
 
 export function TimeAttendance() {
+  const queryClient = useQueryClient()
+  const user = useAppSelector((state) => state.auth.user)
   const [filters, setFilters] = useState<TimeAttendanceFilters | undefined>(
     () => readStoredFilters()
   )
   const [statusDialogOpen, setStatusDialogOpen] = useState(false)
   const [timeNow, setTimeNow] = useState(() => new Date())
   const [statusForm, setStatusForm] = useState({
-    morningStatusId: '',
-    eveningStatusId: '',
-    aseComments: '',
-    rsmComments: '',
+    morningStatusId: STATUS_EMPTY_VALUE,
+    eveningStatusId: STATUS_EMPTY_VALUE,
+    aseComment: '',
+    rsmComment: '',
   })
 
   useEffect(() => {
@@ -301,7 +321,7 @@ export function TimeAttendance() {
   const canEditEveningStatus = useMemo(() => {
     const hours = timeNow.getHours()
     const minutes = timeNow.getMinutes()
-    return hours > 12 || (hours === 12 && minutes >= 30)
+    return hours > 15 || (hours === 15 && minutes >= 0)
   }, [timeNow])
 
   const uniqueAttendanceRows = useMemo(() => {
@@ -558,6 +578,7 @@ export function TimeAttendance() {
   const filteredCount = filteredRows.length
   const totalCount = uniqueAttendanceRows.length
   const selectedCount = table.getSelectedRowModel().rows.length
+  const selectedRow = table.getSelectedRowModel().rows[0]?.original
   const exportRows = useMemo(
     () => table.getSortedRowModel().rows.map((row) => row.original),
     [table, attendanceRows, globalFilter, pagination, columnVisibility]
@@ -678,6 +699,110 @@ export function TimeAttendance() {
     return ''
   }
 
+  useEffect(() => {
+    if (!statusDialogOpen) return
+    const defaultStatusId = resolveDefaultStatusValue(statusOptions)
+    if (!selectedRow) {
+      setStatusForm({
+        morningStatusId: defaultStatusId,
+        eveningStatusId: defaultStatusId,
+        aseComment: '',
+        rsmComment: '',
+      })
+      return
+    }
+    setStatusForm({
+      morningStatusId:
+        selectedRow.morningStatusId != null
+          ? String(selectedRow.morningStatusId)
+          : defaultStatusId,
+      eveningStatusId:
+        selectedRow.eveningStatusId != null
+          ? String(selectedRow.eveningStatusId)
+          : defaultStatusId,
+      aseComment: resolveTextValue(
+        selectedRow.aseComments,
+        (selectedRow as AttendanceReportRow & { aseComment?: string | null })
+          .aseComment,
+        (selectedRow as AttendanceReportRow & { asmComment?: string | null })
+          .asmComment
+      ),
+      rsmComment: resolveTextValue(
+        selectedRow.rsmComments,
+        (selectedRow as AttendanceReportRow & { rsmComment?: string | null })
+          .rsmComment
+      ),
+    })
+  }, [statusDialogOpen, selectedRow, statusOptions])
+
+  const saveCommentsMutation = useMutation({
+    mutationFn: (payload: SaveHrAttendanceCommentsPayload) =>
+      saveHrAttendanceComments(payload),
+    onSuccess: () => {
+      toast.success('Attendance status saved.')
+      setStatusDialogOpen(false)
+      setRowSelection({})
+      setStatusForm({
+        morningStatusId: STATUS_EMPTY_VALUE,
+        eveningStatusId: STATUS_EMPTY_VALUE,
+        aseComment: '',
+        rsmComment: '',
+      })
+      queryClient.invalidateQueries({
+        queryKey: ['time-attendance', 'report'],
+      })
+    },
+    onError: (error) => {
+      toast.error(
+        (error as Error)?.message ?? 'Failed to save attendance status.'
+      )
+    },
+  })
+
+  const resolveStatusId = (value: string) => {
+    if (!value || value === STATUS_EMPTY_VALUE) return null
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : value
+  }
+
+  const handleSaveStatus = () => {
+    const userId = user?.userId
+    const areaId = user?.areaIds?.[0]
+    const salesRepId =
+      selectedRow?.userId ?? selectedRow?.salesRepId ?? null
+    const checkInDate = selectedRow?.workingDate ?? null
+
+    if (userId == null) {
+      toast.error('User id is required to save attendance status.')
+      return
+    }
+    if (areaId == null) {
+      toast.error('User area id is required to save attendance status.')
+      return
+    }
+    if (salesRepId == null) {
+      toast.error('Select a valid attendance row to save status.')
+      return
+    }
+    if (!checkInDate) {
+      toast.error('Check-in date is required to save attendance status.')
+      return
+    }
+
+    const payload: SaveHrAttendanceCommentsPayload = {
+      userId,
+      areaId,
+      salesRepId,
+      checkInDate: String(checkInDate),
+      eveningStatusId: resolveStatusId(statusForm.eveningStatusId),
+      morningStatusId: resolveStatusId(statusForm.morningStatusId),
+      rsmComment: statusForm.rsmComment.trim(),
+      aseComment: statusForm.aseComment.trim(),
+    }
+
+    saveCommentsMutation.mutate(payload)
+  }
+
   return (
     <div className='space-y-6'>
       <TimeAttendanceFilter
@@ -747,7 +872,7 @@ export function TimeAttendance() {
                 </Button>
               }
             />
-            <div className='rounded-md border'>
+            <div className='relative overflow-x-auto rounded-md border'>
               <Table className='text-xs'>
                 <TableHeader>
                   {table.getHeaderGroups().map((headerGroup) => (
@@ -755,12 +880,15 @@ export function TimeAttendance() {
                       {headerGroup.headers.map((header) => {
                         const meta = header.column.columnDef
                           .meta as AttendanceColumnMeta | undefined
+                        const isSelectColumn = header.column.id === 'select'
                         return (
                           <TableHead
                             key={header.id}
                             className={cn(
                               'text-muted-foreground bg-gray-100 px-3 text-xs font-semibold tracking-wide uppercase dark:bg-gray-900',
-                              meta?.className
+                              meta?.className,
+                              isSelectColumn &&
+                                'sticky left-0 z-30 bg-gray-100 dark:bg-gray-900 shadow-[1px_0_0_0_rgba(0,0,0,0.08)]'
                             )}
                           >
                             {header.isPlaceholder
@@ -799,10 +927,16 @@ export function TimeAttendance() {
                         {row.getVisibleCells().map((cell) => {
                           const meta = cell.column.columnDef
                             .meta as AttendanceColumnMeta | undefined
+                          const isSelectColumn = cell.column.id === 'select'
                           return (
                             <TableCell
                               key={cell.id}
-                              className={cn('px-3 py-2', meta?.className)}
+                              className={cn(
+                                'px-3 py-2',
+                                meta?.className,
+                                isSelectColumn &&
+                                  'sticky left-0 z-20 bg-inherit shadow-[1px_0_0_0_rgba(0,0,0,0.04)]'
+                              )}
                             >
                               {flexRender(
                                 cell.column.columnDef.cell,
@@ -841,10 +975,8 @@ export function TimeAttendance() {
         }
         primaryAction={{
           label: 'Save',
-          onClick: () => {
-            setStatusDialogOpen(false)
-          },
-          disabled: selectedCount === 0,
+          onClick: handleSaveStatus,
+          disabled: selectedCount === 0 || saveCommentsMutation.isPending,
         }}
         secondaryAction={{
           label: 'Cancel',
@@ -870,6 +1002,9 @@ export function TimeAttendance() {
                 <SelectValue placeholder='Select morning status' />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value={STATUS_EMPTY_VALUE}>
+                  Select morning status
+                </SelectItem>
                 {statusOptions.map((option) => (
                   <SelectItem key={option.id} value={String(option.id)}>
                     {option.workingDayType}
@@ -894,6 +1029,9 @@ export function TimeAttendance() {
                 <SelectValue placeholder='Select evening status' />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value={STATUS_EMPTY_VALUE}>
+                  Select evening status
+                </SelectItem>
                 {statusOptions.map((option) => (
                   <SelectItem key={option.id} value={String(option.id)}>
                     {option.workingDayType}
@@ -907,11 +1045,11 @@ export function TimeAttendance() {
           <Label htmlFor='ta-ase-comments'>ASE/ASM Comments</Label>
           <Textarea
             id='ta-ase-comments'
-            value={statusForm.aseComments}
+            value={statusForm.aseComment}
             onChange={(event) =>
               setStatusForm((prev) => ({
                 ...prev,
-                aseComments: event.target.value,
+                aseComment: event.target.value,
               }))
             }
             placeholder='Add ASE/ASM comments'
@@ -922,11 +1060,11 @@ export function TimeAttendance() {
           <Label htmlFor='ta-rsm-comments'>RSM Comments</Label>
           <Textarea
             id='ta-rsm-comments'
-            value={statusForm.rsmComments}
+            value={statusForm.rsmComment}
             onChange={(event) =>
               setStatusForm((prev) => ({
                 ...prev,
-                rsmComments: event.target.value,
+                rsmComment: event.target.value,
               }))
             }
             placeholder='Add RSM comments'

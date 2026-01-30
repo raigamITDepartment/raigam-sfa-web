@@ -9,6 +9,18 @@ const COMMON_PARSE_FORMATS = [
   'yyyy/MM/dd',
   'dd/MM/yyyy',
   'MM/dd/yyyy',
+  'dd-MM-yyyy',
+  'MM-dd-yyyy',
+  'dd MMM yyyy',
+  'dd MMM yyyy HH:mm:ss',
+  'dd MMM yyyy HH:mm',
+  'dd MMM yyyy hh:mm a',
+  'dd MMM yyyy h:mm a',
+  'dd-MMM-yyyy',
+  'dd-MMM-yyyy HH:mm:ss',
+  'dd-MMM-yyyy HH:mm',
+  'dd-MMM-yyyy hh:mm a',
+  'dd-MMM-yyyy h:mm a',
   "yyyy-MM-dd'T'HH:mm:ss",
   "yyyy-MM-dd'T'HH:mm",
   'yyyy/MM/dd HH:mm:ss',
@@ -36,8 +48,12 @@ type ParsedDateValue = {
   hasTime: boolean
 }
 
-const parseDateValue = (value: string): ParsedDateValue | undefined => {
-  const text = value.trim()
+export const parseDateValue = (value: string): ParsedDateValue | undefined => {
+  const text = value
+    .replace(/\u00a0/g, ' ')
+    .replace(/,/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
   if (!text) return undefined
   if (text.startsWith('0001-01-01')) return undefined
   for (const formatString of COMMON_PARSE_FORMATS) {

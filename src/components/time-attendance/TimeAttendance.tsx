@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { isValid, parse } from 'date-fns'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   type ColumnDef,
@@ -12,7 +13,6 @@ import {
   useReactTable,
   type VisibilityState,
 } from '@tanstack/react-table'
-import type { ApiResponse } from '@/types/common'
 import {
   getAttendanceReport,
   getAttendanceStatusList,
@@ -20,7 +20,14 @@ import {
   type AttendanceStatusItem,
   type SaveHrAttendanceCommentsPayload,
 } from '@/services/reports/otherReportsApi'
-import { CommonAlert } from '@/components/common-alert'
+import { useAppSelector } from '@/store/hooks'
+import type { ApiResponse } from '@/types/common'
+import { enUS } from 'date-fns/locale'
+import { toast } from 'sonner'
+import { formatDate } from '@/lib/format-date'
+import { formatPrice } from '@/lib/format-price'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 import {
   Card,
   CardContent,
@@ -28,7 +35,27 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
 import { CountBadge } from '@/components/ui/count-badge'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { Textarea } from '@/components/ui/textarea'
+import { CommonAlert } from '@/components/common-alert'
+import { CommonDialog } from '@/components/common-dialog'
 import {
   DataTableColumnHeader,
   DataTablePagination,
@@ -39,34 +66,9 @@ import {
   ExcelExportButton,
   type ExcelExportColumn,
 } from '@/components/excel-export-button'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Button } from '@/components/ui/button'
-import { CommonDialog } from '@/components/common-dialog'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import TimeAttendanceFilter, {
   type TimeAttendanceFilters,
 } from '@/components/time-attendance/Filter'
-import { cn } from '@/lib/utils'
-import { formatDate } from '@/lib/format-date'
-import { formatPrice } from '@/lib/format-price'
-import { useAppSelector } from '@/store/hooks'
-import { toast } from 'sonner'
 
 type AttendanceReportRow = {
   userId?: number | string | null
@@ -113,9 +115,7 @@ type AttendanceReportRow = {
 const formatNumber = (value?: number | string | null) => {
   if (value === null || value === undefined || value === '') return '—'
   const parsed = typeof value === 'number' ? value : Number(value)
-  return Number.isFinite(parsed)
-    ? parsed.toLocaleString('en-LK')
-    : '—'
+  return Number.isFinite(parsed) ? parsed.toLocaleString('en-LK') : '—'
 }
 
 const formatDecimal = (value?: number | string | null, fractionDigits = 2) => {
@@ -141,12 +141,6 @@ const resolveTextValue = (...values: Array<string | null | undefined>) => {
 }
 
 const STATUS_EMPTY_VALUE = '__none__'
-const resolveDefaultStatusValue = (options: AttendanceStatusItem[]) => {
-  if (!options.length) return STATUS_EMPTY_VALUE
-  const activeOption = options.find((option) => option.isActive !== false)
-  return String((activeOption ?? options[0]).id)
-}
-
 const formatTime = (value?: string | number | null) => {
   if (value === null || value === undefined || value === '') return '—'
   if (typeof value === 'string') {
@@ -221,6 +215,121 @@ const parseTimeToMinutes = (value?: string | number | null) => {
       }
       return hours * 60 + minutes
     }
+  }
+  return null
+}
+
+const WORKING_DATE_FORMATS = [
+  'yyyy-MM-dd HH:mm:ss',
+  'yyyy-MM-dd HH:mm',
+  'yyyy-MM-dd',
+  'yyyy/MM/dd',
+  'dd/MM/yyyy',
+  'MM/dd/yyyy',
+  'dd-MM-yyyy',
+  'MM-dd-yyyy',
+  'dd MMM yyyy',
+  'dd MMM yyyy HH:mm:ss',
+  'dd MMM yyyy HH:mm',
+  'dd MMM yyyy, HH:mm:ss',
+  'dd MMM yyyy, HH:mm',
+  'dd MMM yyyy hh:mm a',
+  'dd MMM yyyy, hh:mm a',
+  'dd MMM yyyy h:mm a',
+  'dd MMM yyyy, h:mm a',
+  'dd-MMM-yyyy',
+  'dd-MMM-yyyy HH:mm:ss',
+  'dd-MMM-yyyy HH:mm',
+  'dd-MMM-yyyy hh:mm a',
+  'dd-MMM-yyyy h:mm a',
+  "yyyy-MM-dd'T'HH:mm:ss",
+  "yyyy-MM-dd'T'HH:mm",
+  'yyyy/MM/dd HH:mm:ss',
+  'yyyy/MM/dd HH:mm',
+  'dd/MM/yyyy HH:mm:ss',
+  'dd/MM/yyyy HH:mm',
+  'MM/dd/yyyy HH:mm:ss',
+  'MM/dd/yyyy HH:mm',
+  'yyyy-MM-dd HH:mm:ss.SSS',
+  "yyyy-MM-dd'T'HH:mm:ss.SSS",
+] as const
+
+const MONTH_INDEX_BY_NAME: Record<string, number> = {
+  jan: 0,
+  january: 0,
+  feb: 1,
+  february: 1,
+  mar: 2,
+  march: 2,
+  apr: 3,
+  april: 3,
+  may: 4,
+  jun: 5,
+  june: 5,
+  jul: 6,
+  july: 6,
+  aug: 7,
+  august: 7,
+  sep: 8,
+  sept: 8,
+  september: 8,
+  oct: 9,
+  october: 9,
+  nov: 10,
+  november: 10,
+  dec: 11,
+  december: 11,
+}
+
+const parseMonthNameDate = (value: string) => {
+  const normalized = value
+    .replace(/\u00a0/g, ' ')
+    .replace(/[.,]/g, ' ')
+    .replace(/[-/]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+  const match = normalized.match(/(\d{1,2})\s+([A-Za-z]{3,})\s+(\d{4})/)
+  if (!match) return null
+  const day = Number(match[1])
+  const rawMonth = match[2].toLowerCase().replace(/\./g, '')
+  const year = Number(match[3])
+  const monthIndex =
+    MONTH_INDEX_BY_NAME[rawMonth] ?? MONTH_INDEX_BY_NAME[rawMonth.slice(0, 3)]
+  if (
+    !Number.isFinite(day) ||
+    !Number.isFinite(year) ||
+    monthIndex === undefined
+  ) {
+    return null
+  }
+  const date = new Date(year, monthIndex, day)
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
+const parseWorkingDate = (value?: string | number | null) => {
+  if (value === null || value === undefined || value === '') return null
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    const date = new Date(value)
+    return Number.isNaN(date.getTime()) ? null : date
+  }
+  if (typeof value === 'string') {
+    const trimmed = value.replace(/\u00a0/g, ' ').trim()
+    if (!trimmed) return null
+    if (trimmed.startsWith('0001-01-01')) return null
+    const normalized = trimmed.replace(/,/g, '').replace(/\s+/g, ' ').trim()
+    for (const formatString of WORKING_DATE_FORMATS) {
+      const parsed = parse(normalized, formatString, new Date(), {
+        locale: enUS,
+      })
+      if (isValid(parsed)) return parsed
+    }
+    const monthNameParsed = parseMonthNameDate(normalized)
+    if (monthNameParsed) return monthNameParsed
+    const directText = normalized.includes('T')
+      ? normalized
+      : normalized.replace(' ', 'T')
+    const direct = new Date(directText)
+    return Number.isNaN(direct.getTime()) ? null : direct
   }
   return null
 }
@@ -300,9 +409,9 @@ export function TimeAttendance() {
     queryKey: ['time-attendance', 'report', queryParams],
     enabled: Boolean(queryParams),
     queryFn: async () => {
-      const res = (await getAttendanceReport(
-        queryParams!
-      )) as ApiResponse<AttendanceReportRow[]>
+      const res = (await getAttendanceReport(queryParams!)) as ApiResponse<
+        AttendanceReportRow[]
+      >
       return res.payload ?? []
     },
     staleTime: 5 * 60 * 1000,
@@ -317,12 +426,6 @@ export function TimeAttendance() {
   const statusOptions = useMemo<AttendanceStatusItem[]>(() => {
     return statusListResponse?.payload ?? []
   }, [statusListResponse])
-
-  const canEditEveningStatus = useMemo(() => {
-    const hours = timeNow.getHours()
-    const minutes = timeNow.getMinutes()
-    return hours > 15 || (hours === 15 && minutes >= 0)
-  }, [timeNow])
 
   const uniqueAttendanceRows = useMemo(() => {
     const seen = new Set<string>()
@@ -344,8 +447,7 @@ export function TimeAttendance() {
   const isBusy = isLoading || isFetching
   const [globalFilter, setGlobalFilter] = useState('')
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 })
-  const [columnVisibility, setColumnVisibility] =
-    useState<VisibilityState>({})
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
   const [rowSelection, setRowSelection] = useState({})
 
   const territoryFilterOptions = useMemo(() => {
@@ -402,7 +504,9 @@ export function TimeAttendance() {
     const centeredTextColumn = (
       key: keyof AttendanceReportRow,
       title: string,
-      format: (value: AttendanceReportRow[keyof AttendanceReportRow]) => string = formatText
+      format: (
+        value: AttendanceReportRow[keyof AttendanceReportRow]
+      ) => string = formatText
     ): ColumnDef<AttendanceReportRow> => ({
       accessorKey: key,
       header: ({ column }) => (
@@ -430,7 +534,9 @@ export function TimeAttendance() {
         />
       ),
       cell: ({ row }) => format(row.original[key] as number | string | null),
-      meta: { className: 'text-right tabular-nums' } satisfies AttendanceColumnMeta,
+      meta: {
+        className: 'text-right tabular-nums',
+      } satisfies AttendanceColumnMeta,
     })
 
     const centeredNumberColumn = (
@@ -447,7 +553,9 @@ export function TimeAttendance() {
         />
       ),
       cell: ({ row }) => format(row.original[key] as number | string | null),
-      meta: { className: 'text-center tabular-nums' } satisfies AttendanceColumnMeta,
+      meta: {
+        className: 'text-center tabular-nums',
+      } satisfies AttendanceColumnMeta,
     })
 
     return [
@@ -536,10 +644,8 @@ export function TimeAttendance() {
       centeredNumberColumn('pcCount', 'PC'),
       centeredNumberColumn('madeCallCount', 'Made Calls'),
       centeredNumberColumn('upcCount', 'UPC'),
-      numberColumn(
-        'totalBValue',
-        'Total Booking Value',
-        (value) => formatPrice(typeof value === 'number' ? value : Number(value))
+      numberColumn('totalBValue', 'Total Booking Value', (value) =>
+        formatPrice(typeof value === 'number' ? value : Number(value))
       ),
       textColumn('morningStatus', 'Morning Status'),
       textColumn('eveningStatus', 'Evening Status'),
@@ -579,6 +685,35 @@ export function TimeAttendance() {
   const totalCount = uniqueAttendanceRows.length
   const selectedCount = table.getSelectedRowModel().rows.length
   const selectedRow = table.getSelectedRowModel().rows[0]?.original
+  const morningSelectValue =
+    statusForm.morningStatusId === STATUS_EMPTY_VALUE
+      ? ''
+      : statusForm.morningStatusId
+  const eveningSelectValue =
+    statusForm.eveningStatusId === STATUS_EMPTY_VALUE
+      ? ''
+      : statusForm.eveningStatusId
+
+  const canEditEveningStatus = useMemo(() => {
+    const hours = timeNow.getHours()
+    const minutes = timeNow.getMinutes()
+    const isAfterThree = hours > 15 || (hours === 15 && minutes >= 0)
+    const workingDate = parseWorkingDate(selectedRow?.workingDate ?? null)
+    if (!workingDate) return isAfterThree
+    const todayStart = new Date(
+      timeNow.getFullYear(),
+      timeNow.getMonth(),
+      timeNow.getDate()
+    )
+    const selectedStart = new Date(
+      workingDate.getFullYear(),
+      workingDate.getMonth(),
+      workingDate.getDate()
+    )
+    if (selectedStart < todayStart) return true
+    if (selectedStart > todayStart) return false
+    return isAfterThree
+  }, [selectedRow?.workingDate, timeNow])
   const exportRows = useMemo(
     () => table.getSortedRowModel().rows.map((row) => row.original),
     [table, attendanceRows, globalFilter, pagination, columnVisibility]
@@ -681,7 +816,8 @@ export function TimeAttendance() {
   const getRowToneClass = (row: AttendanceReportRow) => {
     const rawValue = row.checkinTime ?? null
     const minutes = parseTimeToMinutes(rawValue)
-    const isMissing = rawValue === null || rawValue === undefined || rawValue === ''
+    const isMissing =
+      rawValue === null || rawValue === undefined || rawValue === ''
     if (isMissing) {
       return [
         'odd:!bg-rose-50 even:!bg-rose-50',
@@ -701,11 +837,10 @@ export function TimeAttendance() {
 
   useEffect(() => {
     if (!statusDialogOpen) return
-    const defaultStatusId = resolveDefaultStatusValue(statusOptions)
     if (!selectedRow) {
       setStatusForm({
-        morningStatusId: defaultStatusId,
-        eveningStatusId: defaultStatusId,
+        morningStatusId: STATUS_EMPTY_VALUE,
+        eveningStatusId: STATUS_EMPTY_VALUE,
         aseComment: '',
         rsmComment: '',
       })
@@ -715,11 +850,11 @@ export function TimeAttendance() {
       morningStatusId:
         selectedRow.morningStatusId != null
           ? String(selectedRow.morningStatusId)
-          : defaultStatusId,
+          : STATUS_EMPTY_VALUE,
       eveningStatusId:
         selectedRow.eveningStatusId != null
           ? String(selectedRow.eveningStatusId)
-          : defaultStatusId,
+          : STATUS_EMPTY_VALUE,
       aseComment: resolveTextValue(
         selectedRow.aseComments,
         (selectedRow as AttendanceReportRow & { aseComment?: string | null })
@@ -767,9 +902,10 @@ export function TimeAttendance() {
 
   const handleSaveStatus = () => {
     const userId = user?.userId
-    const areaId = user?.areaIds?.[0]
-    const salesRepId =
-      selectedRow?.userId ?? selectedRow?.salesRepId ?? null
+    const areaId =
+      user?.areaIds?.[0] ??
+      (filters?.areaId != null ? Number(filters.areaId) : null)
+    const salesRepId = selectedRow?.userId ?? selectedRow?.salesRepId ?? null
     const checkInDate = selectedRow?.workingDate ?? null
 
     if (userId == null) {
@@ -786,6 +922,13 @@ export function TimeAttendance() {
     }
     if (!checkInDate) {
       toast.error('Check-in date is required to save attendance status.')
+      return
+    }
+    if (
+      !statusForm.morningStatusId ||
+      statusForm.morningStatusId === STATUS_EMPTY_VALUE
+    ) {
+      toast.error('Please select morning status.')
       return
     }
 
@@ -878,8 +1021,9 @@ export function TimeAttendance() {
                   {table.getHeaderGroups().map((headerGroup) => (
                     <TableRow key={headerGroup.id}>
                       {headerGroup.headers.map((header) => {
-                        const meta = header.column.columnDef
-                          .meta as AttendanceColumnMeta | undefined
+                        const meta = header.column.columnDef.meta as
+                          | AttendanceColumnMeta
+                          | undefined
                         const isSelectColumn = header.column.id === 'select'
                         return (
                           <TableHead
@@ -888,7 +1032,7 @@ export function TimeAttendance() {
                               'text-muted-foreground bg-gray-100 px-3 text-xs font-semibold tracking-wide uppercase dark:bg-gray-900',
                               meta?.className,
                               isSelectColumn &&
-                                'sticky left-0 z-30 bg-gray-100 dark:bg-gray-900 shadow-[1px_0_0_0_rgba(0,0,0,0.08)]'
+                                'sticky left-0 z-30 bg-gray-100 shadow-[1px_0_0_0_rgba(0,0,0,0.08)] dark:bg-gray-900'
                             )}
                           >
                             {header.isPlaceholder
@@ -925,8 +1069,9 @@ export function TimeAttendance() {
                         className={getRowToneClass(row.original)}
                       >
                         {row.getVisibleCells().map((cell) => {
-                          const meta = cell.column.columnDef
-                            .meta as AttendanceColumnMeta | undefined
+                          const meta = cell.column.columnDef.meta as
+                            | AttendanceColumnMeta
+                            | undefined
                           const isSelectColumn = cell.column.id === 'select'
                           return (
                             <TableCell
@@ -976,7 +1121,11 @@ export function TimeAttendance() {
         primaryAction={{
           label: 'Save',
           onClick: handleSaveStatus,
-          disabled: selectedCount === 0 || saveCommentsMutation.isPending,
+          disabled:
+            selectedCount === 0 ||
+            saveCommentsMutation.isPending ||
+            !statusForm.morningStatusId ||
+            statusForm.morningStatusId === STATUS_EMPTY_VALUE,
         }}
         secondaryAction={{
           label: 'Cancel',
@@ -989,7 +1138,7 @@ export function TimeAttendance() {
           <div className='space-y-2'>
             <Label htmlFor='ta-morning-status'>Morning Status</Label>
             <Select
-              value={statusForm.morningStatusId}
+              value={morningSelectValue}
               onValueChange={(value) =>
                 setStatusForm((prev) => ({
                   ...prev,
@@ -1002,9 +1151,6 @@ export function TimeAttendance() {
                 <SelectValue placeholder='Select morning status' />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={STATUS_EMPTY_VALUE}>
-                  Select morning status
-                </SelectItem>
                 {statusOptions.map((option) => (
                   <SelectItem key={option.id} value={String(option.id)}>
                     {option.workingDayType}
@@ -1016,7 +1162,7 @@ export function TimeAttendance() {
           <div className='space-y-2'>
             <Label htmlFor='ta-evening-status'>Evening Status</Label>
             <Select
-              value={statusForm.eveningStatusId}
+              value={eveningSelectValue}
               onValueChange={(value) =>
                 setStatusForm((prev) => ({
                   ...prev,
@@ -1029,9 +1175,6 @@ export function TimeAttendance() {
                 <SelectValue placeholder='Select evening status' />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={STATUS_EMPTY_VALUE}>
-                  Select evening status
-                </SelectItem>
                 {statusOptions.map((option) => (
                   <SelectItem key={option.id} value={String(option.id)}>
                     {option.workingDayType}

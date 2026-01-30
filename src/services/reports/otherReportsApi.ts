@@ -5,6 +5,7 @@ const ITEM_REPORT_BASE = '/api/v1/reports/itemReport'
 const HR_ATTENDANCE_REPORT_BASE = '/api/v1/reports/hrAttendanceReport'
 const HR_WORKING_DAY_BASE = '/api/v1/sales/hrWorkingDayType'
 const HR_ATTENDANCE_COMMENTS_BASE = '/api/v1/sales/hrAttendanceComments'
+const HR_WORKING_DAY_CALENDAR_BASE = '/api/v1/sales/hrWorkingDayCalendar'
 
 export type TerritoryWiseItemSummeryParams = {
   territoryId: number | string
@@ -51,6 +52,31 @@ export type SaveHrAttendanceCommentsPayload = {
   morningStatusId: number | string | null
   rsmComment: string
   aseComment: string
+}
+
+export type WorkingDayCalendarEntryPayload = {
+  workingDate: string
+  isWorkingDay?: boolean
+  isHoliday?: boolean
+  isActive?: boolean
+}
+
+export type AddWorkingDaysInMonthPayload = {
+  userId: number | string
+  workingYear: number
+  workingMonth: number
+  dayCalendarDTOList: WorkingDayCalendarEntryPayload[]
+}
+
+export type UpdateWorkingDayPayload = {
+  id: number | string
+  userId: number | string
+  workingYear: number
+  workingMonth: number
+  workingDate: string
+  isWorkingDay?: boolean
+  isHoliday?: boolean
+  isActive?: boolean
 }
 
 export async function territoryWiseItemSummeryByRequiredArgs(
@@ -122,6 +148,34 @@ export async function saveHrAttendanceComments(
 ) {
   const res = await http.post<ApiResponse<unknown>>(
     HR_ATTENDANCE_COMMENTS_BASE,
+    payload
+  )
+  return res.data
+}
+
+export async function findEntriesByYearAndMonth(
+  year: number | string,
+  month: number | string
+) {
+  const res = await http.get<ApiResponse<unknown>>(
+    `${HR_WORKING_DAY_CALENDAR_BASE}/findEntriesByYearAndMonth/${year}/${month}`
+  )
+  return res.data
+}
+
+export async function addWorkingDyasInMonth(
+  payload: AddWorkingDaysInMonthPayload
+) {
+  const res = await http.post<ApiResponse<unknown>>(
+    HR_WORKING_DAY_CALENDAR_BASE,
+    payload
+  )
+  return res.data
+}
+
+export async function updateWorkingDay(payload: UpdateWorkingDayPayload) {
+  const res = await http.put<ApiResponse<unknown>>(
+    HR_WORKING_DAY_CALENDAR_BASE,
     payload
   )
   return res.data

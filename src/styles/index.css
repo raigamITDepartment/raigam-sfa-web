@@ -85,3 +85,10 @@
     height: 0;
   }
 }
+
+.working-days-calendar .rbc-month-view .rbc-header {
+  background-color: var(--muted);
+  color: var(--foreground);
+  font-weight: 600;
+  padding-block: 0.5rem;
+}

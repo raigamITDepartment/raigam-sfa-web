@@ -186,7 +186,7 @@ const WorkingDaysCalendar = ({
     onDateChange(date)
   }
 
-  const { data: entries = [] } = useQuery({
+  const { data: entries = [], isFetched } = useQuery({
     queryKey: ['working-day-calendar', year, month],
     queryFn: async () => {
       const res = (await findEntriesByYearAndMonth(
@@ -303,19 +303,6 @@ const WorkingDaysCalendar = ({
       prev.map((item, idx) =>
         idx === index && isEditableDate(item.date)
           ? { ...item, status }
-          : item
-      )
-    )
-  }
-
-  const applyStandardSchedule = () => {
-    setDaySelections((prev) =>
-      prev.map((item) =>
-        isEditableDate(item.date)
-          ? {
-              ...item,
-              status: isWeekend(item.date) ? 'holiday' : 'working',
-            }
           : item
       )
     )
@@ -529,7 +516,7 @@ const WorkingDaysCalendar = ({
         </DialogContent>
       </Dialog>
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        {entries.length === 0 && (
+        {isFetched && entries.length === 0 && (
           <Alert variant='info' className='mb-4'>
             <AlertTitle>
               No working days or holidays set for this month.
@@ -582,13 +569,6 @@ const WorkingDaysCalendar = ({
                   Apply common schedules in one click.
                 </p>
                 <div className='mt-3 grid gap-2'>
-                  <Button
-                    variant='outline'
-                    size='sm'
-                    onClick={applyStandardSchedule}
-                  >
-                    Apply standard schedule
-                  </Button>
                   <Button
                     variant='outline'
                     size='sm'

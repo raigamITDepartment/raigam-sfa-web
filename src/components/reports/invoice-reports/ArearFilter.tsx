@@ -218,8 +218,8 @@ export default function AreaInvoiceReportFilter({
 
   return (
     <div className='rounded-sm border bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900'>
-      <div className='flex flex-nowrap items-end gap-2 overflow-x-auto pb-1'>
-        <div className='flex min-w-[170px] shrink-0 flex-col gap-2'>
+      <div className='flex flex-wrap items-end gap-2'>
+        <div className='flex w-full flex-col gap-2 sm:min-w-[170px] sm:flex-1'>
           <Select
             value={effectiveSubChannelId}
             onValueChange={(value) => {
@@ -250,7 +250,7 @@ export default function AreaInvoiceReportFilter({
           </Select>
         </div>
 
-        <div className='flex min-w-[170px] shrink-0 flex-col gap-2'>
+        <div className='flex w-full flex-col gap-2 sm:min-w-[170px] sm:flex-1'>
           <Select
             value={areaId}
             onValueChange={(value) => {
@@ -280,7 +280,7 @@ export default function AreaInvoiceReportFilter({
           </Select>
         </div>
 
-        <div className='flex min-w-[180px] shrink-0 flex-col gap-2'>
+        <div className='flex w-full flex-col gap-2 sm:min-w-[180px] sm:flex-1'>
           <Select
             value={invoiceType}
             onValueChange={(value) => setInvoiceType(value as InvoiceTypeParam)}
@@ -301,7 +301,7 @@ export default function AreaInvoiceReportFilter({
           </Select>
         </div>
 
-        <div className='flex min-w-[240px] shrink-0 flex-col gap-2'>
+        <div className='flex w-full flex-col gap-2 sm:min-w-[240px] sm:flex-1'>
           <Popover>
             <PopoverTrigger asChild>
               <Button
@@ -349,7 +349,7 @@ export default function AreaInvoiceReportFilter({
           </Popover>
         </div>
 
-        <div className='flex min-w-[240px] shrink-0 flex-col gap-2 sm:flex-row sm:items-end'>
+        <div className='flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-end'>
           <Button
             className={cn(controlHeight, 'min-w-[150px]')}
             onClick={handleApply}

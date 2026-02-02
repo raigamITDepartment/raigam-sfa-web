@@ -175,8 +175,6 @@ const WorkingDaysCalendar = ({
   const month = currentDate.getMonth() + 1
   const monthLabel = format(currentDate, 'MMMM yyyy')
   const today = useMemo(() => startOfDay(new Date()), [])
-  const isCurrentMonth =
-    year === today.getFullYear() && month === today.getMonth() + 1
 
   const { data: entries = [], isFetched } = useQuery({
     queryKey: ['working-day-calendar', year, month],
@@ -205,32 +203,29 @@ const WorkingDaysCalendar = ({
   }, [entries])
 
   const isEditableDate = useCallback(
-    (date: Date) => !isCurrentMonth || !isBefore(date, today),
-    [isCurrentMonth, today]
+    (date: Date) => !isBefore(date, today),
+    [today]
   )
 
   const buildDaySelections = useCallback(
     (targetDate: Date) => {
       const hasEntries = entriesByDate.size > 0
-      const isTargetCurrentMonth =
-        targetDate.getFullYear() === today.getFullYear() &&
-        targetDate.getMonth() === today.getMonth()
       const start = startOfMonth(targetDate)
       const end = endOfMonth(targetDate)
       return eachDayOfInterval({ start, end }).map((day) => {
         const key = format(day, 'yyyy-MM-dd')
         const existing = entriesByDate.get(key)
         let status: DayStatus
-        if (!hasEntries) {
-          status = 'working'
-        } else if (existing?.isHoliday) {
+        if (existing?.isHoliday) {
           status = 'holiday'
         } else if (existing?.isWorkingDay) {
           status = 'working'
         } else if (existing) {
           status = 'off'
-        } else if (isTargetCurrentMonth && isBefore(day, today)) {
+        } else if (isBefore(day, today)) {
           status = 'off'
+        } else if (!hasEntries) {
+          status = 'working'
         } else {
           status = isWeekend(day) ? 'holiday' : 'working'
         }
@@ -244,6 +239,11 @@ const WorkingDaysCalendar = ({
     if (!dialogOpen) return
     setDaySelections(buildDaySelections(currentDate))
   }, [buildDaySelections, currentDate, dialogOpen])
+
+  const hasLockedDates = useMemo(
+    () => daySelections.some((item) => isBefore(item.date, today)),
+    [daySelections, today]
+  )
 
   const statusSummary = useMemo(() => {
     return daySelections.reduce(
@@ -363,7 +363,7 @@ const WorkingDaysCalendar = ({
     }
     if (!isEditableDate(selectedDate)) {
       toast.error(
-        'Only today and upcoming days can be updated for the current month.'
+        'Only today and upcoming days can be updated.'
       )
       return
     }
@@ -411,8 +411,7 @@ const WorkingDaysCalendar = ({
             )}
             {selectedDate && !isEditableDate(selectedDate) && (
               <div className='rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-900'>
-                Only today and upcoming days can be updated for the current
-                month.
+                Only today and upcoming days can be updated.
               </div>
             )}
             <div className='flex flex-wrap gap-2'>
@@ -501,9 +500,9 @@ const WorkingDaysCalendar = ({
               Define the working calendar for {monthLabel}.
             </DialogDescription>
           </DialogHeader>
-          {isCurrentMonth && (
+          {hasLockedDates && (
             <div className='rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900'>
-              Today and upcoming days can be changed for the current month.
+              Only today and upcoming days can be changed.
             </div>
           )}
           <div className='grid gap-4 lg:grid-cols-[260px_1fr]'>

@@ -171,6 +171,20 @@ export const sidebarData: SidebarData = {
             },
           ],
         },
+        {
+          title: 'Outlet Reports',
+          icon: Store,
+          items: [
+            {
+              title: 'Not Visited Outlet Report',
+              url: '/reports/outlet-reports/not-visited-outlet-report',
+            },
+            {
+              title: 'Outlet Sale Summary Report',
+              url: '/reports/outlet-reports/outlet-sale-summary-report',
+            },
+          ],
+        },
 
         /* {
           title: 'Achievement Category Wise',

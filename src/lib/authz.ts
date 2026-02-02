@@ -68,6 +68,8 @@ export const PermissionKey = {
   ReportsItemSummary: 'reports.itemSummary',
   ReportsTerritoryWiseInvoiceSummary: 'reports.territoryWiseInvoiceSummary',
   ReportsAreaWiseInvoiceSummary: 'reports.areaWiseInvoiceSummary',
+  ReportsOutletNotVisited: 'reports.outletNotVisited',
+  ReportsOutletSaleSummary: 'reports.outletSaleSummary',
   HrGpsMonitoring: 'hr.gpsMonitoring',
   HrTimeAttendance: 'hr.timeAttendance',
   AdminUserAddModify: 'admin.user.addModify',
@@ -140,6 +142,10 @@ export const RoutePermissions: Record<
     PermissionKey.ReportsTerritoryWiseInvoiceSummary,
   '/reports/invoice-reports/area-wise-invoice-summary':
     PermissionKey.ReportsAreaWiseInvoiceSummary,
+  '/reports/outlet-reports/not-visited-outlet-report':
+    PermissionKey.ReportsOutletNotVisited,
+  '/reports/outlet-reports/outlet-sale-summary-report':
+    PermissionKey.ReportsOutletSaleSummary,
 
   // HR Module
   '/hr-module/gps-monitoring': PermissionKey.HrGpsMonitoring,
@@ -313,6 +319,18 @@ export const RoleAccess: Record<string, RoleIdValue[]> = {
     RoleId.ManagerSales,
   ],
   '/reports/invoice-reports/area-wise-invoice-summary': [
+    RoleId.SystemAdmin,
+    RoleId.TopManager,
+    RoleId.ExecutiveCompany,
+    RoleId.ManagerSales,
+  ],
+  '/reports/outlet-reports/not-visited-outlet-report': [
+    RoleId.SystemAdmin,
+    RoleId.TopManager,
+    RoleId.ExecutiveCompany,
+    RoleId.ManagerSales,
+  ],
+  '/reports/outlet-reports/outlet-sale-summary-report': [
     RoleId.SystemAdmin,
     RoleId.TopManager,
     RoleId.ExecutiveCompany,

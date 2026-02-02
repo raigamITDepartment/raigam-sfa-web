@@ -47,6 +47,8 @@ import { Route as AuthenticatedSalesSalesDetailsViewInvoicesRouteImport } from '
 import { Route as AuthenticatedSalesSalesDetailsViewAllItemsRouteImport } from './routes/_authenticated/sales/sales-details/view-all-items'
 import { Route as AuthenticatedSalesSalesDetailsStockRouteImport } from './routes/_authenticated/sales/sales-details/stock'
 import { Route as AuthenticatedSalesSalesDetailsMarketReturnRouteImport } from './routes/_authenticated/sales/sales-details/market-return'
+import { Route as AuthenticatedReportsOutletReportsOutletSaleSummaryReportRouteImport } from './routes/_authenticated/reports/outlet-reports/outlet-sale-summary-report'
+import { Route as AuthenticatedReportsOutletReportsNotVisitedOutletReportRouteImport } from './routes/_authenticated/reports/outlet-reports/not-visited-outlet-report'
 import { Route as AuthenticatedReportsItemReportsSubTwoCategorySummaryReportRouteImport } from './routes/_authenticated/reports/item-reports/sub-two-category-summary-report'
 import { Route as AuthenticatedReportsItemReportsSubCategorySummaryReportRouteImport } from './routes/_authenticated/reports/item-reports/sub-category-summary-report'
 import { Route as AuthenticatedReportsItemReportsMainCategorySummaryReportRouteImport } from './routes/_authenticated/reports/item-reports/main-category-summary-report'
@@ -281,6 +283,18 @@ const AuthenticatedSalesSalesDetailsMarketReturnRoute =
     path: '/sales/sales-details/market-return',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedReportsOutletReportsOutletSaleSummaryReportRoute =
+  AuthenticatedReportsOutletReportsOutletSaleSummaryReportRouteImport.update({
+    id: '/reports/outlet-reports/outlet-sale-summary-report',
+    path: '/reports/outlet-reports/outlet-sale-summary-report',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedReportsOutletReportsNotVisitedOutletReportRoute =
+  AuthenticatedReportsOutletReportsNotVisitedOutletReportRouteImport.update({
+    id: '/reports/outlet-reports/not-visited-outlet-report',
+    path: '/reports/outlet-reports/not-visited-outlet-report',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedReportsItemReportsSubTwoCategorySummaryReportRoute =
   AuthenticatedReportsItemReportsSubTwoCategorySummaryReportRouteImport.update({
     id: '/reports/item-reports/sub-two-category-summary-report',
@@ -430,6 +444,8 @@ export interface FileRoutesByFullPath {
   '/reports/item-reports/main-category-summary-report': typeof AuthenticatedReportsItemReportsMainCategorySummaryReportRoute
   '/reports/item-reports/sub-category-summary-report': typeof AuthenticatedReportsItemReportsSubCategorySummaryReportRoute
   '/reports/item-reports/sub-two-category-summary-report': typeof AuthenticatedReportsItemReportsSubTwoCategorySummaryReportRoute
+  '/reports/outlet-reports/not-visited-outlet-report': typeof AuthenticatedReportsOutletReportsNotVisitedOutletReportRoute
+  '/reports/outlet-reports/outlet-sale-summary-report': typeof AuthenticatedReportsOutletReportsOutletSaleSummaryReportRoute
   '/sales/sales-details/market-return': typeof AuthenticatedSalesSalesDetailsMarketReturnRoute
   '/sales/sales-details/stock': typeof AuthenticatedSalesSalesDetailsStockRoute
   '/sales/sales-details/view-all-items': typeof AuthenticatedSalesSalesDetailsViewAllItemsRoute
@@ -485,6 +501,8 @@ export interface FileRoutesByTo {
   '/reports/item-reports/main-category-summary-report': typeof AuthenticatedReportsItemReportsMainCategorySummaryReportRoute
   '/reports/item-reports/sub-category-summary-report': typeof AuthenticatedReportsItemReportsSubCategorySummaryReportRoute
   '/reports/item-reports/sub-two-category-summary-report': typeof AuthenticatedReportsItemReportsSubTwoCategorySummaryReportRoute
+  '/reports/outlet-reports/not-visited-outlet-report': typeof AuthenticatedReportsOutletReportsNotVisitedOutletReportRoute
+  '/reports/outlet-reports/outlet-sale-summary-report': typeof AuthenticatedReportsOutletReportsOutletSaleSummaryReportRoute
   '/sales/sales-details/market-return': typeof AuthenticatedSalesSalesDetailsMarketReturnRoute
   '/sales/sales-details/stock': typeof AuthenticatedSalesSalesDetailsStockRoute
   '/sales/sales-details/view-all-items': typeof AuthenticatedSalesSalesDetailsViewAllItemsRoute
@@ -543,6 +561,8 @@ export interface FileRoutesById {
   '/_authenticated/reports/item-reports/main-category-summary-report': typeof AuthenticatedReportsItemReportsMainCategorySummaryReportRoute
   '/_authenticated/reports/item-reports/sub-category-summary-report': typeof AuthenticatedReportsItemReportsSubCategorySummaryReportRoute
   '/_authenticated/reports/item-reports/sub-two-category-summary-report': typeof AuthenticatedReportsItemReportsSubTwoCategorySummaryReportRoute
+  '/_authenticated/reports/outlet-reports/not-visited-outlet-report': typeof AuthenticatedReportsOutletReportsNotVisitedOutletReportRoute
+  '/_authenticated/reports/outlet-reports/outlet-sale-summary-report': typeof AuthenticatedReportsOutletReportsOutletSaleSummaryReportRoute
   '/_authenticated/sales/sales-details/market-return': typeof AuthenticatedSalesSalesDetailsMarketReturnRoute
   '/_authenticated/sales/sales-details/stock': typeof AuthenticatedSalesSalesDetailsStockRoute
   '/_authenticated/sales/sales-details/view-all-items': typeof AuthenticatedSalesSalesDetailsViewAllItemsRoute
@@ -600,6 +620,8 @@ export interface FileRouteTypes {
     | '/reports/item-reports/main-category-summary-report'
     | '/reports/item-reports/sub-category-summary-report'
     | '/reports/item-reports/sub-two-category-summary-report'
+    | '/reports/outlet-reports/not-visited-outlet-report'
+    | '/reports/outlet-reports/outlet-sale-summary-report'
     | '/sales/sales-details/market-return'
     | '/sales/sales-details/stock'
     | '/sales/sales-details/view-all-items'
@@ -655,6 +677,8 @@ export interface FileRouteTypes {
     | '/reports/item-reports/main-category-summary-report'
     | '/reports/item-reports/sub-category-summary-report'
     | '/reports/item-reports/sub-two-category-summary-report'
+    | '/reports/outlet-reports/not-visited-outlet-report'
+    | '/reports/outlet-reports/outlet-sale-summary-report'
     | '/sales/sales-details/market-return'
     | '/sales/sales-details/stock'
     | '/sales/sales-details/view-all-items'
@@ -712,6 +736,8 @@ export interface FileRouteTypes {
     | '/_authenticated/reports/item-reports/main-category-summary-report'
     | '/_authenticated/reports/item-reports/sub-category-summary-report'
     | '/_authenticated/reports/item-reports/sub-two-category-summary-report'
+    | '/_authenticated/reports/outlet-reports/not-visited-outlet-report'
+    | '/_authenticated/reports/outlet-reports/outlet-sale-summary-report'
     | '/_authenticated/sales/sales-details/market-return'
     | '/_authenticated/sales/sales-details/stock'
     | '/_authenticated/sales/sales-details/view-all-items'
@@ -1002,6 +1028,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSalesSalesDetailsMarketReturnRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/reports/outlet-reports/outlet-sale-summary-report': {
+      id: '/_authenticated/reports/outlet-reports/outlet-sale-summary-report'
+      path: '/reports/outlet-reports/outlet-sale-summary-report'
+      fullPath: '/reports/outlet-reports/outlet-sale-summary-report'
+      preLoaderRoute: typeof AuthenticatedReportsOutletReportsOutletSaleSummaryReportRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/reports/outlet-reports/not-visited-outlet-report': {
+      id: '/_authenticated/reports/outlet-reports/not-visited-outlet-report'
+      path: '/reports/outlet-reports/not-visited-outlet-report'
+      fullPath: '/reports/outlet-reports/not-visited-outlet-report'
+      preLoaderRoute: typeof AuthenticatedReportsOutletReportsNotVisitedOutletReportRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/reports/item-reports/sub-two-category-summary-report': {
       id: '/_authenticated/reports/item-reports/sub-two-category-summary-report'
       path: '/reports/item-reports/sub-two-category-summary-report'
@@ -1174,6 +1214,8 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedReportsItemReportsMainCategorySummaryReportRoute: typeof AuthenticatedReportsItemReportsMainCategorySummaryReportRoute
   AuthenticatedReportsItemReportsSubCategorySummaryReportRoute: typeof AuthenticatedReportsItemReportsSubCategorySummaryReportRoute
   AuthenticatedReportsItemReportsSubTwoCategorySummaryReportRoute: typeof AuthenticatedReportsItemReportsSubTwoCategorySummaryReportRoute
+  AuthenticatedReportsOutletReportsNotVisitedOutletReportRoute: typeof AuthenticatedReportsOutletReportsNotVisitedOutletReportRoute
+  AuthenticatedReportsOutletReportsOutletSaleSummaryReportRoute: typeof AuthenticatedReportsOutletReportsOutletSaleSummaryReportRoute
   AuthenticatedSalesSalesDetailsMarketReturnRoute: typeof AuthenticatedSalesSalesDetailsMarketReturnRoute
   AuthenticatedSalesSalesDetailsStockRoute: typeof AuthenticatedSalesSalesDetailsStockRoute
   AuthenticatedSalesSalesDetailsViewAllItemsRoute: typeof AuthenticatedSalesSalesDetailsViewAllItemsRoute
@@ -1252,6 +1294,10 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedReportsItemReportsSubCategorySummaryReportRoute,
   AuthenticatedReportsItemReportsSubTwoCategorySummaryReportRoute:
     AuthenticatedReportsItemReportsSubTwoCategorySummaryReportRoute,
+  AuthenticatedReportsOutletReportsNotVisitedOutletReportRoute:
+    AuthenticatedReportsOutletReportsNotVisitedOutletReportRoute,
+  AuthenticatedReportsOutletReportsOutletSaleSummaryReportRoute:
+    AuthenticatedReportsOutletReportsOutletSaleSummaryReportRoute,
   AuthenticatedSalesSalesDetailsMarketReturnRoute:
     AuthenticatedSalesSalesDetailsMarketReturnRoute,
   AuthenticatedSalesSalesDetailsStockRoute:

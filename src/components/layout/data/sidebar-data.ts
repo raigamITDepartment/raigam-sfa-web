@@ -136,6 +136,20 @@ export const sidebarData: SidebarData = {
       title: 'Reports',
       items: [
         {
+          title: 'Invoice Reports',
+          icon: ReceiptText,
+          items: [
+            {
+              title: 'Territory Wise Invoice Summary',
+              url: '/reports/invoice-reports/territory-wise-invoice-summary',
+            },
+            {
+              title: 'Area Wise Invoice Summary',
+              url: '/reports/invoice-reports/area-wise-invoice-summary',
+            },
+          ],
+        },
+        {
           title: 'Item Reports',
           icon: ChartArea,
           items: [

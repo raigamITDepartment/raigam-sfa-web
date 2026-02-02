@@ -237,12 +237,17 @@ const SubTwoCategorySummaryReport = () => {
   )
   const queryParams = useMemo(() => {
     if (!filters?.subChannelId) return null
+    const invoiceTypeParam =
+      filters.invoiceType && filters.invoiceType !== 'ALL'
+        ? filters.invoiceType
+        : ''
     return {
       subChannelId: filters.subChannelId,
       areaId: filters.areaId ?? 0,
       territoryId: filters.territoryId ?? 0,
       routeId: filters.routeId ?? 0,
       outletId: filters.outletId ?? 0,
+      invoiceType: invoiceTypeParam,
       startDate: filters.startDate ?? todayIso,
       endDate: filters.endDate ?? todayIso,
     }

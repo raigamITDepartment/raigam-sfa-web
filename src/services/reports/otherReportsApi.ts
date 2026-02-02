@@ -1,5 +1,6 @@
 import { http } from '@/services/http'
 import type { ApiResponse } from '@/types/common'
+import type { ReportInvoiceTypeParam } from '@/types/invoice'
 
 const ITEM_REPORT_BASE = '/api/v1/reports/itemReport'
 const HR_ATTENDANCE_REPORT_BASE = '/api/v1/reports/hrAttendanceReport'
@@ -26,6 +27,7 @@ export type ItemReportSummaryParams = {
   outletId: number | string
   startDate: string
   endDate: string
+  invoiceType?: ReportInvoiceTypeParam
 }
 
 export type AttendanceReportParams = {

@@ -67,6 +67,7 @@ const buildDefaultItemSummaryFilters = (): TerritoryWiseItemsFilters => {
     territoryId: 0,
     routeId: 0,
     outletId: 0,
+    invoiceType: 'ALL',
     startDate: formatLocalDate(start),
     endDate: formatLocalDate(today),
   }
@@ -156,12 +157,17 @@ export function SeniorManagerSalesOverview() {
   const todayIso = useMemo(() => formatLocalDate(new Date()), [])
   const itemQueryParams = useMemo(() => {
     if (!itemFilters?.subChannelId) return null
+    const invoiceTypeParam =
+      itemFilters.invoiceType && itemFilters.invoiceType !== 'ALL'
+        ? itemFilters.invoiceType
+        : ''
     return {
       subChannelId: itemFilters.subChannelId,
       areaId: itemFilters.areaId ?? 0,
       territoryId: itemFilters.territoryId ?? 0,
       routeId: itemFilters.routeId ?? 0,
       outletId: itemFilters.outletId ?? 0,
+      invoiceType: invoiceTypeParam,
       startDate: itemFilters.startDate ?? todayIso,
       endDate: itemFilters.endDate ?? todayIso,
     }

@@ -66,6 +66,8 @@ export const PermissionKey = {
   ReportsTerritoryWiseSales: 'reports.territoryWiseSales',
   ReportsTerritoryWiseItems: 'reports.territoryWiseItems',
   ReportsItemSummary: 'reports.itemSummary',
+  ReportsTerritoryWiseInvoiceSummary: 'reports.territoryWiseInvoiceSummary',
+  ReportsAreaWiseInvoiceSummary: 'reports.areaWiseInvoiceSummary',
   HrGpsMonitoring: 'hr.gpsMonitoring',
   HrTimeAttendance: 'hr.timeAttendance',
   AdminUserAddModify: 'admin.user.addModify',
@@ -134,6 +136,10 @@ export const RoutePermissions: Record<
   '/reports/territory-wise-items-report':
     PermissionKey.ReportsTerritoryWiseItems,
   '/reports/item-summary-report': PermissionKey.ReportsItemSummary,
+  '/reports/invoice-reports/territory-wise-invoice-summary':
+    PermissionKey.ReportsTerritoryWiseInvoiceSummary,
+  '/reports/invoice-reports/area-wise-invoice-summary':
+    PermissionKey.ReportsAreaWiseInvoiceSummary,
 
   // HR Module
   '/hr-module/gps-monitoring': PermissionKey.HrGpsMonitoring,
@@ -295,6 +301,18 @@ export const RoleAccess: Record<string, RoleIdValue[]> = {
     RoleId.ManagerSales,
   ],
   '/reports/item-summary-report': [
+    RoleId.SystemAdmin,
+    RoleId.TopManager,
+    RoleId.ExecutiveCompany,
+    RoleId.ManagerSales,
+  ],
+  '/reports/invoice-reports/territory-wise-invoice-summary': [
+    RoleId.SystemAdmin,
+    RoleId.TopManager,
+    RoleId.ExecutiveCompany,
+    RoleId.ManagerSales,
+  ],
+  '/reports/invoice-reports/area-wise-invoice-summary': [
     RoleId.SystemAdmin,
     RoleId.TopManager,
     RoleId.ExecutiveCompany,

@@ -31,6 +31,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
+import type { InvoiceType } from '@/types/invoice'
 
 export type TerritoryWiseItemsFilters = {
   subChannelId?: number
@@ -38,6 +39,7 @@ export type TerritoryWiseItemsFilters = {
   territoryId?: number
   routeId?: number
   outletId?: number
+  invoiceType?: InvoiceType
   startDate?: string
   endDate?: string
 }
@@ -70,6 +72,13 @@ const formatRangeLabel = (range?: DateRange) => {
 const isPresentCode = (value?: number | string | null) =>
   value !== null && value !== undefined && value !== ''
 
+const invoiceTypeOptions: Array<{ label: string; value: InvoiceType }> = [
+  { label: 'All Invoice Types', value: 'ALL' },
+  { label: 'Normal', value: 'NORMAL' },
+  { label: 'Agency', value: 'AGENCY' },
+  { label: 'Company', value: 'COMPANY' },
+]
+
 export default function TerritoryWiseItemsFilter({
   initialValues,
   onApply,
@@ -91,6 +100,7 @@ export default function TerritoryWiseItemsFilter({
   const [territoryId, setTerritoryId] = useState<string>('0')
   const [routeId, setRouteId] = useState<string>('0')
   const [outletId, setOutletId] = useState<string>('0')
+  const [invoiceType, setInvoiceType] = useState<InvoiceType>('ALL')
   const [range, setRange] = useState<DateRange | undefined>({
     from: parseDate(initialValues?.startDate ?? todayIso),
     to: parseDate(initialValues?.endDate ?? todayIso),
@@ -138,6 +148,7 @@ export default function TerritoryWiseItemsFilter({
         ? String(initialValues.outletId)
         : '0'
     )
+    setInvoiceType(initialValues.invoiceType ?? 'ALL')
     setRange({
       from: parseDate(initialValues.startDate ?? todayIso),
       to: parseDate(initialValues.endDate ?? todayIso),
@@ -245,6 +256,7 @@ export default function TerritoryWiseItemsFilter({
       territoryId: territoryId ? Number(territoryId) : undefined,
       routeId: routeId ? Number(routeId) : undefined,
       outletId: outletId ? Number(outletId) : undefined,
+      invoiceType,
       startDate: toIsoDate(range?.from),
       endDate: toIsoDate(range?.to),
     })
@@ -257,6 +269,7 @@ export default function TerritoryWiseItemsFilter({
     setTerritoryId('0')
     setRouteId('0')
     setOutletId('0')
+    setInvoiceType('ALL')
     setRange(undefined)
     setErrors({ subChannelId: false })
     onApply?.({
@@ -265,6 +278,7 @@ export default function TerritoryWiseItemsFilter({
       territoryId: 0,
       routeId: 0,
       outletId: 0,
+      invoiceType: 'ALL',
       startDate: undefined,
       endDate: undefined,
     })
@@ -275,9 +289,9 @@ export default function TerritoryWiseItemsFilter({
   }
 
   return (
-    <div className='flex flex-wrap items-end gap-3'>
+    <div className='flex flex-wrap items-end gap-2 lg:flex-nowrap'>
       {canPickSubChannel ? (
-        <div className='flex w-full min-w-0 flex-1 flex-col gap-2 sm:min-w-[200px]'>
+        <div className='flex w-full min-w-[180px] flex-1 flex-col gap-2 sm:min-w-[200px]'>
           <Select
             value={subChannelId}
             onValueChange={(value) => {
@@ -314,7 +328,7 @@ export default function TerritoryWiseItemsFilter({
         </div>
       ) : null}
 
-      <div className='flex w-full min-w-0 flex-1 flex-col gap-2 sm:min-w-[180px]'>
+      <div className='flex w-full min-w-[140px] flex-1 flex-col gap-2 sm:min-w-[180px]'>
         <Select
           value={areaId}
           onValueChange={(value) => {
@@ -341,7 +355,7 @@ export default function TerritoryWiseItemsFilter({
         </Select>
       </div>
 
-      <div className='flex w-full min-w-0 flex-1 flex-col gap-2 sm:min-w-[180px]'>
+      <div className='flex w-full min-w-[140px] flex-1 flex-col gap-2 sm:min-w-[180px]'>
         <Select
           value={territoryId}
           onValueChange={(value) => {
@@ -374,7 +388,7 @@ export default function TerritoryWiseItemsFilter({
         </Select>
       </div>
 
-      <div className='flex w-full min-w-0 flex-1 flex-col gap-2 sm:min-w-[180px]'>
+      <div className='flex w-full min-w-[140px] flex-1 flex-col gap-2 sm:min-w-[180px]'>
         <Select
           value={routeId}
           onValueChange={(value) => {
@@ -422,7 +436,7 @@ export default function TerritoryWiseItemsFilter({
         </Select>
       </div>
 
-      <div className='flex w-full min-w-0 flex-1 flex-col gap-2 sm:min-w-[180px]'>
+      <div className='flex w-full min-w-[140px] flex-1 flex-col gap-2 sm:min-w-[180px]'>
         <Select
           value={outletId}
           onValueChange={(value) => {
@@ -473,7 +487,24 @@ export default function TerritoryWiseItemsFilter({
         </Select>
       </div>
 
-      <div className='flex w-full min-w-0 flex-1 flex-col gap-2 sm:min-w-[220px]'>
+      <div className='flex w-full min-w-[160px] flex-1 flex-col gap-2 sm:min-w-[180px]'>
+        <Select value={invoiceType} onValueChange={setInvoiceType}>
+          <SelectTrigger
+            className={cn(controlHeight, 'w-full bg-slate-50 text-left')}
+          >
+            <SelectValue placeholder='Select Invoice Type' />
+          </SelectTrigger>
+          <SelectContent>
+            {invoiceTypeOptions.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className='flex w-full min-w-[200px] flex-1 flex-col gap-2 sm:min-w-[220px]'>
         <div className='relative w-full'>
           <Popover>
             <PopoverTrigger asChild>
@@ -517,14 +548,16 @@ export default function TerritoryWiseItemsFilter({
 
       <div className='flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center'>
         <Button
-          className={cn(controlHeight, 'w-full px-6 sm:w-auto')}
+          size='sm'
+          className={cn(controlHeight, 'w-full px-4 sm:w-auto')}
           onClick={handleApply}
         >
           Apply filters
         </Button>
         <Button
           variant='outline'
-          className={cn(controlHeight, 'w-full px-6 sm:w-auto')}
+          size='sm'
+          className={cn(controlHeight, 'w-full px-4 sm:w-auto')}
           onClick={handleReset}
         >
           Reset

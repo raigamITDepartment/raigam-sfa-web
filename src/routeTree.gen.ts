@@ -51,6 +51,8 @@ import { Route as AuthenticatedReportsItemReportsSubTwoCategorySummaryReportRout
 import { Route as AuthenticatedReportsItemReportsSubCategorySummaryReportRouteImport } from './routes/_authenticated/reports/item-reports/sub-category-summary-report'
 import { Route as AuthenticatedReportsItemReportsMainCategorySummaryReportRouteImport } from './routes/_authenticated/reports/item-reports/main-category-summary-report'
 import { Route as AuthenticatedReportsItemReportsItemSummaryReportRouteImport } from './routes/_authenticated/reports/item-reports/item-summary-report'
+import { Route as AuthenticatedReportsInvoiceReportsTerritoryWiseInvoiceSummaryRouteImport } from './routes/_authenticated/reports/invoice-reports/territory-wise-invoice-summary'
+import { Route as AuthenticatedReportsInvoiceReportsAreaWiseInvoiceSummaryRouteImport } from './routes/_authenticated/reports/invoice-reports/area-wise-invoice-summary'
 import { Route as AuthenticatedAgencyModuleStockViewStockRouteImport } from './routes/_authenticated/agency-module/stock/view-stock'
 import { Route as AuthenticatedAgencyModuleStockRequestOrderRouteImport } from './routes/_authenticated/agency-module/stock/request-order'
 import { Route as AuthenticatedAgencyModuleStockAddStockRouteImport } from './routes/_authenticated/agency-module/stock/add-stock'
@@ -303,6 +305,20 @@ const AuthenticatedReportsItemReportsItemSummaryReportRoute =
     path: '/reports/item-reports/item-summary-report',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedReportsInvoiceReportsTerritoryWiseInvoiceSummaryRoute =
+  AuthenticatedReportsInvoiceReportsTerritoryWiseInvoiceSummaryRouteImport.update(
+    {
+      id: '/reports/invoice-reports/territory-wise-invoice-summary',
+      path: '/reports/invoice-reports/territory-wise-invoice-summary',
+      getParentRoute: () => AuthenticatedRouteRoute,
+    } as any,
+  )
+const AuthenticatedReportsInvoiceReportsAreaWiseInvoiceSummaryRoute =
+  AuthenticatedReportsInvoiceReportsAreaWiseInvoiceSummaryRouteImport.update({
+    id: '/reports/invoice-reports/area-wise-invoice-summary',
+    path: '/reports/invoice-reports/area-wise-invoice-summary',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAgencyModuleStockViewStockRoute =
   AuthenticatedAgencyModuleStockViewStockRouteImport.update({
     id: '/agency-module/stock/view-stock',
@@ -408,6 +424,8 @@ export interface FileRoutesByFullPath {
   '/agency-module/stock/add-stock': typeof AuthenticatedAgencyModuleStockAddStockRoute
   '/agency-module/stock/request-order': typeof AuthenticatedAgencyModuleStockRequestOrderRoute
   '/agency-module/stock/view-stock': typeof AuthenticatedAgencyModuleStockViewStockRoute
+  '/reports/invoice-reports/area-wise-invoice-summary': typeof AuthenticatedReportsInvoiceReportsAreaWiseInvoiceSummaryRoute
+  '/reports/invoice-reports/territory-wise-invoice-summary': typeof AuthenticatedReportsInvoiceReportsTerritoryWiseInvoiceSummaryRoute
   '/reports/item-reports/item-summary-report': typeof AuthenticatedReportsItemReportsItemSummaryReportRoute
   '/reports/item-reports/main-category-summary-report': typeof AuthenticatedReportsItemReportsMainCategorySummaryReportRoute
   '/reports/item-reports/sub-category-summary-report': typeof AuthenticatedReportsItemReportsSubCategorySummaryReportRoute
@@ -461,6 +479,8 @@ export interface FileRoutesByTo {
   '/agency-module/stock/add-stock': typeof AuthenticatedAgencyModuleStockAddStockRoute
   '/agency-module/stock/request-order': typeof AuthenticatedAgencyModuleStockRequestOrderRoute
   '/agency-module/stock/view-stock': typeof AuthenticatedAgencyModuleStockViewStockRoute
+  '/reports/invoice-reports/area-wise-invoice-summary': typeof AuthenticatedReportsInvoiceReportsAreaWiseInvoiceSummaryRoute
+  '/reports/invoice-reports/territory-wise-invoice-summary': typeof AuthenticatedReportsInvoiceReportsTerritoryWiseInvoiceSummaryRoute
   '/reports/item-reports/item-summary-report': typeof AuthenticatedReportsItemReportsItemSummaryReportRoute
   '/reports/item-reports/main-category-summary-report': typeof AuthenticatedReportsItemReportsMainCategorySummaryReportRoute
   '/reports/item-reports/sub-category-summary-report': typeof AuthenticatedReportsItemReportsSubCategorySummaryReportRoute
@@ -517,6 +537,8 @@ export interface FileRoutesById {
   '/_authenticated/agency-module/stock/add-stock': typeof AuthenticatedAgencyModuleStockAddStockRoute
   '/_authenticated/agency-module/stock/request-order': typeof AuthenticatedAgencyModuleStockRequestOrderRoute
   '/_authenticated/agency-module/stock/view-stock': typeof AuthenticatedAgencyModuleStockViewStockRoute
+  '/_authenticated/reports/invoice-reports/area-wise-invoice-summary': typeof AuthenticatedReportsInvoiceReportsAreaWiseInvoiceSummaryRoute
+  '/_authenticated/reports/invoice-reports/territory-wise-invoice-summary': typeof AuthenticatedReportsInvoiceReportsTerritoryWiseInvoiceSummaryRoute
   '/_authenticated/reports/item-reports/item-summary-report': typeof AuthenticatedReportsItemReportsItemSummaryReportRoute
   '/_authenticated/reports/item-reports/main-category-summary-report': typeof AuthenticatedReportsItemReportsMainCategorySummaryReportRoute
   '/_authenticated/reports/item-reports/sub-category-summary-report': typeof AuthenticatedReportsItemReportsSubCategorySummaryReportRoute
@@ -572,6 +594,8 @@ export interface FileRouteTypes {
     | '/agency-module/stock/add-stock'
     | '/agency-module/stock/request-order'
     | '/agency-module/stock/view-stock'
+    | '/reports/invoice-reports/area-wise-invoice-summary'
+    | '/reports/invoice-reports/territory-wise-invoice-summary'
     | '/reports/item-reports/item-summary-report'
     | '/reports/item-reports/main-category-summary-report'
     | '/reports/item-reports/sub-category-summary-report'
@@ -625,6 +649,8 @@ export interface FileRouteTypes {
     | '/agency-module/stock/add-stock'
     | '/agency-module/stock/request-order'
     | '/agency-module/stock/view-stock'
+    | '/reports/invoice-reports/area-wise-invoice-summary'
+    | '/reports/invoice-reports/territory-wise-invoice-summary'
     | '/reports/item-reports/item-summary-report'
     | '/reports/item-reports/main-category-summary-report'
     | '/reports/item-reports/sub-category-summary-report'
@@ -680,6 +706,8 @@ export interface FileRouteTypes {
     | '/_authenticated/agency-module/stock/add-stock'
     | '/_authenticated/agency-module/stock/request-order'
     | '/_authenticated/agency-module/stock/view-stock'
+    | '/_authenticated/reports/invoice-reports/area-wise-invoice-summary'
+    | '/_authenticated/reports/invoice-reports/territory-wise-invoice-summary'
     | '/_authenticated/reports/item-reports/item-summary-report'
     | '/_authenticated/reports/item-reports/main-category-summary-report'
     | '/_authenticated/reports/item-reports/sub-category-summary-report'
@@ -1002,6 +1030,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedReportsItemReportsItemSummaryReportRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/reports/invoice-reports/territory-wise-invoice-summary': {
+      id: '/_authenticated/reports/invoice-reports/territory-wise-invoice-summary'
+      path: '/reports/invoice-reports/territory-wise-invoice-summary'
+      fullPath: '/reports/invoice-reports/territory-wise-invoice-summary'
+      preLoaderRoute: typeof AuthenticatedReportsInvoiceReportsTerritoryWiseInvoiceSummaryRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/reports/invoice-reports/area-wise-invoice-summary': {
+      id: '/_authenticated/reports/invoice-reports/area-wise-invoice-summary'
+      path: '/reports/invoice-reports/area-wise-invoice-summary'
+      fullPath: '/reports/invoice-reports/area-wise-invoice-summary'
+      preLoaderRoute: typeof AuthenticatedReportsInvoiceReportsAreaWiseInvoiceSummaryRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/agency-module/stock/view-stock': {
       id: '/_authenticated/agency-module/stock/view-stock'
       path: '/agency-module/stock/view-stock'
@@ -1126,6 +1168,8 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAgencyModuleStockAddStockRoute: typeof AuthenticatedAgencyModuleStockAddStockRoute
   AuthenticatedAgencyModuleStockRequestOrderRoute: typeof AuthenticatedAgencyModuleStockRequestOrderRoute
   AuthenticatedAgencyModuleStockViewStockRoute: typeof AuthenticatedAgencyModuleStockViewStockRoute
+  AuthenticatedReportsInvoiceReportsAreaWiseInvoiceSummaryRoute: typeof AuthenticatedReportsInvoiceReportsAreaWiseInvoiceSummaryRoute
+  AuthenticatedReportsInvoiceReportsTerritoryWiseInvoiceSummaryRoute: typeof AuthenticatedReportsInvoiceReportsTerritoryWiseInvoiceSummaryRoute
   AuthenticatedReportsItemReportsItemSummaryReportRoute: typeof AuthenticatedReportsItemReportsItemSummaryReportRoute
   AuthenticatedReportsItemReportsMainCategorySummaryReportRoute: typeof AuthenticatedReportsItemReportsMainCategorySummaryReportRoute
   AuthenticatedReportsItemReportsSubCategorySummaryReportRoute: typeof AuthenticatedReportsItemReportsSubCategorySummaryReportRoute
@@ -1196,6 +1240,10 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedAgencyModuleStockRequestOrderRoute,
   AuthenticatedAgencyModuleStockViewStockRoute:
     AuthenticatedAgencyModuleStockViewStockRoute,
+  AuthenticatedReportsInvoiceReportsAreaWiseInvoiceSummaryRoute:
+    AuthenticatedReportsInvoiceReportsAreaWiseInvoiceSummaryRoute,
+  AuthenticatedReportsInvoiceReportsTerritoryWiseInvoiceSummaryRoute:
+    AuthenticatedReportsInvoiceReportsTerritoryWiseInvoiceSummaryRoute,
   AuthenticatedReportsItemReportsItemSummaryReportRoute:
     AuthenticatedReportsItemReportsItemSummaryReportRoute,
   AuthenticatedReportsItemReportsMainCategorySummaryReportRoute:

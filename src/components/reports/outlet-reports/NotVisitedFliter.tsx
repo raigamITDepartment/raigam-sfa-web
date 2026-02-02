@@ -259,7 +259,7 @@ export default function NotVisitedFliter({
   }
 
   return (
-    <div className='flex flex-wrap items-end gap-2 lg:flex-nowrap'>
+    <div className='flex flex-wrap items-end gap-2'>
       <div className='flex w-full min-w-[180px] flex-1 flex-col gap-2 sm:min-w-[200px]'>
         <Select
           value={effectiveSubChannelId}

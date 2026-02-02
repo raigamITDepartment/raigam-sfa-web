@@ -289,7 +289,7 @@ export default function TerritoryWiseItemsFilter({
   }
 
   return (
-    <div className='flex flex-wrap items-end gap-2 lg:flex-nowrap'>
+    <div className='flex flex-wrap items-end gap-2'>
       {canPickSubChannel ? (
         <div className='flex w-full min-w-[180px] flex-1 flex-col gap-2 sm:min-w-[200px]'>
           <Select

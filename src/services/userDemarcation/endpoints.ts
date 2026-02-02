@@ -52,6 +52,7 @@ import type {
   CreateDistributorRequest,
   UpdateDistributorRequest,
 } from './types'
+import type { UserDemarcationUser } from '@/types/users'
 
 export function getAllChannel() {
   return get<ChannelDTO[]>(`${USER_DEMARC_BASE}/channel`)
@@ -443,6 +444,12 @@ export function getAllUserTypes() {
 
 export function getAllUserDetails() {
   return get<UserDetailsDTO[]>(`${USER_DEMARC_BASE}/usersDetails`)
+}
+
+export function findUserDetailsById(userId: Id) {
+  return get<UserDemarcationUser>(
+    `${USER_DEMARC_BASE}/user/findById/${userId}`
+  )
 }
 
 export function getFinalGeo() {

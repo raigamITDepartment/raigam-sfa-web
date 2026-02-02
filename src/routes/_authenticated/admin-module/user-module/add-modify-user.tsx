@@ -55,6 +55,7 @@ import {
 } from '@/components/user-module/UserForm'
 import { createUserColumns } from '@/components/user-module/user-list-columns'
 import { createUserExportColumns } from '@/components/user-module/user-list-export'
+import { findUserDetailsById } from '@/services/userDemarcationApi'
 
 export const Route = createFileRoute(
   '/_authenticated/admin-module/user-module/add-modify-user'
@@ -146,6 +147,19 @@ function AddModifyUser() {
   const [editingUser, setEditingUser] = useState<UserDemarcationUser | null>(
     null
   )
+  const {
+    data: editingUserResponse,
+    isFetching: isFetchingUserDetail,
+  } = useQuery({
+    queryKey: ['user-demarcation', 'user', editingUser?.id],
+    queryFn: async () => {
+      if (!editingUser) throw new Error('No user selected.')
+      return findUserDetailsById(editingUser.id)
+    },
+    enabled: Boolean(editingUser?.id),
+  })
+  const editingUserDetail = editingUserResponse?.payload ?? null
+  const activeEditingUser = editingUserDetail ?? editingUser
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [pendingToggle, setPendingToggle] = useState<{
     id: number
@@ -196,11 +210,12 @@ function AddModifyUser() {
   })
   const updateMutation = useMutation({
     mutationFn: async (values: UserFormValues) => {
-      if (!editingUser) {
+      const targetUser = editingUserDetail ?? editingUser
+      if (!targetUser) {
         throw new Error('No user selected for update.')
       }
       const payload: UpdateUserRequest = {
-        id: editingUser.id,
+        id: targetUser.id,
         userGroupId: values.userGroupId,
         roleId: values.roleId,
         channelId: values.channelId ?? null,
@@ -213,19 +228,19 @@ function AddModifyUser() {
         areaIds: values.areaIds?.length
           ? values.areaIds.map((id) => Number(id))
           : undefined,
-        userLevelId: editingUser.userLevelId,
+        userLevelId: targetUser.userLevelId,
         userName: values.userName,
         firstName: values.firstName,
         lastName: values.lastName,
-        perContact: editingUser.perContact ?? null,
-        startDate: editingUser.startDate ?? null,
-        endDate: editingUser.endDate ?? null,
+        perContact: targetUser.perContact ?? null,
+        startDate: targetUser.startDate ?? null,
+        endDate: targetUser.endDate ?? null,
         email: values.email,
         password: values.password ?? '',
         mobileNo: values.mobileNo,
-        gpsStatus: editingUser.gpsStatus ?? false,
-        isActive: editingUser.isActive ?? true,
-        superUserId: currentUser?.userId ?? editingUser.superUserId ?? null,
+        gpsStatus: targetUser.gpsStatus ?? false,
+        isActive: targetUser.isActive ?? true,
+        superUserId: currentUser?.userId ?? targetUser.superUserId ?? null,
       }
       return updateUser(payload)
     },
@@ -331,33 +346,33 @@ function AddModifyUser() {
 
   const userFormInitialValues = useMemo<Partial<UserFormValues> | undefined>(
     () => {
-      if (!editingUser) return undefined
+      if (!activeEditingUser) return undefined
       const resolvedGroupId =
-        editingUser.userGroupId ?? editingUser.roleId
+        activeEditingUser.userGroupId ?? activeEditingUser.roleId
       const resolvedRoleId =
-        editingUser.userGroupId != null
-          ? editingUser.roleId
-          : editingUser.subRoleId
-      const areaIds = parseAreaIds(editingUser)
+        activeEditingUser.userGroupId != null
+          ? activeEditingUser.roleId
+          : activeEditingUser.subRoleId
+      const areaIds = parseAreaIds(activeEditingUser)
       return {
-        userName: editingUser.userName,
-        firstName: editingUser.firstName,
-        lastName: editingUser.lastName,
-        email: editingUser.email,
-        mobileNo: editingUser.mobileNo,
+        userName: activeEditingUser.userName,
+        firstName: activeEditingUser.firstName,
+        lastName: activeEditingUser.lastName,
+        email: activeEditingUser.email,
+        mobileNo: activeEditingUser.mobileNo,
         userGroupId: resolvedGroupId,
         roleId: resolvedRoleId,
-        channelId: editingUser.channelId ?? undefined,
-        subChannelId: editingUser.subChannelId ?? undefined,
-        regionId: editingUser.regionId ?? undefined,
-        areaId: editingUser.areaId ?? undefined,
-        rangeId: editingUser.rangeId ?? undefined,
-        territoryId: editingUser.territoryId ?? undefined,
-        agencyId: editingUser.agencyId ?? undefined,
+        channelId: activeEditingUser.channelId ?? undefined,
+        subChannelId: activeEditingUser.subChannelId ?? undefined,
+        regionId: activeEditingUser.regionId ?? undefined,
+        areaId: activeEditingUser.areaId ?? undefined,
+        rangeId: activeEditingUser.rangeId ?? undefined,
+        territoryId: activeEditingUser.territoryId ?? undefined,
+        agencyId: activeEditingUser.agencyId ?? undefined,
         areaIds: areaIds.length ? areaIds : undefined,
       }
     },
-    [editingUser]
+    [activeEditingUser]
   )
 
   return (
@@ -491,6 +506,11 @@ function AddModifyUser() {
         bodyClassName='max-h-[70vh] overflow-y-auto pr-1'
         hideFooter
       >
+        {userDialogMode === 'edit' && isFetchingUserDetail ? (
+          <div className='text-muted-foreground text-sm'>
+            Loading user details...
+          </div>
+        ) : null}
         <UserForm
           mode={userDialogMode}
           initialValues={userFormInitialValues}

@@ -7,6 +7,7 @@ import type {
   BookingInvoicesResponse,
   BookingInvoicesByTerritoryResponse,
   InvoiceStatusParams,
+  ReportInvoiceTypeParam,
 } from '@/types/invoice'
 
 export const INVOICE_REPORT_BASE = '/api/v1/reports/invoiceReport'
@@ -32,6 +33,28 @@ export async function getAllAvailableBookingInvoices(
     return { ...invoice, totalBookFinalValue: finalValue }
   })
   return { ...data, payload: normalized }
+}
+
+export type AreaWiseSalesSummeryParams = {
+  areaId: number | string
+  startDate: string
+  endDate: string
+  invoiceType?: ReportInvoiceTypeParam
+}
+
+export type AreaWiseSalesSummeryItem = Record<string, unknown>
+
+export type AreaWiseSalesSummeryResponse =
+  ApiResponse<AreaWiseSalesSummeryItem[]>
+
+export async function getAreaWiseSalesSummery(
+  params: AreaWiseSalesSummeryParams
+) {
+  const res = await http.get<AreaWiseSalesSummeryResponse>(
+    `${INVOICE_REPORT_BASE}/findAreaWiseSalesSummeryByRequiredArguments`,
+    { params }
+  )
+  return res.data
 }
 
 export async function getInvoiceDetailsByStatus(params: InvoiceStatusParams) {

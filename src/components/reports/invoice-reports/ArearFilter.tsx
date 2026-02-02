@@ -5,11 +5,9 @@ import type { DateRange } from 'react-day-picker'
 import {
   getAllSubChannel,
   getAreasBySubChannelId,
-  getTerritoriesByAreaId,
   type ApiResponse,
   type AreaDTO,
   type SubChannelDTO,
-  type TerritoryDTO,
 } from '@/services/userDemarcationApi'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
@@ -29,19 +27,17 @@ import { useAppSelector } from '@/store/hooks'
 import { cn } from '@/lib/utils'
 import type { InvoiceTypeParam, ReportInvoiceTypeParam } from '@/types/invoice'
 
-export type InvoiceReportFilters = {
+export type AreaInvoiceReportFilters = {
   subChannelId?: number
   areaId?: number
-  territoryId?: number
-  invoiceStatus?: 'BOOK' | 'ACTUAL' | 'CANCEL' | 'LATE'
   invoiceType?: ReportInvoiceTypeParam
   startDate?: string
   endDate?: string
 }
 
-type InvoiceReportFilterProps = {
-  initialValues?: InvoiceReportFilters
-  onApply?: (filters: InvoiceReportFilters) => void
+type AreaInvoiceReportFilterProps = {
+  initialValues?: AreaInvoiceReportFilters
+  onApply?: (filters: AreaInvoiceReportFilters) => void
   onReset?: () => void
 }
 
@@ -74,24 +70,14 @@ const invoiceTypeOptions: Array<{
   { label: 'Company', value: 'COMPANY' },
 ]
 
-const invoiceStatusOptions: Array<{
-  label: string
-  value: 'BOOK' | 'ACTUAL' | 'CANCEL' | 'LATE'
-}> = [
-  { label: 'Booked', value: 'BOOK' },
-  { label: 'Actual', value: 'ACTUAL' },
-  { label: 'Canceled', value: 'CANCEL' },
-  { label: 'Late', value: 'LATE' },
-]
-
 const toInvoiceTypeValue = (value?: ReportInvoiceTypeParam) =>
   value ? (value as InvoiceTypeParam) : 'ALL'
 
-export default function InvoiceReportFilter({
+export default function AreaInvoiceReportFilter({
   initialValues,
   onApply,
   onReset,
-}: InvoiceReportFilterProps) {
+}: AreaInvoiceReportFilterProps) {
   const controlHeight = 'h-9 min-h-[36px]'
   const todayIso = useMemo(() => formatLocalDate(new Date()), [])
   const user = useAppSelector((state) => state.auth.user)
@@ -107,10 +93,6 @@ export default function InvoiceReportFilter({
 
   const [subChannelId, setSubChannelId] = useState<string>('')
   const [areaId, setAreaId] = useState<string>('')
-  const [territoryId, setTerritoryId] = useState<string>('')
-  const [invoiceStatus, setInvoiceStatus] = useState<
-    'BOOK' | 'ACTUAL' | 'CANCEL' | 'LATE' | ''
-  >('')
   const [invoiceType, setInvoiceType] = useState<InvoiceTypeParam>('ALL')
   const [range, setRange] = useState<DateRange | undefined>({
     from: parseDate(initialValues?.startDate ?? todayIso),
@@ -119,7 +101,6 @@ export default function InvoiceReportFilter({
   const [errors, setErrors] = useState({
     subChannelId: false,
     areaId: false,
-    territoryId: false,
   })
 
   const effectiveSubChannelId = canPickSubChannel
@@ -146,13 +127,6 @@ export default function InvoiceReportFilter({
         ? String(initialValues.areaId)
         : ''
     )
-    setTerritoryId(
-      initialValues.territoryId !== undefined &&
-        initialValues.territoryId !== null
-        ? String(initialValues.territoryId)
-        : ''
-    )
-    setInvoiceStatus(initialValues.invoiceStatus ?? '')
     setInvoiceType(toInvoiceTypeValue(initialValues.invoiceType))
     setRange({
       from: parseDate(initialValues.startDate ?? todayIso),
@@ -171,11 +145,10 @@ export default function InvoiceReportFilter({
     if (subChannelId === lockedSubChannelId) return
     setSubChannelId(lockedSubChannelId)
     setAreaId('')
-    setTerritoryId('')
   }, [canPickSubChannel, lockedSubChannelId, subChannelId])
 
   const { data: subChannels = [], isLoading: loadingSubChannels } = useQuery({
-    queryKey: ['reports', 'invoice-reports', 'sub-channels'],
+    queryKey: ['reports', 'invoice-reports', 'area', 'sub-channels'],
     queryFn: async () => {
       const res = (await getAllSubChannel()) as ApiResponse<SubChannelDTO[]>
       return res.payload ?? []
@@ -184,7 +157,13 @@ export default function InvoiceReportFilter({
   })
 
   const { data: areas = [], isLoading: loadingAreas } = useQuery({
-    queryKey: ['reports', 'invoice-reports', 'areas', effectiveSubChannelId || 'none'],
+    queryKey: [
+      'reports',
+      'invoice-reports',
+      'area',
+      'areas',
+      effectiveSubChannelId || 'none',
+    ],
     enabled: Boolean(effectiveSubChannelId),
     queryFn: async () => {
       if (!effectiveSubChannelId) return []
@@ -196,81 +175,21 @@ export default function InvoiceReportFilter({
     staleTime: 5 * 60 * 1000,
   })
 
-  const {
-    data: territories = [],
-    isLoading: loadingTerritories,
-    isFetching: fetchingTerritories,
-  } = useQuery({
-    queryKey: ['reports', 'invoice-reports', 'territories', areaId || 'none'],
-    enabled: Boolean(areaId),
-    queryFn: async () => {
-      if (!areaId) return []
-      const res = (await getTerritoriesByAreaId(
-        Number(areaId)
-      )) as ApiResponse<TerritoryDTO[]>
-      return res.payload ?? []
-    },
-    staleTime: 5 * 60 * 1000,
-  })
-
-  useEffect(() => {
-    if (!canPickSubChannel || subChannelId || !subChannels.length) return
-    const first = subChannels[0]
-    if (!first?.id) return
-    setSubChannelId(String(first.id))
-    setAreaId('')
-    setTerritoryId('')
-    setErrors((prev) => ({
-      ...prev,
-      subChannelId: false,
-      areaId: false,
-      territoryId: false,
-    }))
-  }, [canPickSubChannel, subChannelId, subChannels])
-
-  useEffect(() => {
-    if (!effectiveSubChannelId || areaId || !areas.length) return
-    const first = areas[0]
-    if (!first?.id) return
-    setAreaId(String(first.id))
-    setTerritoryId('')
-    setErrors((prev) => ({ ...prev, areaId: false, territoryId: false }))
-  }, [effectiveSubChannelId, areaId, areas])
-
-  useEffect(() => {
-    if (!areaId || territoryId || !territories.length) return
-    const first = territories[0]
-    if (!first?.id) return
-    setTerritoryId(String(first.id))
-    setErrors((prev) => ({ ...prev, territoryId: false }))
-  }, [areaId, territoryId, territories])
-
-  useEffect(() => {
-    if (invoiceStatus) return
-    setInvoiceStatus(invoiceStatusOptions[0]?.value ?? '')
-  }, [invoiceStatus])
-
   const handleApply = () => {
     const hasSubChannel = Boolean(effectiveSubChannelId)
     const hasArea = Boolean(areaId)
-    const hasTerritory = Boolean(territoryId)
     const nextErrors = {
       subChannelId: !hasSubChannel,
       areaId: !hasArea,
-      territoryId: !hasTerritory,
     }
     setErrors(nextErrors)
-    if (nextErrors.subChannelId || nextErrors.areaId || nextErrors.territoryId) {
-      return
-    }
+    if (nextErrors.subChannelId || nextErrors.areaId) return
 
     onApply?.({
       subChannelId: effectiveSubChannelId
         ? Number(effectiveSubChannelId)
         : undefined,
       areaId: toNumberValue(areaId),
-      territoryId: toNumberValue(territoryId),
-      invoiceStatus: invoiceStatus || undefined,
       invoiceType:
         invoiceType && invoiceType !== 'ALL'
           ? (invoiceType as ReportInvoiceTypeParam)
@@ -284,17 +203,13 @@ export default function InvoiceReportFilter({
     const resetSubChannelId = canPickSubChannel ? '' : lockedSubChannelId
     setSubChannelId(resetSubChannelId)
     setAreaId('')
-    setTerritoryId('')
-    setInvoiceStatus('')
     setInvoiceType('ALL')
     setRange(undefined)
-    setErrors({ subChannelId: false, areaId: false, territoryId: false })
+    setErrors({ subChannelId: false, areaId: false })
     onReset?.()
     onApply?.({
       subChannelId: resetSubChannelId ? Number(resetSubChannelId) : undefined,
       areaId: undefined,
-      territoryId: undefined,
-      invoiceStatus: undefined,
       invoiceType: '',
       startDate: undefined,
       endDate: undefined,
@@ -310,18 +225,12 @@ export default function InvoiceReportFilter({
             onValueChange={(value) => {
               setSubChannelId(value)
               setAreaId('')
-              setTerritoryId('')
-              setErrors((prev) => ({
-                ...prev,
-                subChannelId: false,
-                areaId: false,
-                territoryId: false,
-              }))
+              setErrors((prev) => ({ ...prev, subChannelId: false, areaId: false }))
             }}
             disabled={loadingSubChannels || !canPickSubChannel}
           >
             <SelectTrigger
-              id='invoice-report-sub-channel'
+              id='area-report-sub-channel'
               className={cn(
                 controlHeight,
                 'w-full',
@@ -346,13 +255,12 @@ export default function InvoiceReportFilter({
             value={areaId}
             onValueChange={(value) => {
               setAreaId(value)
-              setTerritoryId('')
-              setErrors((prev) => ({ ...prev, areaId: false, territoryId: false }))
+              setErrors((prev) => ({ ...prev, areaId: false }))
             }}
             disabled={loadingAreas || !effectiveSubChannelId}
           >
             <SelectTrigger
-              id='invoice-report-area'
+              id='area-report-area'
               className={cn(
                 controlHeight,
                 'w-full',
@@ -374,70 +282,10 @@ export default function InvoiceReportFilter({
 
         <div className='flex min-w-[180px] shrink-0 flex-col gap-2'>
           <Select
-            value={territoryId}
-            onValueChange={(value) => {
-              setTerritoryId(value)
-              setErrors((prev) => ({ ...prev, territoryId: false }))
-            }}
-            disabled={
-              !areaId || loadingTerritories || fetchingTerritories
-            }
-          >
-            <SelectTrigger
-              id='invoice-report-territory'
-              className={cn(
-                controlHeight,
-                'w-full',
-                errors.territoryId ? 'border-red-500 text-red-600' : ''
-              )}
-              aria-invalid={errors.territoryId}
-            >
-              <SelectValue placeholder='Select Territores' />
-            </SelectTrigger>
-            <SelectContent>
-              {territories.map((territory) => (
-                <SelectItem key={territory.id} value={String(territory.id)}>
-                  {territory.territoryName ??
-                    territory.name ??
-                    `Territory ${territory.id}`}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className='flex min-w-[180px] shrink-0 flex-col gap-2'>
-          <Select
-            value={invoiceStatus}
-            onValueChange={(value) =>
-              setInvoiceStatus(value as 'BOOK' | 'ACTUAL' | 'CANCEL' | 'LATE' | '')
-            }
-          >
-            <SelectTrigger
-              id='invoice-report-status'
-              className={cn(controlHeight, 'w-full')}
-            >
-              <SelectValue placeholder='Select Invoice Status' />
-            </SelectTrigger>
-            <SelectContent>
-              {invoiceStatusOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className='flex min-w-[180px] shrink-0 flex-col gap-2'>
-          <Select
             value={invoiceType}
             onValueChange={(value) => setInvoiceType(value as InvoiceTypeParam)}
           >
-            <SelectTrigger
-              id='invoice-report-type'
-              className={cn(controlHeight, 'w-full')}
-            >
+            <SelectTrigger id='area-report-type' className={cn(controlHeight, 'w-full')}>
               <SelectValue placeholder='Select Invoice Type' />
             </SelectTrigger>
             <SelectContent>
@@ -457,7 +305,7 @@ export default function InvoiceReportFilter({
           <Popover>
             <PopoverTrigger asChild>
               <Button
-                id='invoice-report-date-range'
+                id='area-report-date-range'
                 variant='outline'
                 className={cn(
                   controlHeight,

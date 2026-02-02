@@ -488,7 +488,10 @@ export default function TerritoryWiseItemsFilter({
       </div>
 
       <div className='flex w-full min-w-[160px] flex-1 flex-col gap-2 sm:min-w-[180px]'>
-        <Select value={invoiceType} onValueChange={setInvoiceType}>
+        <Select
+          value={invoiceType}
+          onValueChange={(value) => setInvoiceType(value as InvoiceType)}
+        >
           <SelectTrigger
             className={cn(controlHeight, 'w-full bg-slate-50 text-left')}
           >

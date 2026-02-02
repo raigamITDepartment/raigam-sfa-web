@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { ensureRoleAccess, RoleId } from '@/lib/authz'
 import { Main } from '@/components/layout/main'
 import { PageHeader } from '@/components/layout/page-header'
+import AreaWiseInvoiceSummary from '@/components/reports/invoice-reports/AreaWiseInvoiceSummary'
 
 export const Route = createFileRoute(
   '/_authenticated/reports/invoice-reports/area-wise-invoice-summary'
@@ -24,7 +25,7 @@ export const Route = createFileRoute(
           { label: 'Area Wise Invoice Summary' },
         ]}
       />
-      <div>Reports - Area Wise Invoice Summary</div>
+      <AreaWiseInvoiceSummary />
     </Main>
   ),
 })

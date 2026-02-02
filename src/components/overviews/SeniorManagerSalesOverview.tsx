@@ -28,6 +28,7 @@ import {
   YAxis,
 } from 'recharts'
 import { formatPrice } from '@/lib/format-price'
+import type { ReportInvoiceTypeParam } from '@/types/invoice'
 
 type ChannelStats = {
   total: number
@@ -157,9 +158,9 @@ export function SeniorManagerSalesOverview() {
   const todayIso = useMemo(() => formatLocalDate(new Date()), [])
   const itemQueryParams = useMemo(() => {
     if (!itemFilters?.subChannelId) return null
-    const invoiceTypeParam =
+    const invoiceTypeParam: ReportInvoiceTypeParam =
       itemFilters.invoiceType && itemFilters.invoiceType !== 'ALL'
-        ? itemFilters.invoiceType
+        ? (itemFilters.invoiceType as ReportInvoiceTypeParam)
         : ''
     return {
       subChannelId: itemFilters.subChannelId,
@@ -625,3 +626,5 @@ export function SeniorManagerSalesOverview() {
     </div>
   )
 }
+
+

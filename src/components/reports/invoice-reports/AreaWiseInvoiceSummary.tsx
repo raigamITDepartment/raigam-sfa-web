@@ -9,8 +9,7 @@ import {
   useReactTable,
   type ColumnDef,
 } from '@tanstack/react-table'
-import { getInvoiceDetailsByStatus } from '@/services/reports/invoiceReports'
-import type { InvoiceTypeParam } from '@/types/invoice'
+import { getAreaWiseSalesSummery } from '@/services/reports/invoiceReports'
 import { formatDate } from '@/lib/format-date'
 import { formatPrice } from '@/lib/format-price'
 import { cn } from '@/lib/utils'
@@ -31,27 +30,21 @@ import {
   DataTableToolbar,
   TableLoadingRows,
 } from '@/components/data-table'
-import InvoiceNumber from '@/components/InvoiceNumber'
-import InvoiceReportFilter, {
-  type InvoiceReportFilters,
-} from '@/components/reports/invoice-reports/TerritoryFilter'
+import AreaInvoiceReportFilter, {
+  type AreaInvoiceReportFilters,
+} from '@/components/reports/invoice-reports/ArearFilter'
 
 const formatHeader = (key: string) => {
   const withSpaces = key.replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2')
   return withSpaces.charAt(0).toUpperCase() + withSpaces.slice(1)
 }
 
-const normalizeKey = (key: string) =>
-  key.toLowerCase().replace(/[^a-z0-9]/g, '')
-
 const isDateKey = (key: string) => /date/i.test(key)
-const isInvoiceTypeKey = (key: string) => normalizeKey(key) === 'invoicetype'
 const isValueKey = (key: string) => /(value|price|amount|discount)/i.test(key)
 const isQuantityKey = (key: string) => /(qty|quantity|count)/i.test(key)
 const isRightAlignedKey = (key: string) =>
   isValueKey(key) || isQuantityKey(key)
-const isCenterAlignedKey = (key: string) =>
-  isDateKey(key) || isInvoiceTypeKey(key)
+const isCenterAlignedKey = (key: string) => isDateKey(key)
 
 const parseNumberValue = (value: unknown) => {
   if (typeof value === 'number') return Number.isFinite(value) ? value : null
@@ -80,56 +73,6 @@ const formatValue = (key: string, value: unknown) => {
   return String(value)
 }
 
-const orderColumnKeys = (keys: string[]) => {
-  const hidden = new Set([
-    'territoryid',
-    'id',
-    'userid',
-    'agencywarehouseid',
-    'routeid',
-    'rangeid',
-    'outletid',
-    'isreversed',
-    'isprinted',
-    'isbook',
-    'isactual',
-    'islatadelivery',
-    'islatdelivery',
-    'islateDelivery',
-    'invlatedelivery',
-    'invlatedeliveryby',
-    'invactualby',
-    'invreversedby',
-    'invupdatedby',
-    'invcancelledby',
-    'isreversereqagent',
-    'agentreqdate',
-    'isreversereqrep',
-    'repreqdate',
-    'isactive',
-    'reverseRemark',
-    'cancelRemark',
-    'invoiceDetailDTOList',
-  ].map((key) => normalizeKey(key)))
-  const visibleKeys = keys.filter((key) => !hidden.has(normalizeKey(key)))
-  const preferred = [
-    'invoiceNo',
-    'invoiceType',
-    'dateBook',
-    'dateActual',
-    'totalBookFinalValue',
-    'totalActualValue',
-    'totalDiscountValue',
-    'totalCancelValue',
-    'routeName',
-    'outletName',
-  ]
-  const set = new Set(visibleKeys)
-  const ordered = preferred.filter((key) => set.has(key))
-  const rest = visibleKeys.filter((key) => !ordered.includes(key))
-  return [...ordered, ...rest]
-}
-
 const getHeaderAlignmentClassName = (key: string) => {
   if (isCenterAlignedKey(key)) return 'justify-center text-center'
   if (isRightAlignedKey(key)) return 'justify-end text-right'
@@ -142,43 +85,11 @@ const getCellAlignmentClassName = (key: string) => {
   return ''
 }
 
-const isInvoiceNoKey = (key: string) => normalizeKey(key) === 'invoiceno'
-
-type ToolbarFilterOption = {
-  columnId?: string
-  title: string
-  options: { label: string; value: string }[]
-}
-
-const hasColumnId = (
-  filter: ToolbarFilterOption
-): filter is Omit<ToolbarFilterOption, 'columnId'> & { columnId: string } =>
-  Boolean(filter.columnId && filter.options.length > 0)
-
-const buildFacetOptions = (values: unknown[]) => {
-  const normalized = values
-    .map((value) =>
-      value === null || value === undefined ? '' : String(value)
-    )
-    .map((value) => value.trim())
-    .filter((value) => value !== '')
-
-  return Array.from(new Set(normalized))
-    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
-    .map((value) => ({
-      label: value,
-      value,
-    }))
-}
-
-const findColumnKey = (keys: string[], candidates: string[]) =>
-  keys.find((key) => candidates.includes(normalizeKey(key)))
-
-let cachedFilters: InvoiceReportFilters | null = null
+let cachedFilters: AreaInvoiceReportFilters | null = null
 let cachedGlobalFilter = ''
 
-const TerritoryWiseInvoiceSummaryReport = () => {
-  const [filters, setFilters] = useState<InvoiceReportFilters | null>(
+const AreaWiseInvoiceSummary = () => {
+  const [filters, setFilters] = useState<AreaInvoiceReportFilters | null>(
     () => cachedFilters
   )
   const [globalFilter, setGlobalFilter] = useState(() => cachedGlobalFilter)
@@ -193,24 +104,21 @@ const TerritoryWiseInvoiceSummaryReport = () => {
   }, [globalFilter])
 
   const queryParams = useMemo(() => {
-    if (!filters?.subChannelId) return null
-    if (!filters.invoiceStatus) return null
-    const invoiceTypeParam: InvoiceTypeParam = filters.invoiceType ?? ''
+    if (!filters?.areaId) return null
     return {
-      territoryId: filters.territoryId ?? 0,
+      areaId: filters.areaId,
       startDate: filters.startDate ?? todayIso,
       endDate: filters.endDate ?? todayIso,
-      invoiceType: invoiceTypeParam,
-      invoiceStatus: filters.invoiceStatus,
+      invoiceType: filters.invoiceType ?? '',
     }
   }, [filters, todayIso])
 
   const canFetch = Boolean(queryParams)
 
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ['reports', 'invoice-summary', queryParams],
+    queryKey: ['reports', 'area-wise-invoice-summary', queryParams],
     enabled: canFetch,
-    queryFn: () => getInvoiceDetailsByStatus(queryParams!),
+    queryFn: () => getAreaWiseSalesSummery(queryParams!),
   })
 
   const rows = useMemo(() => {
@@ -224,45 +132,10 @@ const TerritoryWiseInvoiceSummaryReport = () => {
     () => (rows.length ? Object.keys(rows[0]) : []),
     [rows]
   )
-  const orderedKeys = useMemo(() => orderColumnKeys(columnKeys), [columnKeys])
-  const filterColumnKeys = useMemo(
-    () => ({
-      routeName: findColumnKey(columnKeys, ['routename', 'route']),
-      outletName: findColumnKey(columnKeys, ['outletname', 'outlet']),
-      invoiceType: findColumnKey(columnKeys, ['invoicetype']),
-    }),
-    [columnKeys]
-  )
-  const filterOptions = useMemo(() => {
-    const buildOptions = (columnKey?: string) =>
-      columnKey ? buildFacetOptions(rows.map((row) => row[columnKey])) : []
-    return [
-      {
-        columnId: filterColumnKeys.routeName,
-        title: 'Route Name',
-        options: buildOptions(filterColumnKeys.routeName),
-      },
-      {
-        columnId: filterColumnKeys.outletName,
-        title: 'Outlet Name',
-        options: buildOptions(filterColumnKeys.outletName),
-      },
-      {
-        columnId: filterColumnKeys.invoiceType,
-        title: 'Invoice Type',
-        options: buildOptions(filterColumnKeys.invoiceType),
-      },
-    ].filter(hasColumnId)
-  }, [
-    rows,
-    filterColumnKeys.routeName,
-    filterColumnKeys.outletName,
-    filterColumnKeys.invoiceType,
-  ])
 
   const columns = useMemo<ColumnDef<Record<string, unknown>>[]>(
     () =>
-      orderedKeys.map((key) => ({
+      columnKeys.map((key) => ({
         accessorKey: key,
         header: ({ column }) => (
           <DataTableColumnHeader
@@ -273,14 +146,6 @@ const TerritoryWiseInvoiceSummaryReport = () => {
         ),
         cell: ({ row }) => {
           const value = row.getValue(key)
-          if (isInvoiceNoKey(key)) {
-            return (
-              <InvoiceNumber
-                invoiceId={String(value ?? '')}
-                className='pl-2 font-medium text-slate-900 dark:text-slate-50'
-              />
-            )
-          }
           return (
             <span className='block truncate'>
               {formatValue(key, value)}
@@ -288,11 +153,6 @@ const TerritoryWiseInvoiceSummaryReport = () => {
           )
         },
       })),
-    [orderedKeys]
-  )
-
-  const searchKey = useMemo(
-    () => columnKeys.find((key) => isInvoiceNoKey(key)),
     [columnKeys]
   )
 
@@ -323,10 +183,13 @@ const TerritoryWiseInvoiceSummaryReport = () => {
     <div className='space-y-3'>
       <Card className='rounded-md'>
         <CardContent>
-          <InvoiceReportFilter
+          <AreaInvoiceReportFilter
             initialValues={filters ?? undefined}
             onApply={(next) => setFilters(next)}
-            onReset={() => setFilters(null)}
+            onReset={() => {
+              setFilters(null)
+              setGlobalFilter('')
+            }}
           />
         </CardContent>
       </Card>
@@ -337,14 +200,14 @@ const TerritoryWiseInvoiceSummaryReport = () => {
             <CommonAlert
               variant='info'
               title='Apply filters'
-              description='Select sub channel and invoice status to load the report.'
+              description='Select area to load the report.'
             />
           </CardContent>
         ) : (
           <>
             <CardHeader className='flex items-center justify-between gap-2'>
               <CardTitle className='text-base font-semibold'>
-                Territory Wise Invoice Summary{' '}
+                Area Wise Invoice Summary{' '}
                 <CountBadge value={`${filteredCount}/${rows.length}`} />
               </CardTitle>
             </CardHeader>
@@ -364,9 +227,7 @@ const TerritoryWiseInvoiceSummaryReport = () => {
                 <div className='w-full'>
                   <DataTableToolbar
                     table={table}
-                    searchPlaceholder='Search invoices...'
-                    searchKey={searchKey}
-                    filters={filterOptions}
+                    searchPlaceholder='Search...'
                   />
                 </div>
               </div>
@@ -382,8 +243,7 @@ const TerritoryWiseInvoiceSummaryReport = () => {
                               'text-muted-foreground bg-gray-100 px-3 text-xs font-semibold tracking-wide uppercase dark:bg-gray-900',
                               getCellAlignmentClassName(
                                 String(header.column.id)
-                              ),
-                              isInvoiceNoKey(String(header.column.id)) && 'pl-3'
+                              )
                             )}
                           >
                             {header.isPlaceholder
@@ -443,5 +303,4 @@ const TerritoryWiseInvoiceSummaryReport = () => {
   )
 }
 
-export default TerritoryWiseInvoiceSummaryReport
-
+export default AreaWiseInvoiceSummary

@@ -15,6 +15,7 @@ import { getItemSummery } from '@/services/reports/otherReportsApi'
 import { Download } from 'lucide-react'
 import { formatPrice } from '@/lib/format-price'
 import { cn } from '@/lib/utils'
+import type { ReportInvoiceTypeParam } from '@/types/invoice'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { CountBadge } from '@/components/ui/count-badge'
 import {
@@ -220,9 +221,9 @@ const ItemSummaryReport = () => {
   const todayIso = useMemo(() => new Date().toISOString().slice(0, 10), [])
   const queryParams = useMemo(() => {
     if (!filters?.subChannelId) return null
-    const invoiceTypeParam =
+    const invoiceTypeParam: ReportInvoiceTypeParam =
       filters.invoiceType && filters.invoiceType !== 'ALL'
-        ? filters.invoiceType
+        ? (filters.invoiceType as ReportInvoiceTypeParam)
         : ''
     return {
       subChannelId: filters.subChannelId,
@@ -535,3 +536,5 @@ const ItemSummaryReport = () => {
 }
 
 export default ItemSummaryReport
+
+

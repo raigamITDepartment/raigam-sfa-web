@@ -39,6 +39,7 @@ import {
 } from '@/components/ui/table'
 import { formatPrice } from '@/lib/format-price'
 import { cn } from '@/lib/utils'
+import type { ReportInvoiceTypeParam } from '@/types/invoice'
 
 const FILTER_STORAGE_KEY = 'sub-category-summary-report-filters'
 
@@ -237,9 +238,9 @@ const SubCategorySummaryReport = () => {
   )
   const queryParams = useMemo(() => {
     if (!filters?.subChannelId) return null
-    const invoiceTypeParam =
+    const invoiceTypeParam: ReportInvoiceTypeParam =
       filters.invoiceType && filters.invoiceType !== 'ALL'
-        ? filters.invoiceType
+        ? (filters.invoiceType as ReportInvoiceTypeParam)
         : ''
     return {
       subChannelId: filters.subChannelId,
@@ -553,3 +554,5 @@ const SubCategorySummaryReport = () => {
 }
 
 export default SubCategorySummaryReport
+
+

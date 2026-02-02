@@ -39,6 +39,7 @@ import {
 } from '@/components/ui/table'
 import { formatPrice } from '@/lib/format-price'
 import { cn } from '@/lib/utils'
+import type { ReportInvoiceTypeParam } from '@/types/invoice'
 
 const FILTER_STORAGE_KEY = 'sub-two-category-summary-report-filters'
 
@@ -237,12 +238,17 @@ const SubTwoCategorySummaryReport = () => {
   )
   const queryParams = useMemo(() => {
     if (!filters?.subChannelId) return null
+    const invoiceTypeParam: ReportInvoiceTypeParam =
+      filters.invoiceType && filters.invoiceType !== 'ALL'
+        ? (filters.invoiceType as ReportInvoiceTypeParam)
+        : ''
     return {
       subChannelId: filters.subChannelId,
       areaId: filters.areaId ?? 0,
       territoryId: filters.territoryId ?? 0,
       routeId: filters.routeId ?? 0,
       outletId: filters.outletId ?? 0,
+      invoiceType: invoiceTypeParam,
       startDate: filters.startDate ?? todayIso,
       endDate: filters.endDate ?? todayIso,
     }
@@ -548,3 +554,5 @@ const SubTwoCategorySummaryReport = () => {
 }
 
 export default SubTwoCategorySummaryReport
+
+

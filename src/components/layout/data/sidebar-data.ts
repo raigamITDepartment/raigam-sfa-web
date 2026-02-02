@@ -136,6 +136,20 @@ export const sidebarData: SidebarData = {
       title: 'Reports',
       items: [
         {
+          title: 'Invoice Reports',
+          icon: ReceiptText,
+          items: [
+            {
+              title: 'Territory Wise Invoice Summary',
+              url: '/reports/invoice-reports/territory-wise-invoice-summary',
+            },
+            {
+              title: 'Area Wise Invoice Summary',
+              url: '/reports/invoice-reports/area-wise-invoice-summary',
+            },
+          ],
+        },
+        {
           title: 'Item Reports',
           icon: ChartArea,
           items: [
@@ -154,6 +168,20 @@ export const sidebarData: SidebarData = {
             {
               title: 'Sub Two Category Summary',
               url: '/reports/item-reports/sub-two-category-summary-report',
+            },
+          ],
+        },
+        {
+          title: 'Outlet Reports',
+          icon: Store,
+          items: [
+            {
+              title: 'Not Visited Outlet Report',
+              url: '/reports/outlet-reports/not-visited-outlet-report',
+            },
+            {
+              title: 'Outlet Sale Summary Report',
+              url: '/reports/outlet-reports/outlet-sale-summary-report',
             },
           ],
         },

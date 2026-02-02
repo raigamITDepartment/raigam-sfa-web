@@ -5,6 +5,9 @@ export type InvoiceType = 'ALL' | 'NORMAL' | 'AGENCY' | 'COMPANY'
 // API accepts empty string when filtering for all invoice types.
 export type InvoiceTypeParam = InvoiceType | ''
 
+export type ReportInvoiceType = Exclude<InvoiceType, 'ALL'>
+export type ReportInvoiceTypeParam = ReportInvoiceType | '' | null
+
 export type BookingInvoiceParams = {
   territoryId: number
   startDate: string

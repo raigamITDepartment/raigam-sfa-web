@@ -12,23 +12,12 @@ import {
   type ColumnDef,
 } from '@tanstack/react-table'
 import { getItemSummery } from '@/services/reports/otherReportsApi'
-import TerritoryWiseItemsFilter, {
-  type TerritoryWiseItemsFilters,
-} from '@/components/reports/item-reports/Filter'
-import {
-  DataTableColumnHeader,
-  DataTablePagination,
-  DataTableToolbar,
-  TableLoadingRows,
-} from '@/components/data-table'
-import { CommonAlert } from '@/components/common-alert'
+import { Download } from 'lucide-react'
+import { formatPrice } from '@/lib/format-price'
+import { cn } from '@/lib/utils'
+import type { ReportInvoiceTypeParam } from '@/types/invoice'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { CountBadge } from '@/components/ui/count-badge'
-import {
-  ExcelExportButton,
-  type ExcelExportColumn,
-} from '@/components/excel-export-button'
-import { Download } from 'lucide-react'
 import {
   Table,
   TableBody,
@@ -37,15 +26,25 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { formatPrice } from '@/lib/format-price'
-import { cn } from '@/lib/utils'
+import { CommonAlert } from '@/components/common-alert'
+import {
+  DataTableColumnHeader,
+  DataTablePagination,
+  DataTableToolbar,
+  TableLoadingRows,
+} from '@/components/data-table'
+import {
+  ExcelExportButton,
+  type ExcelExportColumn,
+} from '@/components/excel-export-button'
+import TerritoryWiseItemsFilter, {
+  type TerritoryWiseItemsFilters,
+} from '@/components/reports/item-reports/Filter'
 
 const FILTER_STORAGE_KEY = 'item-summary-report-filters'
 
 const formatHeader = (key: string) => {
-  const withSpaces = key
-    .replace(/_/g, ' ')
-    .replace(/([a-z])([A-Z])/g, '$1 $2')
+  const withSpaces = key.replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2')
   return withSpaces.charAt(0).toUpperCase() + withSpaces.slice(1)
 }
 
@@ -54,7 +53,9 @@ const normalizeKey = (key: string) =>
 
 const buildFacetOptions = (values: unknown[]) => {
   const normalized = values
-    .map((value) => (value === null || value === undefined ? '' : String(value)))
+    .map((value) =>
+      value === null || value === undefined ? '' : String(value)
+    )
     .map((value) => value.trim())
     .filter((value) => value !== '')
 
@@ -94,18 +95,11 @@ const isFilterMatch = (rowValue: unknown, filterValue: unknown) => {
 const isTotalFinalValue = (key: string) =>
   normalizeKey(key) === 'totalfinalvalue'
 const isSoldQty = (key: string) => normalizeKey(key) === 'soldqty'
-const isTotalSoldValue = (key: string) =>
-  normalizeKey(key) === 'totalsoldvalue'
-const isTotalCancelQty = (key: string) =>
-  normalizeKey(key) === 'totalcancelqty'
+const isTotalSoldValue = (key: string) => normalizeKey(key) === 'totalsoldvalue'
+const isTotalCancelQty = (key: string) => normalizeKey(key) === 'totalcancelqty'
 const isItemIdKey = (key: string) => normalizeKey(key) === 'itemid'
 
-const unitOfMeasureKeyList = [
-  'unitofmeasure',
-  'unitmeasure',
-  'uom',
-  'uomname',
-]
+const unitOfMeasureKeyList = ['unitofmeasure', 'unitmeasure', 'uom', 'uomname']
 const quantityNoDecimalKeyList = [
   'totalbookingqty',
   'totalcancelqty',
@@ -132,8 +126,7 @@ const isUnitOfMeasureKey = (key: string) =>
   unitOfMeasureKeyList.includes(normalizeKey(key))
 const isQuantityNoDecimalKey = (key: string) =>
   quantityNoDecimalKeyList.includes(normalizeKey(key))
-const isValueKey = (key: string) =>
-  valueKeyList.includes(normalizeKey(key))
+const isValueKey = (key: string) => valueKeyList.includes(normalizeKey(key))
 const isRightAlignedKey = (key: string) =>
   isQuantityNoDecimalKey(key) || isValueKey(key) || isSoldQty(key)
 
@@ -197,7 +190,6 @@ const formatValue = (key: string, value: unknown) => {
   return String(value)
 }
 
-
 const readStoredFilters = (): TerritoryWiseItemsFilters | null => {
   if (typeof window === 'undefined') return null
   try {
@@ -226,18 +218,20 @@ const ItemSummaryReport = () => {
   )
   const [globalFilter, setGlobalFilter] = useState('')
 
-  const todayIso = useMemo(
-    () => new Date().toISOString().slice(0, 10),
-    []
-  )
+  const todayIso = useMemo(() => new Date().toISOString().slice(0, 10), [])
   const queryParams = useMemo(() => {
     if (!filters?.subChannelId) return null
+    const invoiceTypeParam: ReportInvoiceTypeParam =
+      filters.invoiceType && filters.invoiceType !== 'ALL'
+        ? (filters.invoiceType as ReportInvoiceTypeParam)
+        : ''
     return {
       subChannelId: filters.subChannelId,
       areaId: filters.areaId ?? 0,
       territoryId: filters.territoryId ?? 0,
       routeId: filters.routeId ?? 0,
       outletId: filters.outletId ?? 0,
+      invoiceType: invoiceTypeParam,
       startDate: filters.startDate ?? todayIso,
       endDate: filters.endDate ?? todayIso,
     }
@@ -259,9 +253,7 @@ const ItemSummaryReport = () => {
     () => (rows.length ? orderColumnKeys(Object.keys(rows[0])) : []),
     [rows]
   )
-  const exportColumns = useMemo<
-    ExcelExportColumn<Record<string, unknown>>[]
-  >(
+  const exportColumns = useMemo<ExcelExportColumn<Record<string, unknown>>[]>(
     () =>
       orderedKeys.map((key) => ({
         header: formatHeader(key),
@@ -345,7 +337,6 @@ const ItemSummaryReport = () => {
     filterColumnKeys.subOneCategory,
     filterColumnKeys.mainCategory,
   ])
-
 
   const columns = useMemo<ColumnDef<Record<string, unknown>>[]>(() => {
     if (!rows.length) return []
@@ -471,64 +462,68 @@ const ItemSummaryReport = () => {
               </div>
               <div className='rounded-md border'>
                 <Table className='text-xs'>
-                <TableHeader>
-                  {table.getHeaderGroups().map((headerGroup) => (
-                    <TableRow key={headerGroup.id}>
-                      {headerGroup.headers.map((header) => (
-                        <TableHead
-                          key={header.id}
-                          className={cn(
-                            'text-muted-foreground bg-gray-100 px-3 text-xs font-semibold tracking-wide uppercase dark:bg-gray-900',
-                            getCellAlignmentClassName(String(header.column.id)),
-                            isItemIdKey(String(header.column.id)) && 'pl-3'
-                          )}
-                        >
-                          {header.isPlaceholder
-                            ? null
-                            : flexRender(
-                                header.column.columnDef.header,
-                                header.getContext()
-                              )}
-                        </TableHead>
-                      ))}
-                    </TableRow>
-                  ))}
-                </TableHeader>
-                <TableBody>
-                  {isLoading ? (
-                    <TableLoadingRows columns={columns.length || 1} />
-                  ) : showNoData ? (
-                    <TableRow>
-                      <TableCell
-                        colSpan={columns.length || 1}
-                        className='h-20 text-center text-slate-500'
-                      >
-                        No data for the selected filters.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    table.getRowModel().rows.map((row) => (
-                      <TableRow key={row.id}>
-                        {row.getVisibleCells().map((cell, cellIndex) => (
-                          <TableCell
-                            key={cell.id}
+                  <TableHeader>
+                    {table.getHeaderGroups().map((headerGroup) => (
+                      <TableRow key={headerGroup.id}>
+                        {headerGroup.headers.map((header) => (
+                          <TableHead
+                            key={header.id}
                             className={cn(
-                              'px-3 py-2',
-                              getCellAlignmentClassName(String(cell.column.id))
+                              'text-muted-foreground bg-gray-100 px-3 text-xs font-semibold tracking-wide uppercase dark:bg-gray-900',
+                              getCellAlignmentClassName(
+                                String(header.column.id)
+                              ),
+                              isItemIdKey(String(header.column.id)) && 'pl-3'
                             )}
                           >
-                            <div className={cn(cellIndex === 0 && 'pl-3')}>
-                              {flexRender(
-                                cell.column.columnDef.cell,
-                                cell.getContext()
-                              )}
-                            </div>
-                          </TableCell>
+                            {header.isPlaceholder
+                              ? null
+                              : flexRender(
+                                  header.column.columnDef.header,
+                                  header.getContext()
+                                )}
+                          </TableHead>
                         ))}
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
+                    ))}
+                  </TableHeader>
+                  <TableBody>
+                    {isLoading ? (
+                      <TableLoadingRows columns={columns.length || 1} />
+                    ) : showNoData ? (
+                      <TableRow>
+                        <TableCell
+                          colSpan={columns.length || 1}
+                          className='h-20 text-center text-slate-500'
+                        >
+                          No data for the selected filters.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      table.getRowModel().rows.map((row) => (
+                        <TableRow key={row.id}>
+                          {row.getVisibleCells().map((cell, cellIndex) => (
+                            <TableCell
+                              key={cell.id}
+                              className={cn(
+                                'px-3 py-2',
+                                getCellAlignmentClassName(
+                                  String(cell.column.id)
+                                )
+                              )}
+                            >
+                              <div className={cn(cellIndex === 0 && 'pl-3')}>
+                                {flexRender(
+                                  cell.column.columnDef.cell,
+                                  cell.getContext()
+                                )}
+                              </div>
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
                 </Table>
               </div>
               <DataTablePagination table={table} />
@@ -541,3 +536,5 @@ const ItemSummaryReport = () => {
 }
 
 export default ItemSummaryReport
+
+

@@ -25,6 +25,10 @@ import {
 } from '@/components/ui/table'
 import { CommonAlert } from '@/components/common-alert'
 import {
+  ExcelExportButton,
+  type ExcelExportColumn,
+} from '@/components/excel-export-button'
+import {
   DataTableColumnHeader,
   DataTablePagination,
   DataTableToolbar,
@@ -38,6 +42,9 @@ const formatHeader = (key: string) => {
   const withSpaces = key.replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2')
   return withSpaces.charAt(0).toUpperCase() + withSpaces.slice(1)
 }
+
+const normalizeKey = (key: string) =>
+  key.toLowerCase().replace(/[^a-z0-9]/g, '')
 
 const isDateKey = (key: string) => /date/i.test(key)
 const isValueKey = (key: string) => /(value|price|amount|discount)/i.test(key)
@@ -84,6 +91,36 @@ const getCellAlignmentClassName = (key: string) => {
   if (isRightAlignedKey(key)) return 'text-right'
   return ''
 }
+
+type ToolbarFilterOption = {
+  columnId?: string
+  title: string
+  options: { label: string; value: string }[]
+}
+
+const hasColumnId = (
+  filter: ToolbarFilterOption
+): filter is Omit<ToolbarFilterOption, 'columnId'> & { columnId: string } =>
+  Boolean(filter.columnId && filter.options.length > 0)
+
+const buildFacetOptions = (values: unknown[]) => {
+  const normalized = values
+    .map((value) =>
+      value === null || value === undefined ? '' : String(value)
+    )
+    .map((value) => value.trim())
+    .filter((value) => value !== '')
+
+  return Array.from(new Set(normalized))
+    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
+    .map((value) => ({
+      label: value,
+      value,
+    }))
+}
+
+const findColumnKey = (keys: string[], candidates: string[]) =>
+  keys.find((key) => candidates.includes(normalizeKey(key)))
 
 let cachedFilters: AreaInvoiceReportFilters | null = null
 let cachedGlobalFilter = ''
@@ -132,6 +169,31 @@ const AreaWiseInvoiceSummary = () => {
     () => (rows.length ? Object.keys(rows[0]) : []),
     [rows]
   )
+  const exportColumns = useMemo<ExcelExportColumn<Record<string, unknown>>[]>(
+    () =>
+      columnKeys.map((key) => ({
+        header: formatHeader(key),
+        accessor: key as keyof Record<string, unknown>,
+      })),
+    [columnKeys]
+  )
+  const filterColumnKeys = useMemo(
+    () => ({
+      territoryName: findColumnKey(columnKeys, ['territoryname', 'territory']),
+    }),
+    [columnKeys]
+  )
+  const filterOptions = useMemo(() => {
+    const buildOptions = (columnKey?: string) =>
+      columnKey ? buildFacetOptions(rows.map((row) => row[columnKey])) : []
+    return [
+      {
+        columnId: filterColumnKeys.territoryName,
+        title: 'Territory Name',
+        options: buildOptions(filterColumnKeys.territoryName),
+      },
+    ].filter(hasColumnId)
+  }, [rows, filterColumnKeys.territoryName])
 
   const columns = useMemo<ColumnDef<Record<string, unknown>>[]>(
     () =>
@@ -178,6 +240,9 @@ const AreaWiseInvoiceSummary = () => {
   const showNoData =
     canFetch && !isLoading && !isError && table.getRowModel().rows.length === 0
   const filteredCount = table.getFilteredRowModel().rows.length
+  const exportRows = table
+    .getFilteredRowModel()
+    .rows.map((row) => row.original)
 
   return (
     <div className='space-y-3'>
@@ -228,6 +293,18 @@ const AreaWiseInvoiceSummary = () => {
                   <DataTableToolbar
                     table={table}
                     searchPlaceholder='Search...'
+                    rightContent={
+                      <ExcelExportButton
+                        size='sm'
+                        variant='outline'
+                        data={exportRows}
+                        columns={exportColumns}
+                        fileName='area-wise-invoice-summary'
+                        worksheetName='Area Wise Invoice Summary'
+                        disabled={!exportRows.length}
+                      />
+                    }
+                    filters={filterOptions}
                   />
                 </div>
               </div>

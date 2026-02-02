@@ -26,6 +26,10 @@ import {
 } from '@/components/ui/table'
 import { CommonAlert } from '@/components/common-alert'
 import {
+  ExcelExportButton,
+  type ExcelExportColumn,
+} from '@/components/excel-export-button'
+import {
   DataTableColumnHeader,
   DataTablePagination,
   DataTableToolbar,
@@ -225,6 +229,14 @@ const TerritoryWiseInvoiceSummaryReport = () => {
     [rows]
   )
   const orderedKeys = useMemo(() => orderColumnKeys(columnKeys), [columnKeys])
+  const exportColumns = useMemo<ExcelExportColumn<Record<string, unknown>>[]>(
+    () =>
+      orderedKeys.map((key) => ({
+        header: formatHeader(key),
+        accessor: (row) => formatValue(key, row[key]),
+      })),
+    [orderedKeys]
+  )
   const filterColumnKeys = useMemo(
     () => ({
       routeName: findColumnKey(columnKeys, ['routename', 'route']),
@@ -318,6 +330,11 @@ const TerritoryWiseInvoiceSummaryReport = () => {
   const showNoData =
     canFetch && !isLoading && !isError && table.getRowModel().rows.length === 0
   const filteredCount = table.getFilteredRowModel().rows.length
+  const tableState = table.getState()
+  const exportRows = useMemo(
+    () => table.getSortedRowModel().rows.map((row) => row.original),
+    [table, rows, globalFilter, tableState.columnFilters, tableState.sorting]
+  )
 
   return (
     <div className='space-y-3'>
@@ -367,6 +384,17 @@ const TerritoryWiseInvoiceSummaryReport = () => {
                     searchPlaceholder='Search invoices...'
                     searchKey={searchKey}
                     filters={filterOptions}
+                    rightContent={
+                      <ExcelExportButton
+                        size='sm'
+                        variant='outline'
+                        data={exportRows}
+                        columns={exportColumns}
+                        fileName='territory-wise-invoice-summary'
+                        worksheetName='Territory Wise Invoice Summary'
+                        disabled={!exportRows.length}
+                      />
+                    }
                   />
                 </div>
               </div>

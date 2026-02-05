@@ -41,7 +41,7 @@ import {
   getAllTerritories,
   getAllAgency,
 } from '@/services/userDemarcationApi'
-import { getAllRoles, getAllUserGroups } from '@/services/users/userApi'
+import { getAllRoles, getAllUserGroups, getAllUserTypes } from '@/services/users/userApi'
 
 export type UserFormMode = 'create' | 'edit'
 
@@ -78,6 +78,7 @@ const userFormSchemaBase = z.object({
   mobileNo: z.string().min(1, 'Please enter mobile number'),
   userGroupId: requiredNumber('Please select user group'),
   roleId: requiredNumber('Please select role'),
+  userLevelId: requiredNumber('Please select access level'),
   channelId: optionalNumber(),
   subChannelId: optionalNumber(),
   regionId: optionalNumber(),
@@ -258,6 +259,7 @@ const getDefaultValues = (
   mobileNo: initialValues?.mobileNo ?? '',
   userGroupId: initialValues?.userGroupId ?? undefined,
   roleId: initialValues?.roleId ?? undefined,
+  userLevelId: initialValues?.userLevelId ?? undefined,
   channelId: initialValues?.channelId ?? undefined,
   subChannelId: initialValues?.subChannelId ?? undefined,
   regionId: initialValues?.regionId ?? undefined,
@@ -274,6 +276,9 @@ const getDefaultValues = (
 
 const toSelectValue = (value: unknown) =>
   value === null || value === undefined ? '' : String(value)
+
+const toNumberOrUndefined = (value: string) =>
+  value ? Number(value) : undefined
 
 const mergeById = <T,>(
   list: T[],
@@ -316,6 +321,14 @@ export function UserForm(props: UserFormProps) {
     queryKey: ['user-roles', 'options'],
     queryFn: async () => {
       const res = await getAllRoles()
+      return res.payload
+    },
+  })
+
+  const { data: userTypesData = [] } = useQuery({
+    queryKey: ['user-types', 'options'],
+    queryFn: async () => {
+      const res = await getAllUserTypes()
       return res.payload
     },
   })
@@ -408,6 +421,18 @@ export function UserForm(props: UserFormProps) {
     [subRolesData]
   )
 
+  const accessLevelOptions = useMemo(
+    () =>
+      userTypesData
+        .slice()
+        .sort((a, b) => Number(a.id) - Number(b.id))
+        .map((userType) => ({
+          label: userType.userTypeName ?? '-',
+          value: String(userType.id),
+        })),
+    [userTypesData]
+  )
+
   const form = useForm<UserFormValues>({
     resolver: zodResolver(schema),
     defaultValues: getDefaultValues(initialValues),
@@ -433,6 +458,10 @@ export function UserForm(props: UserFormProps) {
     return subRoleOptions.find((option) => option.value === lookup)?.label ?? ''
   }, [selectedRoleValue, subRoleOptions])
   const normalizedRoleLabel = selectedRoleLabel.trim().toLowerCase()
+  const isExecutiveSalesLabel =
+    normalizedRoleLabel === 'executive sales' ||
+    normalizedRoleLabel === 'sales executive' ||
+    normalizedRoleLabel === 'area sales executive'
 
   const isChannelHead =
     selectedRoleId === SubRoleId.ChannelHead ||
@@ -447,8 +476,7 @@ export function UserForm(props: UserFormProps) {
     selectedRoleId === SubRoleId.AreaSalesManager ||
     normalizedRoleLabel === 'area sales manager'
   const isAreaExecutive =
-    selectedRoleId === SubRoleId.AreaSalesExecutive ||
-    normalizedRoleLabel === 'area sales executive'
+    selectedRoleId === SubRoleId.AreaSalesExecutive || isExecutiveSalesLabel
   const isRepresentative =
     selectedRoleId === SubRoleId.Representative ||
     normalizedRoleLabel === 'representative'
@@ -750,6 +778,72 @@ export function UserForm(props: UserFormProps) {
     await onSubmit?.(normalized)
   }
 
+  const userGroupField = (
+    <FormField
+      control={form.control}
+      name='userGroupId'
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel>User Group</FormLabel>
+          <Select
+            value={toSelectValue(field.value)}
+            onValueChange={(value) =>
+              field.onChange(toNumberOrUndefined(value))
+            }
+            disabled={!roleOptions.length}
+          >
+            <FormControl>
+              <SelectTrigger className='w-full'>
+                <SelectValue placeholder='Select user group' />
+              </SelectTrigger>
+            </FormControl>
+            <SelectContent>
+              {roleOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  )
+
+  const roleField = (
+    <FormField
+      control={form.control}
+      name='roleId'
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel>Role</FormLabel>
+          <Select
+            value={toSelectValue(field.value)}
+            onValueChange={(value) =>
+              field.onChange(toNumberOrUndefined(value))
+            }
+            disabled={!subRoleOptions.length}
+          >
+            <FormControl>
+              <SelectTrigger className='w-full'>
+                <SelectValue placeholder='Select role' />
+              </SelectTrigger>
+            </FormControl>
+            <SelectContent>
+              {subRoleOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  )
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className='space-y-4'>
@@ -820,129 +914,13 @@ export function UserForm(props: UserFormProps) {
         />
         {mode === 'edit' ? (
           <div className='grid gap-4 sm:grid-cols-2'>
-            <FormField
-              control={form.control}
-              name='userGroupId'
-              render={({ field }) => (
-                <FormItem>
-                <FormLabel>User Group</FormLabel>
-                <Select
-                  value={toSelectValue(field.value)}
-                  onValueChange={(value) =>
-                    field.onChange(value ? Number(value) : undefined)
-                  }
-                  disabled={!roleOptions.length}
-                >
-                  <FormControl>
-                    <SelectTrigger className='w-full'>
-                      <SelectValue placeholder='Select user group' />
-                    </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {roleOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name='roleId'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Role</FormLabel>
-                <Select
-                  value={toSelectValue(field.value)}
-                  onValueChange={(value) =>
-                    field.onChange(value ? Number(value) : undefined)
-                  }
-                  disabled={!subRoleOptions.length}
-                >
-                    <FormControl>
-                      <SelectTrigger className='w-full'>
-                        <SelectValue placeholder='Select role' />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {subRoleOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {userGroupField}
+            {roleField}
           </div>
         ) : (
           <>
-            <FormField
-              control={form.control}
-              name='userGroupId'
-              render={({ field }) => (
-                <FormItem>
-                <FormLabel>User Group</FormLabel>
-                <Select
-                  value={toSelectValue(field.value)}
-                  onValueChange={(value) =>
-                    field.onChange(value ? Number(value) : undefined)
-                  }
-                  disabled={!roleOptions.length}
-                >
-                  <FormControl>
-                    <SelectTrigger className='w-full'>
-                      <SelectValue placeholder='Select user group' />
-                    </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {roleOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name='roleId'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Role</FormLabel>
-                <Select
-                  value={toSelectValue(field.value)}
-                  onValueChange={(value) =>
-                    field.onChange(value ? Number(value) : undefined)
-                  }
-                  disabled={!subRoleOptions.length}
-                >
-                    <FormControl>
-                      <SelectTrigger className='w-full'>
-                        <SelectValue placeholder='Select role' />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {subRoleOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {userGroupField}
+            {roleField}
           </>
         )}
         <div className='grid gap-4 sm:grid-cols-2'>
@@ -956,7 +934,7 @@ export function UserForm(props: UserFormProps) {
                 <Select
                   value={toSelectValue(field.value)}
                   onValueChange={(value) => {
-                    field.onChange(value ? Number(value) : undefined)
+                    field.onChange(toNumberOrUndefined(value))
                     form.setValue('subChannelId', undefined)
                     form.setValue('regionId', undefined)
                     form.setValue('areaId', undefined)
@@ -995,7 +973,7 @@ export function UserForm(props: UserFormProps) {
                 <Select
                   value={toSelectValue(field.value)}
                   onValueChange={(value) => {
-                    field.onChange(value ? Number(value) : undefined)
+                    field.onChange(toNumberOrUndefined(value))
                     form.setValue('regionId', undefined)
                     form.setValue('areaId', undefined)
                     form.setValue('areaIds', [])
@@ -1038,7 +1016,7 @@ export function UserForm(props: UserFormProps) {
                 <Select
                   value={toSelectValue(field.value)}
                   onValueChange={(value) => {
-                    field.onChange(value ? Number(value) : undefined)
+                    field.onChange(toNumberOrUndefined(value))
                     form.setValue('areaId', undefined)
                     form.setValue('areaIds', [])
                     form.setValue('rangeId', undefined)
@@ -1102,7 +1080,7 @@ export function UserForm(props: UserFormProps) {
                 <Select
                   value={toSelectValue(field.value)}
                   onValueChange={(value) => {
-                    field.onChange(value ? Number(value) : undefined)
+                    field.onChange(toNumberOrUndefined(value))
                     form.setValue('rangeId', undefined)
                     form.setValue('territoryId', undefined)
                     form.setValue('agencyId', undefined)
@@ -1137,7 +1115,7 @@ export function UserForm(props: UserFormProps) {
                 <Select
                   value={toSelectValue(field.value)}
                   onValueChange={(value) => {
-                    field.onChange(value ? Number(value) : undefined)
+                    field.onChange(toNumberOrUndefined(value))
                     form.setValue('territoryId', undefined)
                     form.setValue('agencyId', undefined)
                   }}
@@ -1178,7 +1156,7 @@ export function UserForm(props: UserFormProps) {
                 <Select
                   value={toSelectValue(field.value)}
                   onValueChange={(value) => {
-                    field.onChange(value ? Number(value) : undefined)
+                    field.onChange(toNumberOrUndefined(value))
                     form.setValue('agencyId', undefined)
                   }}
                   disabled={
@@ -1215,7 +1193,7 @@ export function UserForm(props: UserFormProps) {
                 <Select
                   value={toSelectValue(field.value)}
                   onValueChange={(value) =>
-                    field.onChange(value ? Number(value) : undefined)
+                    field.onChange(toNumberOrUndefined(value))
                   }
                   disabled={!filteredAgencies.length || !territoryValue}
                 >
@@ -1240,6 +1218,36 @@ export function UserForm(props: UserFormProps) {
             />
           ) : null}
         </div>
+        <FormField
+          control={form.control}
+          name='userLevelId'
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Access Level</FormLabel>
+              <Select
+                value={toSelectValue(field.value)}
+                onValueChange={(value) =>
+                  field.onChange(toNumberOrUndefined(value))
+                }
+                disabled={!accessLevelOptions.length}
+              >
+                <FormControl>
+                  <SelectTrigger className='w-full'>
+                    <SelectValue placeholder='Select access level' />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {accessLevelOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <div className='grid grid-cols-2 gap-4'>
           <FormField
             control={form.control}

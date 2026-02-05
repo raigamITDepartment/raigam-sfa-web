@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useCallback, useMemo, useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   type ColumnDef,
   flexRender,
@@ -28,8 +28,13 @@ import { EditOutletForm } from '@/components/outlet-module/EditOutletForm'
 import { Calendar } from '@/components/ui/calendar'
 import type { DateRange } from 'react-day-picker'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { getAllOutletsByRequiredArgs } from '@/services/userDemarcation/endpoints'
-import type { ApiResponse } from '@/types/common'
+import {
+  findOutletById,
+  getAllOutletsByRequiredArgs,
+  updateOutlet,
+  type UpdateOutletRequest,
+} from '@/services/userDemarcation/endpoints'
+import type { ApiResponse, Id } from '@/types/common'
 import type { OutletRecord } from '@/types/outlet'
 import { createOutletColumns } from '@/components/outlet-module/outlet-list-columns'
 import { createOutletExportColumns } from '@/components/outlet-module/outlet-list-export'
@@ -38,6 +43,8 @@ import {
   parseCreatedDate,
   pickFirstValue,
 } from '@/components/outlet-module/outlet-list-utils'
+import { useAppSelector } from '@/store/hooks'
+import { toast } from 'sonner'
 
 const FILTER_STORAGE_KEY = 'outlet-list-filters'
 
@@ -73,6 +80,51 @@ const writeStoredFilters = (filters: OutletFilterState | null) => {
 const getOutletKey = (row: OutletRecord) =>
   pickFirstValue(row, ['uniqueCode', 'outletCode', 'outletId', 'id'])
 
+const resolveNonEmpty = <T,>(...values: Array<T | null | undefined>) => {
+  for (const value of values) {
+    if (value !== null && value !== undefined && value !== '') return value
+  }
+  return undefined
+}
+
+const resolveRequiredString = (label: string, ...values: unknown[]) => {
+  const resolved = resolveNonEmpty(...values)
+  const text = resolved === undefined ? '' : String(resolved).trim()
+  if (!text) {
+    throw new Error(`${label} is required.`)
+  }
+  return text
+}
+
+const resolveRequiredValue = <T,>(
+  label: string,
+  ...values: Array<T | null | undefined>
+) => {
+  const resolved = resolveNonEmpty(...values)
+  if (resolved === undefined) {
+    throw new Error(`${label} is required.`)
+  }
+  return resolved as NonNullable<T>
+}
+
+const resolveRequiredId = (label: string, ...values: unknown[]) => {
+  const resolved = resolveNonEmpty(...values)
+  if (resolved === undefined) {
+    throw new Error(`${label} is required.`)
+  }
+  return resolved as Id
+}
+
+const resolveBoolean = (...values: Array<boolean | null | undefined>) => {
+  for (const value of values) {
+    if (value !== null && value !== undefined) return value
+  }
+  return false
+}
+
+const toStringValue = (value: unknown) =>
+  value === null || value === undefined ? '' : String(value)
+
 const dedupeOutlets = (items: OutletRecord[]) => {
   const seen = new Set<string>()
   return items.filter((row) => {
@@ -86,6 +138,8 @@ const dedupeOutlets = (items: OutletRecord[]) => {
 }
 
 export const OutletList = () => {
+  const queryClient = useQueryClient()
+  const user = useAppSelector((state) => state.auth.user)
   const storedFilters = readStoredFilters()
   const storedChannelId = storedFilters.channelId?.trim() ?? ''
   const storedSubChannelId = storedFilters.subChannelId?.trim() ?? '0'
@@ -134,6 +188,162 @@ export const OutletList = () => {
     },
   })
 
+  const approveMutation = useMutation({
+    mutationFn: async (vars: {
+      outlet: OutletRecord
+      nextApproved: boolean
+    }) => {
+      const userId = user?.userId
+      if (!userId) {
+        throw new Error('User id is required to update outlet.')
+      }
+
+      const outletId = resolveRequiredId(
+        'Outlet id',
+        vars.outlet.id,
+        vars.outlet.outletId
+      )
+      const outletDetailsRes = (await findOutletById(
+        outletId
+      )) as ApiResponse<OutletRecord>
+      const outletDetails = outletDetailsRes.payload ?? {}
+
+      const outletCategoryId = resolveRequiredId(
+        'Outlet category',
+        outletDetails.outletCategoryId,
+        vars.outlet.outletCategoryId
+      )
+      const routeId = resolveRequiredId(
+        'Route',
+        outletDetails.routeId,
+        vars.outlet.routeId
+      )
+      const rangeId = resolveRequiredId(
+        'Range',
+        outletDetails.rangeId,
+        vars.outlet.rangeId
+      )
+
+      const outletName = resolveRequiredString(
+        'Outlet name',
+        outletDetails.outletName,
+        vars.outlet.outletName,
+        vars.outlet.name
+      )
+      const address1 = resolveRequiredString(
+        'Address 1',
+        outletDetails.address1,
+        vars.outlet.address1
+      )
+      const address2 = resolveRequiredString(
+        'Address2',
+        outletDetails.address2,
+        vars.outlet.address2
+      )
+      const address3 = resolveRequiredString(
+        'Address3',
+        outletDetails.address3,
+        vars.outlet.address3
+      )
+      const ownerName = resolveRequiredString(
+        'Owner name',
+        outletDetails.ownerName,
+        vars.outlet.ownerName,
+        vars.outlet.owner
+      )
+      const mobileNo = resolveRequiredString(
+        'Mobile number',
+        outletDetails.mobileNo,
+        vars.outlet.mobileNo,
+        vars.outlet.mobile
+      )
+      const latitude = resolveRequiredString(
+        'Latitude',
+        outletDetails.latitude,
+        vars.outlet.latitude
+      )
+      const longitude = resolveRequiredString(
+        'Longitude',
+        outletDetails.longitude,
+        vars.outlet.longitude
+      )
+      const displayOrder = resolveRequiredValue(
+        'Display order',
+        outletDetails.displayOrder,
+        vars.outlet.displayOrder
+      )
+      const openTime = resolveRequiredString(
+        'Open time',
+        outletDetails.openTime,
+        vars.outlet.openTime
+      )
+      const closeTime = resolveRequiredString(
+        'Close time',
+        outletDetails.closeTime,
+        vars.outlet.closeTime
+      )
+      const outletSequence = resolveRequiredValue(
+        'Outlet sequence',
+        outletDetails.outletSequence,
+        vars.outlet.outletSequence
+      )
+      const vatNumValue = resolveNonEmpty(
+        outletDetails.vatNum,
+        vars.outlet.vatNum
+      )
+
+      const payload: UpdateOutletRequest = {
+        id: outletId,
+        userId,
+        outletCategoryId,
+        routeId,
+        rangeId,
+        outletName,
+        address1,
+        address2,
+        address3,
+        ownerName,
+        mobileNo,
+        latitude,
+        longitude,
+        displayOrder,
+        openTime,
+        closeTime,
+        isNew: resolveBoolean(outletDetails.isNew, vars.outlet.isNew),
+        isApproved: vars.nextApproved,
+        isClose: resolveBoolean(outletDetails.isClose, vars.outlet.isClose),
+        vatNum: vatNumValue ? toStringValue(vatNumValue) : undefined,
+        outletSequence,
+      }
+
+      const formData = new FormData()
+      ;(Object.entries(payload) as Array<
+        [keyof UpdateOutletRequest, UpdateOutletRequest[keyof UpdateOutletRequest]]
+      >).forEach(([key, value]) => {
+        if (value === undefined || value === null) return
+        formData.append(String(key), String(value))
+      })
+
+      return updateOutlet(formData)
+    },
+    onSuccess: () => {
+      toast.success('Outlet approval updated successfully')
+      queryClient.invalidateQueries({ queryKey: ['user-demarcation', 'outlets'] })
+    },
+    onError: (error) => {
+      toast.error(
+        (error as Error)?.message ?? 'Failed to update outlet approval'
+      )
+    },
+  })
+
+  const handleToggleApprove = useCallback(
+    (record: OutletRecord, nextApproved: boolean) => {
+      approveMutation.mutate({ outlet: record, nextApproved })
+    },
+    [approveMutation]
+  )
+
   const outletRows = channelId ? rows : []
   const uniqueOutletRows = useMemo(
     () => dedupeOutlets(outletRows),
@@ -144,8 +354,9 @@ export const OutletList = () => {
     () =>
       createOutletColumns({
         onEdit: (record) => setEditOutlet(record),
+        onToggleApprove: handleToggleApprove,
       }),
-    []
+    [handleToggleApprove]
   )
 
   const filteredData = useMemo(() => {

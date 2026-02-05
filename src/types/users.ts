@@ -68,7 +68,7 @@ export type UpdateUserRequest = {
   territoryId?: number | null
   agencyId?: number | null
   rangeId?: number | null
-  areaIds?: number[]
+  areaList?: number[]
   userLevelId: number
   userName: string
   firstName: string
@@ -97,7 +97,7 @@ export type AddUserRequest = {
   territoryId: number | null
   agencyId: number | null
   rangeId?: number | null
-  areaIds?: number[]
+  areaList?: number[]
   userLevelId: number
   userName: string
   firstName: string

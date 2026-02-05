@@ -282,6 +282,17 @@ export function findOutletById(outletId: Id) {
   return get<OutletDTO>(`${USER_DEMARC_BASE}/outlet/findById/${outletId}`)
 }
 
+export function approvalOutlet(outletId: Id) {
+  return put<OutletDTO, void>(
+    `${USER_DEMARC_BASE}/outlet/approvalOutletById?outletId=${outletId}`,
+    undefined
+  )
+}
+
+export function deactivateOutlet(outletId: Id) {
+  return del<OutletDTO>(`${USER_DEMARC_BASE}/outlet/deactivateOutlet/${outletId}`)
+}
+
 export type UpdateOutletRequest = {
   id: Id
   userId: Id

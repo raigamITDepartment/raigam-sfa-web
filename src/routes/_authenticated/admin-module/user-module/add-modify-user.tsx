@@ -181,7 +181,7 @@ function AddModifyUser() {
         territoryId: values.territoryId ?? null,
         agencyId: values.agencyId ?? null,
         rangeId: values.rangeId ?? null,
-        areaIds: values.areaIds?.length
+        areaList: values.areaIds?.length
           ? values.areaIds.map((id) => Number(id))
           : undefined,
         userLevelId: values.userLevelId,
@@ -227,7 +227,7 @@ function AddModifyUser() {
         territoryId: values.territoryId ?? null,
         agencyId: values.agencyId ?? null,
         rangeId: values.rangeId ?? null,
-        areaIds: values.areaIds?.length
+        areaList: values.areaIds?.length
           ? values.areaIds.map((id) => Number(id))
           : undefined,
         userLevelId: values.userLevelId,

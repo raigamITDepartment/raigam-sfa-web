@@ -532,7 +532,9 @@ export function UserForm(props: UserFormProps) {
     (requiresAreaSingle || (mode === 'edit' && Boolean(areaValue))) &&
     !showAreaMulti
   const showRange =
-    requiresRange || (mode === 'edit' && Boolean(rangeValue))
+    (requiresRange || (mode === 'edit' && Boolean(rangeValue))) &&
+    !isRegionalManager &&
+    !isAreaManager
   const showTerritory =
     requiresTerritory || (mode === 'edit' && Boolean(territoryValue))
   const showAgency =

@@ -3,6 +3,7 @@ import { Pencil } from 'lucide-react'
 import { DataTableColumnHeader } from '@/components/data-table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Switch } from '@/components/ui/switch'
 import {
   Tooltip,
   TooltipContent,
@@ -14,6 +15,7 @@ import { formatValue, normalizeBool, pickFirstValue } from './outlet-list-utils'
 
 type OutletColumnsOptions = {
   onEdit: (record: OutletRecord) => void
+  onToggleApprove: (record: OutletRecord, nextApproved: boolean) => void
 }
 
 const matchesMultiSelect = (rowValue: unknown, filterValue: unknown) => {
@@ -29,6 +31,7 @@ const matchesMultiSelect = (rowValue: unknown, filterValue: unknown) => {
 
 export const createOutletColumns = ({
   onEdit,
+  onToggleApprove,
 }: OutletColumnsOptions): ColumnDef<OutletRecord>[] => [
   {
     id: 'dealerCode',
@@ -239,23 +242,35 @@ export const createOutletColumns = ({
   {
     id: 'actions',
     header: () => <div className='pr-2 text-end'>Actions</div>,
-    cell: ({ row }) => (
-      <div className='flex items-center justify-end gap-2 pr-2'>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant='ghost'
-              size='icon'
-              className='size-8'
-              aria-label='Edit outlet'
-              onClick={() => onEdit(row.original)}
-            >
-              <Pencil className='size-4' />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Edit</TooltipContent>
-        </Tooltip>
-      </div>
-    ),
+    cell: ({ row }) => {
+      const isApproved =
+        typeof row.original.isApproved === 'boolean'
+          ? row.original.isApproved
+          : normalizeBool(pickFirstValue(row.original, ['approved']))
+      return (
+        <div className='flex items-center justify-end gap-2 pr-2'>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant='ghost'
+                size='icon'
+                className='size-8'
+                aria-label='Edit outlet'
+                onClick={() => onEdit(row.original)}
+              >
+                <Pencil className='size-4' />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Edit</TooltipContent>
+          </Tooltip>
+          <Switch
+            checked={isApproved}
+            onCheckedChange={(value) => onToggleApprove(row.original, value)}
+            aria-label={isApproved ? 'Disapprove outlet' : 'Approve outlet'}
+            title={isApproved ? 'Disapprove outlet' : 'Approve outlet'}
+          />
+        </div>
+      )
+    },
   },
 ]

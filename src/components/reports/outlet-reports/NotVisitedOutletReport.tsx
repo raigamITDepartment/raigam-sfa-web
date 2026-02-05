@@ -95,9 +95,7 @@ const getCellAlignmentClassName = (key: string) => {
 const addressFieldKeys = ['address1', 'address2', 'address3']
 
 const visibleColumnOrder = [
-  'uniqueCode',
   'outletName',
-  'outletCode',
   'address',
   'ownerName',
   'mobileNo',
@@ -248,8 +246,10 @@ const NotVisitedOutletReport = () => {
           ),
           cell: ({ row }) => {
             const value = row.getValue(key)
+            const isOutletName =
+              normalizeKey(key) === normalizeKey('outletName')
             return (
-              <span className='block truncate'>
+              <span className={cn('block truncate', isOutletName && 'pl-3')}>
                 {formatValue(key, value)}
               </span>
             )

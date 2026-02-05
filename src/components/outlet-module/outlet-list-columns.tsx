@@ -1,5 +1,5 @@
 import type { ColumnDef } from '@tanstack/react-table'
-import { Pencil } from 'lucide-react'
+import { BadgeCheck, Eye, Pencil } from 'lucide-react'
 import { DataTableColumnHeader } from '@/components/data-table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -14,8 +14,11 @@ import type { OutletRecord } from '@/types/outlet'
 import { formatValue, normalizeBool, pickFirstValue } from './outlet-list-utils'
 
 type OutletColumnsOptions = {
+  onView: (record: OutletRecord) => void
   onEdit: (record: OutletRecord) => void
-  onToggleApprove: (record: OutletRecord, nextApproved: boolean) => void
+  onApprove: (record: OutletRecord) => void
+  onToggleActive: (record: OutletRecord, nextActive: boolean) => void
+  canEdit: boolean
 }
 
 const matchesMultiSelect = (rowValue: unknown, filterValue: unknown) => {
@@ -30,8 +33,11 @@ const matchesMultiSelect = (rowValue: unknown, filterValue: unknown) => {
 }
 
 export const createOutletColumns = ({
+  onView,
   onEdit,
-  onToggleApprove,
+  onApprove,
+  onToggleActive,
+  canEdit,
 }: OutletColumnsOptions): ColumnDef<OutletRecord>[] => [
   {
     id: 'dealerCode',
@@ -55,7 +61,7 @@ export const createOutletColumns = ({
       <DataTableColumnHeader column={column} title='Name' />
     ),
     cell: ({ row }) => (
-      <span className='capitalize'>
+      <span className='pl-3 capitalize'>
         {formatValue(pickFirstValue(row.original, ['outletName', 'name']))}
       </span>
     ),
@@ -247,6 +253,10 @@ export const createOutletColumns = ({
         typeof row.original.isApproved === 'boolean'
           ? row.original.isApproved
           : normalizeBool(pickFirstValue(row.original, ['approved']))
+      const isActive =
+        typeof row.original.isClose === 'boolean'
+          ? !row.original.isClose
+          : normalizeBool(pickFirstValue(row.original, ['status']))
       return (
         <div className='flex items-center justify-end gap-2 pr-2'>
           <Tooltip>
@@ -255,19 +265,52 @@ export const createOutletColumns = ({
                 variant='ghost'
                 size='icon'
                 className='size-8'
-                aria-label='Edit outlet'
-                onClick={() => onEdit(row.original)}
+                aria-label='View outlet'
+                onClick={() => onView(row.original)}
               >
-                <Pencil className='size-4' />
+                <Eye className='size-4' />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Edit</TooltipContent>
+            <TooltipContent>View</TooltipContent>
           </Tooltip>
+          {canEdit ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant='ghost'
+                  size='icon'
+                  className='size-8'
+                  aria-label='Edit outlet'
+                  onClick={() => onEdit(row.original)}
+                >
+                  <Pencil className='size-4' />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Edit</TooltipContent>
+            </Tooltip>
+          ) : null}
+          {!isApproved ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant='outline'
+                  size='sm'
+                  className='h-8 gap-1.5'
+                  onClick={() => onApprove(row.original)}
+                  aria-label='Approve outlet'
+                >
+                  <BadgeCheck className='size-4' />
+                  Approve
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Approve outlet</TooltipContent>
+            </Tooltip>
+          ) : null}
           <Switch
-            checked={isApproved}
-            onCheckedChange={(value) => onToggleApprove(row.original, value)}
-            aria-label={isApproved ? 'Disapprove outlet' : 'Approve outlet'}
-            title={isApproved ? 'Disapprove outlet' : 'Approve outlet'}
+            checked={isActive}
+            onCheckedChange={(value) => onToggleActive(row.original, value)}
+            aria-label={isActive ? 'Deactivate outlet' : 'Activate outlet'}
+            title={isActive ? 'Deactivate outlet' : 'Activate outlet'}
           />
         </div>
       )

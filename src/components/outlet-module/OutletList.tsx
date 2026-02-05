@@ -20,6 +20,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { CountBadge } from '@/components/ui/count-badge'
 import { CommonAlert } from '@/components/common-alert'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { ExcelExportButton } from '@/components/excel-export-button'
 import { Button } from '@/components/ui/button'
 import { Calendar as CalendarIcon } from 'lucide-react'
@@ -29,12 +30,11 @@ import { Calendar } from '@/components/ui/calendar'
 import type { DateRange } from 'react-day-picker'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
-  findOutletById,
+  approvalOutlet,
+  deactivateOutlet,
   getAllOutletsByRequiredArgs,
-  updateOutlet,
-  type UpdateOutletRequest,
 } from '@/services/userDemarcation/endpoints'
-import type { ApiResponse, Id } from '@/types/common'
+import type { ApiResponse } from '@/types/common'
 import type { OutletRecord } from '@/types/outlet'
 import { createOutletColumns } from '@/components/outlet-module/outlet-list-columns'
 import { createOutletExportColumns } from '@/components/outlet-module/outlet-list-export'
@@ -43,8 +43,9 @@ import {
   parseCreatedDate,
   pickFirstValue,
 } from '@/components/outlet-module/outlet-list-utils'
-import { useAppSelector } from '@/store/hooks'
 import { toast } from 'sonner'
+import { useAppSelector } from '@/store/hooks'
+import { RoleId, SubRoleId } from '@/lib/authz'
 
 const FILTER_STORAGE_KEY = 'outlet-list-filters'
 
@@ -80,51 +81,6 @@ const writeStoredFilters = (filters: OutletFilterState | null) => {
 const getOutletKey = (row: OutletRecord) =>
   pickFirstValue(row, ['uniqueCode', 'outletCode', 'outletId', 'id'])
 
-const resolveNonEmpty = <T,>(...values: Array<T | null | undefined>) => {
-  for (const value of values) {
-    if (value !== null && value !== undefined && value !== '') return value
-  }
-  return undefined
-}
-
-const resolveRequiredString = (label: string, ...values: unknown[]) => {
-  const resolved = resolveNonEmpty(...values)
-  const text = resolved === undefined ? '' : String(resolved).trim()
-  if (!text) {
-    throw new Error(`${label} is required.`)
-  }
-  return text
-}
-
-const resolveRequiredValue = <T,>(
-  label: string,
-  ...values: Array<T | null | undefined>
-) => {
-  const resolved = resolveNonEmpty(...values)
-  if (resolved === undefined) {
-    throw new Error(`${label} is required.`)
-  }
-  return resolved as NonNullable<T>
-}
-
-const resolveRequiredId = (label: string, ...values: unknown[]) => {
-  const resolved = resolveNonEmpty(...values)
-  if (resolved === undefined) {
-    throw new Error(`${label} is required.`)
-  }
-  return resolved as Id
-}
-
-const resolveBoolean = (...values: Array<boolean | null | undefined>) => {
-  for (const value of values) {
-    if (value !== null && value !== undefined) return value
-  }
-  return false
-}
-
-const toStringValue = (value: unknown) =>
-  value === null || value === undefined ? '' : String(value)
-
 const dedupeOutlets = (items: OutletRecord[]) => {
   const seen = new Set<string>()
   return items.filter((row) => {
@@ -151,7 +107,8 @@ export const OutletList = () => {
   const [areaId, setAreaId] = useState<string>(storedAreaId)
   const [territoryId, setTerritoryId] = useState<string>(storedTerritoryId)
   const [routeId, setRouteId] = useState<string>(storedRouteId)
-  const [editOutlet, setEditOutlet] = useState<OutletRecord | null>(null)
+  const [activeOutlet, setActiveOutlet] = useState<OutletRecord | null>(null)
+  const [dialogMode, setDialogMode] = useState<'edit' | 'view'>('edit')
   const [globalFilter, setGlobalFilter] = useState('')
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 })
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
@@ -163,6 +120,15 @@ export const OutletList = () => {
   const [createdRange, setCreatedRange] = useState<DateRange | undefined>()
   const [pendingRange, setPendingRange] = useState<DateRange | undefined>()
   const [applyError, setApplyError] = useState(false)
+  const [approveConfirmOpen, setApproveConfirmOpen] = useState(false)
+  const [pendingApprove, setPendingApprove] = useState<OutletRecord | null>(
+    null
+  )
+  const [statusConfirmOpen, setStatusConfirmOpen] = useState(false)
+  const [pendingStatus, setPendingStatus] = useState<{
+    outlet: OutletRecord
+    nextActive: boolean
+  } | null>(null)
 
   const { data: rows = [], isLoading, isError, error } = useQuery({
     queryKey: [
@@ -189,159 +155,47 @@ export const OutletList = () => {
   })
 
   const approveMutation = useMutation({
-    mutationFn: async (vars: {
-      outlet: OutletRecord
-      nextApproved: boolean
-    }) => {
-      const userId = user?.userId
-      if (!userId) {
-        throw new Error('User id is required to update outlet.')
-      }
-
-      const outletId = resolveRequiredId(
-        'Outlet id',
-        vars.outlet.id,
-        vars.outlet.outletId
-      )
-      const outletDetailsRes = (await findOutletById(
-        outletId
-      )) as ApiResponse<OutletRecord>
-      const outletDetails = outletDetailsRes.payload ?? {}
-
-      const outletCategoryId = resolveRequiredId(
-        'Outlet category',
-        outletDetails.outletCategoryId,
-        vars.outlet.outletCategoryId
-      )
-      const routeId = resolveRequiredId(
-        'Route',
-        outletDetails.routeId,
-        vars.outlet.routeId
-      )
-      const rangeId = resolveRequiredId(
-        'Range',
-        outletDetails.rangeId,
-        vars.outlet.rangeId
-      )
-
-      const outletName = resolveRequiredString(
-        'Outlet name',
-        outletDetails.outletName,
-        vars.outlet.outletName,
-        vars.outlet.name
-      )
-      const address1 = resolveRequiredString(
-        'Address 1',
-        outletDetails.address1,
-        vars.outlet.address1
-      )
-      const address2 = resolveRequiredString(
-        'Address2',
-        outletDetails.address2,
-        vars.outlet.address2
-      )
-      const address3 = resolveRequiredString(
-        'Address3',
-        outletDetails.address3,
-        vars.outlet.address3
-      )
-      const ownerName = resolveRequiredString(
-        'Owner name',
-        outletDetails.ownerName,
-        vars.outlet.ownerName,
-        vars.outlet.owner
-      )
-      const mobileNo = resolveRequiredString(
-        'Mobile number',
-        outletDetails.mobileNo,
-        vars.outlet.mobileNo,
-        vars.outlet.mobile
-      )
-      const latitude = resolveRequiredString(
-        'Latitude',
-        outletDetails.latitude,
-        vars.outlet.latitude
-      )
-      const longitude = resolveRequiredString(
-        'Longitude',
-        outletDetails.longitude,
-        vars.outlet.longitude
-      )
-      const displayOrder = resolveRequiredValue(
-        'Display order',
-        outletDetails.displayOrder,
-        vars.outlet.displayOrder
-      )
-      const openTime = resolveRequiredString(
-        'Open time',
-        outletDetails.openTime,
-        vars.outlet.openTime
-      )
-      const closeTime = resolveRequiredString(
-        'Close time',
-        outletDetails.closeTime,
-        vars.outlet.closeTime
-      )
-      const outletSequence = resolveRequiredValue(
-        'Outlet sequence',
-        outletDetails.outletSequence,
-        vars.outlet.outletSequence
-      )
-      const vatNumValue = resolveNonEmpty(
-        outletDetails.vatNum,
-        vars.outlet.vatNum
-      )
-
-      const payload: UpdateOutletRequest = {
-        id: outletId,
-        userId,
-        outletCategoryId,
-        routeId,
-        rangeId,
-        outletName,
-        address1,
-        address2,
-        address3,
-        ownerName,
-        mobileNo,
-        latitude,
-        longitude,
-        displayOrder,
-        openTime,
-        closeTime,
-        isNew: resolveBoolean(outletDetails.isNew, vars.outlet.isNew),
-        isApproved: vars.nextApproved,
-        isClose: resolveBoolean(outletDetails.isClose, vars.outlet.isClose),
-        vatNum: vatNumValue ? toStringValue(vatNumValue) : undefined,
-        outletSequence,
-      }
-
-      const formData = new FormData()
-      ;(Object.entries(payload) as Array<
-        [keyof UpdateOutletRequest, UpdateOutletRequest[keyof UpdateOutletRequest]]
-      >).forEach(([key, value]) => {
-        if (value === undefined || value === null) return
-        formData.append(String(key), String(value))
-      })
-
-      return updateOutlet(formData)
+    mutationFn: async (vars: { outletId: string | number }) =>
+      approvalOutlet(vars.outletId),
+    onSuccess: (response) => {
+      toast.success(response?.message ?? 'Outlet approved successfully')
+      queryClient.invalidateQueries({ queryKey: ['user-demarcation', 'outlets'] })
     },
-    onSuccess: () => {
-      toast.success('Outlet approval updated successfully')
+    onError: (error) => {
+      toast.error((error as Error)?.message ?? 'Failed to approve outlet')
+    },
+  })
+
+  const deactivateMutation = useMutation({
+    mutationFn: async (vars: { outletId: string | number }) =>
+      deactivateOutlet(vars.outletId),
+    onSuccess: (response) => {
+      toast.success(
+        response?.message ?? 'Outlet status updated successfully'
+      )
       queryClient.invalidateQueries({ queryKey: ['user-demarcation', 'outlets'] })
     },
     onError: (error) => {
       toast.error(
-        (error as Error)?.message ?? 'Failed to update outlet approval'
+        (error as Error)?.message ?? 'Failed to update outlet status'
       )
     },
   })
 
-  const handleToggleApprove = useCallback(
-    (record: OutletRecord, nextApproved: boolean) => {
-      approveMutation.mutate({ outlet: record, nextApproved })
+  const handleApprove = useCallback(
+    (record: OutletRecord) => {
+      setPendingApprove(record)
+      setApproveConfirmOpen(true)
     },
-    [approveMutation]
+    []
+  )
+
+  const handleToggleActive = useCallback(
+    (record: OutletRecord, nextActive: boolean) => {
+      setPendingStatus({ outlet: record, nextActive })
+      setStatusConfirmOpen(true)
+    },
+    []
   )
 
   const outletRows = channelId ? rows : []
@@ -350,13 +204,40 @@ export const OutletList = () => {
     [outletRows]
   )
 
+  const effectiveRoleId = Number(user?.roleId ?? user?.userGroupId)
+  const canEditOutlet =
+    user?.userGroupId === RoleId.SystemAdmin ||
+    user?.userGroupId === RoleId.ManagerSales ||
+    effectiveRoleId === SubRoleId.Admin ||
+    effectiveRoleId === SubRoleId.RegionSalesManager ||
+    effectiveRoleId === SubRoleId.AreaSalesManager ||
+    effectiveRoleId === SubRoleId.Representative
+
+  const outletDialogTitle = useMemo(() => {
+    if (!activeOutlet) return 'Edit Outlet'
+    const outletName = pickFirstValue(activeOutlet, ['outletName', 'name'])
+    if (dialogMode === 'view') {
+      return outletName ? String(outletName) : 'Outlet Details'
+    }
+    return 'Edit Outlet'
+  }, [activeOutlet, dialogMode])
+
   const columns = useMemo<ColumnDef<OutletRecord>[]>(
     () =>
       createOutletColumns({
-        onEdit: (record) => setEditOutlet(record),
-        onToggleApprove: handleToggleApprove,
+        onView: (record) => {
+          setDialogMode('view')
+          setActiveOutlet(record)
+        },
+        onEdit: (record) => {
+          setDialogMode('edit')
+          setActiveOutlet(record)
+        },
+        onApprove: handleApprove,
+        onToggleActive: handleToggleActive,
+        canEdit: canEditOutlet,
       }),
-    [handleToggleApprove]
+    [handleApprove, handleToggleActive, canEditOutlet]
   )
 
   const filteredData = useMemo(() => {
@@ -659,20 +540,91 @@ export const OutletList = () => {
         </Card>
       ) : null}
       <FullWidthDialog
-        open={Boolean(editOutlet)}
+        open={Boolean(activeOutlet)}
         onOpenChange={(open) => {
-          if (!open) setEditOutlet(null)
+          if (!open) setActiveOutlet(null)
         }}
-        title='Edit Outlet'
+        title={outletDialogTitle}
         width='full'
       >
-        {editOutlet ? (
+        {activeOutlet ? (
           <EditOutletForm
-            outlet={editOutlet}
-            onSubmit={() => setEditOutlet(null)}
+            outlet={activeOutlet}
+            mode={dialogMode}
+            onSubmit={() => setActiveOutlet(null)}
           />
         ) : null}
       </FullWidthDialog>
+      <ConfirmDialog
+        open={approveConfirmOpen}
+        onOpenChange={(open) => {
+          setApproveConfirmOpen(open)
+          if (!open) setPendingApprove(null)
+        }}
+        title='Approve outlet?'
+        desc={
+          pendingApprove
+            ? `Are you sure you want to approve this outlet${
+                pendingApprove.outletName || pendingApprove.name
+                  ? ` "${pendingApprove.outletName ?? pendingApprove.name}"`
+                  : ''
+              }?`
+            : 'Are you sure you want to approve this outlet?'
+        }
+        confirmText='Yes, approve'
+        cancelBtnText='No'
+        isLoading={approveMutation.isPending}
+        handleConfirm={() => {
+          if (!pendingApprove) return
+          const outletId = pendingApprove.outletId ?? pendingApprove.id
+          if (outletId === null || outletId === undefined || outletId === '') {
+            toast.error('Outlet id is required to approve outlet')
+            return
+          }
+          approveMutation.mutate({ outletId })
+          setApproveConfirmOpen(false)
+          setPendingApprove(null)
+        }}
+      />
+      <ConfirmDialog
+        destructive
+        open={statusConfirmOpen}
+        onOpenChange={(open) => {
+          setStatusConfirmOpen(open)
+          if (!open) setPendingStatus(null)
+        }}
+        title='Change outlet status?'
+        desc={
+          pendingStatus
+            ? `Are you sure you want to ${
+                pendingStatus.nextActive ? 'activate' : 'deactivate'
+              } this outlet${
+                pendingStatus.outlet.outletName || pendingStatus.outlet.name
+                  ? ` "${
+                      pendingStatus.outlet.outletName ??
+                      pendingStatus.outlet.name
+                    }"`
+                  : ''
+              }?`
+            : 'Are you sure you want to change this outlet status?'
+        }
+        confirmText={
+          pendingStatus?.nextActive ? 'Yes, activate' : 'Yes, deactivate'
+        }
+        cancelBtnText='No'
+        isLoading={deactivateMutation.isPending}
+        handleConfirm={() => {
+          if (!pendingStatus) return
+          const outletId = pendingStatus.outlet.outletId ?? pendingStatus.outlet.id
+          if (outletId === null || outletId === undefined || outletId === '') {
+            toast.error('Outlet id is required to update status')
+            return
+          }
+          deactivateMutation.mutate({ outletId })
+          setStatusConfirmOpen(false)
+          setPendingStatus(null)
+        }}
+      />
     </div>
   )
 }

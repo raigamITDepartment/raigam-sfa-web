@@ -48,6 +48,7 @@ type EditOutletFormValues = {
 type EditOutletFormProps = {
   outlet: EditOutletFormValues
   onSubmit?: (values: EditOutletFormValues) => void
+  mode?: 'edit' | 'view'
 }
 
 const toStringValue = (value: unknown) =>
@@ -95,11 +96,16 @@ const resolveBoolean = (...values: Array<boolean | null | undefined>) => {
   return false
 }
 
-export function EditOutletForm({ outlet, onSubmit }: EditOutletFormProps) {
+export function EditOutletForm({
+  outlet,
+  onSubmit,
+  mode = 'edit',
+}: EditOutletFormProps) {
   const queryClient = useQueryClient()
   const user = useAppSelector((state) => state.auth.user)
   const roleId = Number(user?.roleId ?? user?.userGroupId)
   const isRep = roleId === SubRoleId.Representative
+  const isReadOnly = mode === 'view'
   const [formValues, setFormValues] = useState<EditOutletFormValues>(() => ({
     ...outlet,
   }))
@@ -367,7 +373,7 @@ export function EditOutletForm({ outlet, onSubmit }: EditOutletFormProps) {
           </Card>
         </div>
 
-        <div className='space-y-4'>
+        <fieldset disabled={isReadOnly} className='space-y-4'>
           <div className='grid gap-4 md:grid-cols-3'>
             <div className='space-y-2'>
               <Label>Outlet Name</Label>
@@ -619,18 +625,20 @@ export function EditOutletForm({ outlet, onSubmit }: EditOutletFormProps) {
               </div>
             </div>
           </div>
-        </div>
+        </fieldset>
       </div>
 
-      <div className='flex justify-end'>
-        <Button
-          className='min-w-[220px]'
-          onClick={handleSubmit}
-          disabled={mutation.isPending || isDetailsLoading}
-        >
-          Update Outlet
-        </Button>
-      </div>
+      {!isReadOnly ? (
+        <div className='flex justify-end'>
+          <Button
+            className='min-w-[220px]'
+            onClick={handleSubmit}
+            disabled={mutation.isPending || isDetailsLoading}
+          >
+            Update Outlet
+          </Button>
+        </div>
+      ) : null}
       <Dialog open={imageOpen} onOpenChange={setImageOpen}>
         <DialogContent className='max-w-5xl p-0'>
           <DialogHeader className='border-b px-6 py-4'>

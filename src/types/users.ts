@@ -1,4 +1,4 @@
-import type { ApiResponse } from './common'
+import type { ApiResponse, Id } from './common'
 
 export type UserDemarcationUser = {
   id: number
@@ -48,10 +48,19 @@ export type UserSubRole = {
   subRoleName?: string
 }
 
+export type UserType = {
+  id: Id
+  userId?: Id
+  userTypeName: string
+  isActive?: boolean
+}
+
 export type UpdateUserRequest = {
   id: number
   userGroupId: number
   roleId: number
+  continentId: number | null
+  countryId: number | null
   channelId?: number | null
   subChannelId?: number | null
   regionId?: number | null
@@ -105,5 +114,6 @@ export type AddUserRequest = {
 export type GetAllUsersResponse = ApiResponse<UserDemarcationUser[]>
 export type GetAllUserRolesResponse = ApiResponse<UserRole[]>
 export type GetAllRolesResponse = ApiResponse<UserSubRole[]>
+export type GetAllUserTypesResponse = ApiResponse<UserType[]>
 export type UserActivationResponse = ApiResponse<UserDemarcationUser>
 export type AddUserResponse = ApiResponse<UserDemarcationUser>

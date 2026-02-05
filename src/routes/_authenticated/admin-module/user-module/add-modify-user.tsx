@@ -172,8 +172,8 @@ function AddModifyUser() {
         userGroupId: values.userGroupId,
         roleId: values.roleId,
         departmentId: null,
-        continentId: null,
-        countryId: null,
+        continentId: 1,
+        countryId: 1,
         channelId: values.channelId ?? null,
         subChannelId: values.subChannelId ?? null,
         regionId: values.regionId ?? null,
@@ -184,7 +184,7 @@ function AddModifyUser() {
         areaIds: values.areaIds?.length
           ? values.areaIds.map((id) => Number(id))
           : undefined,
-        userLevelId: 0,
+        userLevelId: values.userLevelId,
         userName: values.userName,
         firstName: values.firstName,
         lastName: values.lastName,
@@ -218,6 +218,8 @@ function AddModifyUser() {
         id: targetUser.id,
         userGroupId: values.userGroupId,
         roleId: values.roleId,
+        continentId: 1,
+        countryId: 1,
         channelId: values.channelId ?? null,
         subChannelId: values.subChannelId ?? null,
         regionId: values.regionId ?? null,
@@ -228,7 +230,7 @@ function AddModifyUser() {
         areaIds: values.areaIds?.length
           ? values.areaIds.map((id) => Number(id))
           : undefined,
-        userLevelId: targetUser.userLevelId,
+        userLevelId: values.userLevelId,
         userName: values.userName,
         firstName: values.firstName,
         lastName: values.lastName,
@@ -362,6 +364,7 @@ function AddModifyUser() {
         mobileNo: activeEditingUser.mobileNo,
         userGroupId: resolvedGroupId,
         roleId: resolvedRoleId,
+        userLevelId: activeEditingUser.userLevelId ?? undefined,
         channelId: activeEditingUser.channelId ?? undefined,
         subChannelId: activeEditingUser.subChannelId ?? undefined,
         regionId: activeEditingUser.regionId ?? undefined,

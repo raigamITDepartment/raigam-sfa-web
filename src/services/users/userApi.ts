@@ -5,6 +5,7 @@ import type {
   AddUserResponse,
   GetAllRolesResponse,
   GetAllUserRolesResponse,
+  GetAllUserTypesResponse,
   GetAllUsersResponse,
   UpdateUserRequest,
   UserActivationResponse,
@@ -14,6 +15,7 @@ import type {
 export const USER_BASE = '/api/v1/userDemarcation/user'
 export const USER_GROUP_BASE = '/api/v1/userDemarcation/userGroup'
 export const USER_ROLE_BASE = '/api/v1/userDemarcation/role'
+export const USER_TYPE_BASE = '/api/v1/userDemarcation/user_type'
 export const USER_SIGNUP_BASE = '/api/v1/auth/signup'
 
 export async function getAllUsers(): Promise<GetAllUsersResponse> {
@@ -28,6 +30,11 @@ export async function getAllUserGroups(): Promise<GetAllUserRolesResponse> {
 
 export async function getAllRoles(): Promise<GetAllRolesResponse> {
   const res = await http.get<GetAllRolesResponse>(USER_ROLE_BASE)
+  return res.data
+}
+
+export async function getAllUserTypes(): Promise<GetAllUserTypesResponse> {
+  const res = await http.get<GetAllUserTypesResponse>(USER_TYPE_BASE)
   return res.data
 }
 

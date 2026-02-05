@@ -1,12 +1,9 @@
 {
   "routes": [
     {
-      "route": "/",
-      "serve": "/index.html"
-    },
-    {
       "route": "/*",
-      "serve": "/index.html"
+      "redirect": "https://raigamsfa.com/:splat",
+      "statusCode": 301
     }
   ],
   "navigationFallback": {

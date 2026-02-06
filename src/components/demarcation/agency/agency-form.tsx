@@ -174,9 +174,7 @@ export function AgencyForm(props: AgencyFormProps) {
         (resolvedTerritory?.name as string | undefined) ??
         ''
       const resolvedRange =
-        (resolvedTerritory?.rangeName as string | undefined) ??
-        (resolvedTerritory?.range as string | undefined) ??
-        ''
+        (resolvedTerritory?.rangeName as string | undefined) ?? ''
       const createdPayload = data.payload
         ? {
             ...data.payload,
@@ -200,7 +198,7 @@ export function AgencyForm(props: AgencyFormProps) {
           if (!old) {
             return {
               ...data,
-              payload: createdPayload ? [createdPayload] : old?.payload ?? [],
+              payload: createdPayload ? [createdPayload] : [],
             }
           }
           if (!Array.isArray(old.payload)) return old

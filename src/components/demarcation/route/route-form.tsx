@@ -199,7 +199,7 @@ export function RouteForm(props: RouteFormProps) {
         if (!old) {
           return {
             ...data,
-            payload: createdPayload ? [createdPayload] : old?.payload ?? [],
+            payload: createdPayload ? [createdPayload] : [],
           }
         }
         if (!Array.isArray(old.payload)) return old

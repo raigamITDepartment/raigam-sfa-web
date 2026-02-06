@@ -40,7 +40,10 @@ const subChannelFormSchema = z.object({
   channelId: z.string().min(1, 'Please select a channel'),
   subChannelCode: z.string().min(1, 'Please enter sub-channel code'),
   subChannelName: z.string().min(1, 'Please enter sub-channel name'),
-  shortName: z.string().min(1, 'Please enter sub-channel short name'),
+  shortName: z
+    .string()
+    .min(1, 'Please enter sub-channel short name')
+    .max(3, 'Sub-channel short name must be at most 3 characters'),
   isActive: z.boolean().default(true),
 })
 
@@ -273,7 +276,11 @@ export function SubChannelForm(props: SubChannelFormProps) {
             <FormItem>
               <FormLabel>Sub Channel Short Name</FormLabel>
               <FormControl>
-                <Input placeholder='Sub Channel Short Name' {...field} />
+                <Input
+                  placeholder='Sub Channel Short Name'
+                  maxLength={3}
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>

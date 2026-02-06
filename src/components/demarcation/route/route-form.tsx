@@ -102,8 +102,8 @@ export function RouteForm(props: RouteFormProps) {
       routeName: '',
       displayOrder: 0,
       areaId: '',
-      oldRouteId: '',
-      oldRouteCode: '',
+      oldRouteId: mode === 'create' ? '0' : '',
+      oldRouteCode: mode === 'create' ? '0' : '',
       isActive: true,
       ...initialValues,
     },
@@ -178,17 +178,36 @@ export function RouteForm(props: RouteFormProps) {
     },
     onSuccess: (data, values) => {
       toast.success('Route created successfully')
+      const resolvedTerritory = displayedTerritoryOptions.find(
+        (territory) => String(territory.id) === String(values.territoryId)
+      )
+      const resolvedTerritoryName =
+        (resolvedTerritory?.territoryName as string | undefined) ??
+        (resolvedTerritory?.name as string | undefined) ??
+        ''
+      const createdPayload = data.payload
+        ? {
+            ...data.payload,
+            territoryId:
+              (data.payload as RouteDTO).territoryId ??
+              Number(values.territoryId),
+            territoryName:
+              (data.payload as RouteDTO).territoryName ?? resolvedTerritoryName,
+          }
+        : data.payload
       queryClient.setQueryData<ApiResponse<RouteDTO[]>>(['routes'], (old) => {
         if (!old) {
           return {
             ...data,
-            payload: [data.payload],
+            payload: createdPayload ? [createdPayload] : old?.payload ?? [],
           }
         }
         if (!Array.isArray(old.payload)) return old
         return {
           ...old,
-          payload: [data.payload, ...old.payload],
+          payload: createdPayload
+            ? [createdPayload, ...old.payload]
+            : old.payload,
         }
       })
       void onSubmit?.(values)

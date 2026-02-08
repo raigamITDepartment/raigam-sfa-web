@@ -92,3 +92,41 @@
   font-weight: 600;
   padding-block: 0.5rem;
 }
+
+/* Auth page background */
+.auth-shell {
+  position: relative;
+  min-height: 100svh;
+  overflow: hidden;
+  background:
+    radial-gradient(900px 600px at 10% 10%, rgba(59, 130, 246, 0.25), transparent 60%),
+    radial-gradient(700px 500px at 85% 15%, rgba(56, 189, 248, 0.18), transparent 55%),
+    radial-gradient(800px 600px at 70% 90%, rgba(14, 165, 233, 0.18), transparent 60%),
+    linear-gradient(165deg, #0b1120 0%, #0b1225 45%, #0f172a 100%);
+}
+
+.auth-shell::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(to right, rgba(56, 189, 248, 0.18) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(56, 189, 248, 0.18) 1px, transparent 1px);
+  background-size: 64px 64px;
+  opacity: 0.22;
+  pointer-events: none;
+}
+
+.auth-shell::after {
+  content: '';
+  position: absolute;
+  inset: -25% -15% auto auto;
+  width: 70%;
+  height: 80%;
+  background:
+    radial-gradient(closest-side, rgba(56, 189, 248, 0.45), rgba(56, 189, 248, 0)),
+    radial-gradient(closest-side, rgba(14, 165, 233, 0.3), rgba(14, 165, 233, 0));
+  filter: blur(12px);
+  opacity: 0.75;
+  pointer-events: none;
+}

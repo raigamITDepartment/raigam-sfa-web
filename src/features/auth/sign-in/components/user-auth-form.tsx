@@ -28,7 +28,7 @@ const formSchema = z.object({
     .string()
     .min(1, 'Please enter your password')
     .min(1, 'Password must be at least 1 characters long'),
-  remember: z.boolean().optional().default(false),
+  remember: z.boolean().optional().default(true),
 })
 
 interface UserAuthFormProps extends React.HTMLAttributes<HTMLFormElement> {
@@ -54,7 +54,7 @@ export function UserAuthForm({
     defaultValues: {
       username: '',
       password: '',
-      remember: false,
+      remember: true,
     },
   })
 
@@ -137,7 +137,7 @@ export function UserAuthForm({
                   onCheckedChange={(v) => field.onChange(!!v)}
                 />
               </FormControl>
-              <FormLabel className='m-0'>Remember me</FormLabel>
+              <FormLabel className='m-0'>Keep me signed in</FormLabel>
             </FormItem>
           )}
         />

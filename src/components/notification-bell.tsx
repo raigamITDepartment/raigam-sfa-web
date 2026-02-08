@@ -126,7 +126,10 @@ export function NotificationBell() {
 
     fetchRef.current = fetchNotifications
     fetchNotifications()
-    const interval = window.setInterval(fetchNotifications, 30_000)
+    const interval = window.setInterval(
+      fetchNotifications,
+      60 * 60 * 1000
+    )
 
     return () => {
       active = false

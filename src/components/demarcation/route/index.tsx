@@ -498,7 +498,7 @@ export default function RouteComponent() {
           filters={toolbarFilters}
         />
         <div className='rounded-md border'>
-          <Table className='text-xs'>
+          <Table className='text-xs whitespace-nowrap'>
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
@@ -540,11 +540,11 @@ export default function RouteComponent() {
                     data-state={row.getIsSelected() && 'selected'}
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className='p-1'>
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
+                    <TableCell key={cell.id} className='p-1 whitespace-nowrap'>
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
                       </TableCell>
                     ))}
                   </TableRow>

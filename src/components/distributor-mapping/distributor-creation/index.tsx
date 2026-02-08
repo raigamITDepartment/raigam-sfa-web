@@ -82,6 +82,15 @@ const buildFacetOptions = (values: (string | undefined | null)[]) => {
   }))
 }
 
+const normalizeId = (value: Id | undefined | null) => {
+  if (typeof value === 'number') return value
+  if (typeof value === 'string') {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : 0
+  }
+  return 0
+}
+
 type TogglePayload = {
   id: Id
   nextActive: boolean
@@ -134,7 +143,7 @@ export default function DistributorCreation() {
 
   const rows = useMemo(() => {
     if (!data?.payload) return []
-    return data.payload.map((record) => {
+    const mapped = data.payload.map((record) => {
       const displayRange = record.range ?? record.rangeName ?? ''
       const normalizedRange = displayRange.trim().toLowerCase()
       const resolvedRangeId =
@@ -148,6 +157,10 @@ export default function DistributorCreation() {
         rangeId: resolvedRangeId ?? record.rangeId,
       }
     })
+
+    return mapped
+      .slice()
+      .sort((a, b) => normalizeId(b.id) - normalizeId(a.id))
   }, [data, rangeLookup])
 
   const rangeFilterOptions = useMemo(
@@ -466,7 +479,7 @@ export default function DistributorCreation() {
           filters={filters}
         />
         <div className='rounded-md border'>
-          <Table className='text-xs'>
+          <Table className='text-xs whitespace-nowrap'>
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
@@ -512,11 +525,11 @@ export default function DistributorCreation() {
                 table.getRowModel().rows.map((row) => (
                   <TableRow key={row.id}>
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className='p-1'>
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
+                    <TableCell key={cell.id} className='p-1 whitespace-nowrap'>
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
                       </TableCell>
                     ))}
                   </TableRow>

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -43,7 +43,7 @@ const agencyFormSchema = z.object({
   subChannelId: z.string().optional(),
   territoryId: z.string().min(1, 'Please select a territory'),
   agencyName: z.string().min(1, 'Please enter agency name'),
-  agencyCode: z.string().min(1, 'Please enter agency code'),
+  agencyCode: z.string().optional(),
   oldAgencyCode: z.string().optional(),
   isActive: z.boolean().default(true),
 })
@@ -87,7 +87,7 @@ export function AgencyForm(props: AgencyFormProps) {
       subChannelId: '',
       territoryId: '',
       agencyName: '',
-      agencyCode: '',
+      agencyCode: mode === 'create' ? '0' : '',
       oldAgencyCode: '',
       isActive: true,
       ...initialValues,
@@ -101,16 +101,15 @@ export function AgencyForm(props: AgencyFormProps) {
       subChannelId: '',
       territoryId: '',
       agencyName: '',
-      agencyCode: '',
+      agencyCode: mode === 'create' ? '0' : '',
       oldAgencyCode: '',
       isActive: true,
       ...initialValues,
     })
-  }, [initialValues, form])
+  }, [initialValues, form, mode])
 
   const channelIdValue = form.watch('channelId')
   const prevChannelIdRef = useRef<string | undefined>(undefined)
-  const [subChannelOpen, setSubChannelOpen] = useState(false)
 
   useEffect(() => {
     if (!channelIdValue) {
@@ -140,19 +139,6 @@ export function AgencyForm(props: AgencyFormProps) {
     enabled: Boolean(channelIdValue),
   })
 
-  useEffect(() => {
-    if (!channelIdValue) {
-      setSubChannelOpen(false)
-      return
-    }
-
-    if (subChannelsData?.length) {
-      setSubChannelOpen(true)
-    } else {
-      setSubChannelOpen(false)
-    }
-  }, [channelIdValue, subChannelsData])
-
   const createMutation = useMutation({
     mutationFn: async (values: AgencyFormValues) => {
       const payload: CreateAgencyRequest = {
@@ -164,7 +150,10 @@ export function AgencyForm(props: AgencyFormProps) {
             : undefined,
         territoryId: Number(values.territoryId),
         agencyName: values.agencyName,
-        agencyCode: Number(values.agencyCode),
+        agencyCode:
+          values.agencyCode && values.agencyCode.trim()
+            ? Number(values.agencyCode)
+            : 0,
         oldAgencyCode: values.oldAgencyCode?.trim() || undefined,
         isActive: values.isActive,
       }
@@ -172,19 +161,52 @@ export function AgencyForm(props: AgencyFormProps) {
     },
     onSuccess: async (data, variables) => {
       toast.success('Agency created successfully')
+      const resolvedChannel = channelsData?.find(
+        (channel) => String(channel.id) === String(variables.channelId)
+      )
+      const resolvedTerritory = territoriesData?.find(
+        (territory) => String(territory.id) === String(variables.territoryId)
+      )
+      const resolvedChannelName =
+        (resolvedChannel?.channelName as string | undefined) ?? ''
+      const resolvedTerritoryName =
+        (resolvedTerritory?.territoryName as string | undefined) ??
+        (resolvedTerritory?.name as string | undefined) ??
+        ''
+      const resolvedRange =
+        (resolvedTerritory?.rangeName as string | undefined) ?? ''
+      const createdPayload = data.payload
+        ? {
+            ...data.payload,
+            channelId:
+              (data.payload as AgencyDTO).channelId ??
+              Number(variables.channelId),
+            territoryId:
+              (data.payload as AgencyDTO).territoryId ??
+              Number(variables.territoryId),
+            channelName:
+              (data.payload as AgencyDTO).channelName ?? resolvedChannelName,
+            territoryName:
+              (data.payload as AgencyDTO).territoryName ??
+              resolvedTerritoryName,
+            range: (data.payload as AgencyDTO).range ?? resolvedRange,
+          }
+        : data.payload
       queryClient.setQueryData<ApiResponse<AgencyDTO[]>>(
         ['agencies'],
         (old) => {
           if (!old) {
             return {
               ...data,
-              payload: [data.payload],
+              payload: createdPayload ? [createdPayload] : [],
             }
           }
           if (!Array.isArray(old.payload)) return old
           return {
             ...old,
-            payload: [data.payload, ...old.payload],
+            payload: createdPayload
+              ? [createdPayload, ...old.payload]
+              : old.payload,
           }
         }
       )
@@ -210,7 +232,10 @@ export function AgencyForm(props: AgencyFormProps) {
             : undefined,
         territoryId: Number(values.territoryId),
         agencyName: values.agencyName,
-        agencyCode: Number(values.agencyCode),
+        agencyCode:
+          values.agencyCode && values.agencyCode.trim()
+            ? Number(values.agencyCode)
+            : 0,
         oldAgencyCode: values.oldAgencyCode?.trim() || undefined,
         isActive: values.isActive,
       }
@@ -272,8 +297,6 @@ export function AgencyForm(props: AgencyFormProps) {
                 <Select
                   value={field.value}
                   onValueChange={(value) => field.onChange(value)}
-                  open={subChannelOpen}
-                  onOpenChange={(open) => setSubChannelOpen(open)}
                 >
                   <SelectTrigger className='w-full'>
                     <SelectValue placeholder='Select Channel' />
@@ -363,25 +386,6 @@ export function AgencyForm(props: AgencyFormProps) {
                     ))}
                   </SelectContent>
                 </Select>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name='agencyCode'
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Agency Code</FormLabel>
-              <FormControl>
-                <Input
-                  placeholder='Agency Code'
-                  {...field}
-                  inputMode='numeric'
-                  pattern='[0-9]*'
-                />
               </FormControl>
               <FormMessage />
             </FormItem>

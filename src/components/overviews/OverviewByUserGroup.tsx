@@ -1,4 +1,4 @@
-import { RoleId } from '@/lib/authz'
+import { RoleId, getEffectiveRoleId } from '@/lib/authz'
 import { useAppSelector } from '@/store/hooks'
 import { BaseOverview } from './BaseOverview'
 import { ExecutiveCompanyOverview } from './ExecutiveCompanyOverview'
@@ -11,9 +11,20 @@ import { TopManagementOverview } from './TopManagementOverview'
 
 export function OverviewByUserGroup() {
   const user = useAppSelector((state) => state.auth.user)
-  const rawGroupId = user?.userGroupId
+  const rawGroupId = user?.userGroupId ?? getEffectiveRoleId()
   const parsedGroupId = rawGroupId != null ? Number(rawGroupId) : NaN
   const groupId = Number.isFinite(parsedGroupId) ? parsedGroupId : undefined
+
+  if (groupId == null) {
+    if (!user) {
+      return (
+        <div className='py-10 text-center text-sm text-muted-foreground'>
+          Loading overview...
+        </div>
+      )
+    }
+    return <BaseOverview />
+  }
 
   switch (groupId) {
     case RoleId.SystemAdmin:

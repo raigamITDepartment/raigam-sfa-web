@@ -18,7 +18,7 @@ export function Search({
     <Button
       variant='outline'
       className={cn(
-        'bg-muted/25 group text-muted-foreground hover:bg-accent relative h-8 w-full flex-1 justify-start rounded-md text-sm font-normal shadow-none sm:w-40 sm:pe-12 md:flex-none lg:w-52 xl:w-64',
+        'bg-muted/25 group text-muted-foreground hover:bg-accent relative h-8 w-full min-w-0 flex-1 justify-start overflow-hidden rounded-md text-sm font-normal shadow-none sm:w-40 sm:pe-12 md:flex-none lg:w-52 xl:w-64',
         className
       )}
       onClick={() => setOpen(true)}
@@ -28,7 +28,7 @@ export function Search({
         className='absolute start-1.5 top-1/2 -translate-y-1/2'
         size={16}
       />
-      <span className='ms-4'>{placeholder}</span>
+      <span className='ms-4 truncate'>{placeholder}</span>
     </Button>
   )
 }

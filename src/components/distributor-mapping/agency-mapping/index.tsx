@@ -20,7 +20,7 @@ import {
   type ApiResponse,
   type Id,
 } from '@/services/userDemarcationApi'
-import { Pencil } from 'lucide-react'
+import { Pencil, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -50,6 +50,8 @@ import {
   ExcelExportButton,
   type ExcelExportColumn,
 } from '@/components/excel-export-button'
+import { CommonDialog } from '@/components/common-dialog'
+import { AgencyForm } from '@/components/demarcation/agency/agency-form'
 
 type AgencyExportRow = {
   agencyCode?: number | string
@@ -100,6 +102,7 @@ export default function AgencyMapping() {
     pageIndex: 0,
     pageSize: 10,
   })
+  const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [pendingToggle, setPendingToggle] = useState<PendingToggle | null>(null)
 
@@ -334,9 +337,11 @@ export default function AgencyMapping() {
           <CardTitle className='flex w-full items-center gap-3'>
             <span>All Agency Mappings</span>
             <CountBadge value={`${filteredCount}/${totalCount}`} />
-            <span className='text-muted-foreground ml-auto text-sm font-medium'>
-              Filters {activeFiltersCount}
-            </span>
+            {activeFiltersCount > 0 ? (
+              <span className='text-muted-foreground ml-auto text-sm font-medium'>
+                Filters {activeFiltersCount}
+              </span>
+            ) : null}
           </CardTitle>
           <ExcelExportButton
             size='sm'
@@ -347,6 +352,14 @@ export default function AgencyMapping() {
             worksheetName='Agencies'
             customStyles={exportStatusStyles}
           />
+          <Button
+            size='sm'
+            className='flex items-center gap-1'
+            onClick={() => setCreateDialogOpen(true)}
+          >
+            <Plus className='size-4 opacity-80' />
+            Create Agency Mapping
+          </Button>
         </div>
       </CardHeader>
       <CardContent className='space-y-2'>
@@ -478,6 +491,23 @@ export default function AgencyMapping() {
         isLoading={toggleStatusMutation.isPending}
         handleConfirm={handleConfirmToggle}
       />
+      <CommonDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        title='Create Agency Mapping'
+        description='Create a new agency mapping.'
+        hideFooter
+      >
+        <AgencyForm
+          mode='create'
+          onSubmit={async () => {
+            setCreateDialogOpen(false)
+          }}
+          onCancel={() => {
+            setCreateDialogOpen(false)
+          }}
+        />
+      </CommonDialog>
     </Card>
   )
 }

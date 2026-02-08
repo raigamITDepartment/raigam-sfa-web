@@ -46,8 +46,7 @@ export function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
             )}
           >
             <Header fixed className='border-b'>
-              <Search />
-              <div className='ms-auto flex items-center space-x-4'>
+              <div className='flex items-center gap-2 sm:gap-4'>
                 <FullscreenToggle />
                 <ThemeSwitch />
                 <ConfigDrawer />

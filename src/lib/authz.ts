@@ -277,6 +277,7 @@ export const RoleAccess: Record<string, RoleIdValue[]> = {
   // Outlet Module
   '/outlet-module/outlets': [
     RoleId.SystemAdmin,
+    RoleId.TopManager,
     RoleId.ManagerSales,
     SubRoleId.Representative,
   ],
@@ -340,12 +341,14 @@ export const RoleAccess: Record<string, RoleIdValue[]> = {
   // HR Module
   '/hr-module/gps-monitoring': [
     RoleId.SystemAdmin,
+    RoleId.TopManager,
     RoleId.SeniorManagerSales,
     RoleId.ExecutiveSales,
     RoleId.OperationCompany,
   ],
   '/hr-module/time-attendance': [
     RoleId.SystemAdmin,
+    RoleId.TopManager,
     RoleId.SeniorManagerSales,
     RoleId.ManagerSales,
     RoleId.ExecutiveSales,
@@ -621,6 +624,15 @@ export function isPathAllowedForUser(
   const effectiveRoleId = roleId ?? getEffectiveRoleId()
   const effectiveSubRoleId = subRoleId ?? getEffectiveSubRoleId()
   if (pathname.startsWith('/reports') && effectiveRoleId === RoleId.OperationSales) {
+    return false
+  }
+  if (pathname.startsWith('/sales') && effectiveRoleId === RoleId.TopManager) {
+    return false
+  }
+  if (
+    pathname.startsWith('/agency-module') &&
+    effectiveRoleId === RoleId.TopManager
+  ) {
     return false
   }
   const required = getRequiredPermissionsForPath(pathname)

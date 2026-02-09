@@ -1,0 +1,112 @@
+import { http } from '@/services/http'
+import type { ApiResponse } from '@/types/common'
+import type {
+  ActiveInvoicesByTerritoryParams,
+  BookingInvoiceParams,
+  BookingInvoiceReportItem,
+  BookingInvoicesResponse,
+  BookingInvoicesByTerritoryResponse,
+  InvoiceStatusParams,
+  ReportInvoiceTypeParam,
+} from '@/types/invoice'
+
+export const INVOICE_REPORT_BASE = '/api/v1/reports/invoiceReport'
+const INVOICE_PRINT_BASE = '/api/v1/sales/invoice'
+
+export async function getAllAvailableBookingInvoices(
+  params: BookingInvoiceParams
+) {
+  const res = await http.get<BookingInvoicesResponse>(
+    `${INVOICE_REPORT_BASE}/getAllAvailableBookingInvoices`,
+    { params }
+  )
+  const data = res.data
+  const payload = data?.payload
+  if (!Array.isArray(payload)) return data
+  const normalized = payload.map((invoice) => {
+    const finalValue =
+      typeof invoice.totalBookFinalValue === 'number' &&
+      Number.isFinite(invoice.totalBookFinalValue)
+        ? invoice.totalBookFinalValue
+        : invoice.totalBookValue
+    if (finalValue === invoice.totalBookFinalValue) return invoice
+    return { ...invoice, totalBookFinalValue: finalValue }
+  })
+  return { ...data, payload: normalized }
+}
+
+export type AreaWiseSalesSummeryParams = {
+  areaId: number | string
+  startDate: string
+  endDate: string
+  invoiceType?: ReportInvoiceTypeParam
+}
+
+export type AreaWiseSalesSummeryItem = Record<string, unknown>
+
+export type AreaWiseSalesSummeryResponse =
+  ApiResponse<AreaWiseSalesSummeryItem[]>
+
+export async function getAreaWiseSalesSummery(
+  params: AreaWiseSalesSummeryParams
+) {
+  const res = await http.get<AreaWiseSalesSummeryResponse>(
+    `${INVOICE_REPORT_BASE}/findAreaWiseSalesSummeryByRequiredArguments`,
+    { params }
+  )
+  return res.data
+}
+
+export async function getInvoiceDetailsByStatus(params: InvoiceStatusParams) {
+  const res = await http.get<BookingInvoicesResponse>(
+    `${INVOICE_REPORT_BASE}/getAllInvoicesByStatus`,
+    { params }
+  )
+  return res.data
+}
+
+export async function getAllInvoicesbyTerritoryId(
+  params: ActiveInvoicesByTerritoryParams
+) {
+  const res = await http.get<BookingInvoicesByTerritoryResponse>(
+    `${INVOICE_REPORT_BASE}/getAllActiveInvoicesForMobile`,
+    { params }
+  )
+  return res.data
+}
+
+export async function getInvoiceDetailsById(invoiceId: number | string) {
+  const res = await http.get<ApiResponse<BookingInvoiceReportItem>>(
+    `${INVOICE_REPORT_BASE}/findInvoiceWithDetailsByInvoiceId/${invoiceId}`
+  )
+  return res.data
+}
+
+export type InvoicePrintExtraDetailsParams = {
+  territoryId: number
+  routeId: number
+  outletId: number
+  invoiceId: number
+  userId: number
+}
+
+export async function findInvoicePrintExtraDetailsByRequiredArgs(
+  params: InvoicePrintExtraDetailsParams
+) {
+  const res = await http.get<ApiResponse<unknown>>(
+    `${INVOICE_PRINT_BASE}/findInvoicePrintExtraDetailsByRequiredArgs`,
+    { params }
+  )
+  return res.data
+}
+
+// Re-export types for backwards compatibility
+export type {
+  ActiveInvoicesByTerritoryParams,
+  BookingInvoiceParams,
+  BookingInvoiceReportItem,
+  BookingInvoicesResponse,
+  BookingInvoiceDetailDTO,
+  InvoiceType,
+  InvoiceStatusParams,
+} from '@/types/invoice'

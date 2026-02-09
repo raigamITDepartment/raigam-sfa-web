@@ -368,32 +368,41 @@ export const RoleAccess: Record<string, RoleIdValue[]> = {
   '/agency-module/invoice/invoices-summary': [
     RoleId.SystemAdmin,
     RoleId.OperationSales,
+    SubRoleId.RegionSalesManager,
     SubRoleId.AreaSalesManager,
     SubRoleId.AreaSalesExecutive,
   ],
   '/agency-module/invoice/post-invoice': [
     RoleId.SystemAdmin,
     RoleId.OperationSales,
+    SubRoleId.RegionSalesManager,
     SubRoleId.AreaSalesManager,
     SubRoleId.AreaSalesExecutive,
   ],
   '/agency-module/invoice/manual-invoice': [
     RoleId.SystemAdmin,
     RoleId.OperationSales,
+    SubRoleId.RegionSalesManager,
+    SubRoleId.AreaSalesManager,
   ],
   '/agency-module/invoice/view-invoice': [
     RoleId.SystemAdmin,
     RoleId.OperationSales,
+    SubRoleId.RegionSalesManager,
     SubRoleId.AreaSalesManager,
     SubRoleId.AreaSalesExecutive,
   ],
   '/agency-module/loading-list/view-loading-list': [
     RoleId.SystemAdmin,
     RoleId.OperationSales,
+    SubRoleId.RegionSalesManager,
+    SubRoleId.AreaSalesManager,
   ],
   '/agency-module/market-return/return': [
     RoleId.SystemAdmin,
     RoleId.OperationSales,
+    SubRoleId.RegionSalesManager,
+    SubRoleId.AreaSalesManager,
   ],
   '/agency-module/stock/view-stock': [
     RoleId.SystemAdmin,
@@ -623,6 +632,23 @@ export function isPathAllowedForUser(
   if (!pathname) return false
   const effectiveRoleId = roleId ?? getEffectiveRoleId()
   const effectiveSubRoleId = subRoleId ?? getEffectiveSubRoleId()
+  if (
+    effectiveSubRoleId === SubRoleId.RegionSalesManager ||
+    effectiveSubRoleId === SubRoleId.AreaSalesManager
+  ) {
+    const normalized = normalizePathname(pathname)
+    const allowedPrefixes = [
+      '/dashboard/overview',
+      '/hr-module/time-attendance',
+      '/agency-module',
+      '/reports',
+      '/errors',
+    ]
+    const allowed = allowedPrefixes.some(
+      (prefix) => normalized === prefix || normalized.startsWith(prefix + '/')
+    )
+    if (!allowed) return false
+  }
   if (pathname.startsWith('/reports') && effectiveRoleId === RoleId.OperationSales) {
     return false
   }

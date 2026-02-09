@@ -2,6 +2,14 @@ import * as React from 'react'
 import * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu'
 import { CheckIcon, ChevronRightIcon, CircleIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { isReadOnlyUserType } from '@/lib/user-type'
+import {
+  extractText,
+  getReadOnlyAllowFlag,
+  isReadOnlyExemptLabel,
+  isWriteActionLabel,
+  type ReadOnlyAllowProps,
+} from '@/lib/read-only-actions'
 
 function DropdownMenu({
   ...props
@@ -64,7 +72,21 @@ function DropdownMenuItem({
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Item> & {
   inset?: boolean
   variant?: 'default' | 'destructive'
-}) {
+} & ReadOnlyAllowProps) {
+  const allowReadOnly = getReadOnlyAllowFlag(props)
+  const actionLabel =
+    (typeof props['aria-label'] === 'string' && props['aria-label']) ||
+    (typeof props.title === 'string' && props.title) ||
+    extractText(props.children)
+  const isExempt = isReadOnlyExemptLabel(actionLabel)
+  const shouldHideForReadOnly =
+    !allowReadOnly &&
+    isReadOnlyUserType() &&
+    !isExempt &&
+    (variant === 'destructive' || isWriteActionLabel(actionLabel))
+
+  if (shouldHideForReadOnly) return null
+
   return (
     <DropdownMenuPrimitive.Item
       data-slot='dropdown-menu-item'

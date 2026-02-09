@@ -1,11 +1,20 @@
 import * as React from 'react'
 import * as SwitchPrimitive from '@radix-ui/react-switch'
 import { cn } from '@/lib/utils'
+import { isReadOnlyUserType } from '@/lib/user-type'
+import {
+  getReadOnlyAllowFlag,
+  type ReadOnlyAllowProps,
+} from '@/lib/read-only-actions'
 
 function Switch({
   className,
   ...props
-}: React.ComponentProps<typeof SwitchPrimitive.Root>) {
+}: React.ComponentProps<typeof SwitchPrimitive.Root> & ReadOnlyAllowProps) {
+  const allowReadOnly = getReadOnlyAllowFlag(props)
+  if (!allowReadOnly && isReadOnlyUserType()) {
+    return null
+  }
   return (
     <SwitchPrimitive.Root
       data-slot='switch'

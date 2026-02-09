@@ -139,7 +139,8 @@ export function ExcelExportButton<T extends Record<string, any>>(
 
     const finalFileName = ensureExcelExtension(fileName)
     const blob = new Blob([documentString], {
-      type: 'application/vnd.ms-excel;charset=utf-8;',
+      type:
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
@@ -297,9 +298,10 @@ function escapeHtml(value: string) {
 }
 
 function ensureExcelExtension(name: string) {
-  return name.toLowerCase().endsWith('.xls') || name.toLowerCase().endsWith('.xlsx')
+  const lower = name.toLowerCase()
+  return lower.endsWith('.xls') || lower.endsWith('.xlsx')
     ? name
-    : `${name}.xls`
+    : `${name}.xlsx`
 }
 
 function toHeaderCase(value: string) {

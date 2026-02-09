@@ -764,6 +764,8 @@ const groupPermissionMap: Record<string, string[]> = {
   TOP_MANAGEMENT: [
     ...moduleCodes.dashboard,
     ...moduleCodes.reports,
+    ...moduleCodes.outlet,
+    ...moduleCodes.hr,
     'ACTION_ADMIN_USER_EXPORT',
   ],
   SENIOR_MANAGER_SALES: [
@@ -795,10 +797,30 @@ const groupPermissionMap: Record<string, string[]> = {
 
 const rolePermissionMap: Record<string, string[]> = {
   ADMIN: permissionIndex.allItems.map((item) => item.code),
-  MD: [...moduleCodes.dashboard, ...moduleCodes.reports],
-  DGM: [...moduleCodes.dashboard, ...moduleCodes.reports],
-  GM: [...moduleCodes.dashboard, ...moduleCodes.reports],
-  DF: [...moduleCodes.dashboard, ...moduleCodes.reports],
+  MD: [
+    ...moduleCodes.dashboard,
+    ...moduleCodes.reports,
+    ...moduleCodes.outlet,
+    ...moduleCodes.hr,
+  ],
+  DGM: [
+    ...moduleCodes.dashboard,
+    ...moduleCodes.reports,
+    ...moduleCodes.outlet,
+    ...moduleCodes.hr,
+  ],
+  GM: [
+    ...moduleCodes.dashboard,
+    ...moduleCodes.reports,
+    ...moduleCodes.outlet,
+    ...moduleCodes.hr,
+  ],
+  DF: [
+    ...moduleCodes.dashboard,
+    ...moduleCodes.reports,
+    ...moduleCodes.outlet,
+    ...moduleCodes.hr,
+  ],
   CHANNEL_HEAD: [...moduleCodes.sales, ...moduleCodes['master-settings']],
   SUB_CHANNEL_HEAD: [...moduleCodes.sales],
   REGIONAL_SALES_MANAGER: [...moduleCodes.sales, ...moduleCodes.outlet],

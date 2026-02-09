@@ -31,6 +31,18 @@ export const createUserColumns = ({
   onToggle,
 }: UserColumnsOptions): ColumnDef<UserDemarcationUser>[] => [
   {
+    accessorKey: 'id',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title='User ID' />
+    ),
+    cell: ({ row }) => (
+      <span className='pl-4 tabular-nums'>
+        {formatText(row.getValue('id'))}
+      </span>
+    ),
+    meta: { thClassName: 'w-[110px]' },
+  },
+  {
     id: 'avatar',
     header: () => <span className='sr-only'>Avatar</span>,
     cell: ({ row }) => {

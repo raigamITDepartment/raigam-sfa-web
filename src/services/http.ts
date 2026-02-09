@@ -1,6 +1,6 @@
-﻿import axios, {
+import axios, {
   AxiosHeaders,
-  type AxiosError,
+  AxiosError,
   type AxiosInstance,
   type AxiosRequestConfig,
 } from 'axios'
@@ -12,6 +12,7 @@ import {
   clearAllTokens,
   getRememberPreference,
 } from './tokenService'
+import { getStoredUserTypeId, isReadOnlyUserTypeId } from '@/lib/user-type'
 
 const baseURL =
   import.meta.env.VITE_API_BASE_URL ||
@@ -69,6 +70,32 @@ export const http = axios.create({
 http.interceptors.request.use(async (config) => {
   let token = getAccessToken()
   const isAuthEndpoint = config?.url?.includes('/api/v1/auth/')
+  const method = (config.method ?? 'get').toLowerCase()
+  const isWriteMethod = ['post', 'put', 'patch', 'delete'].includes(method)
+
+  if (!isAuthEndpoint && isWriteMethod) {
+    const userTypeId = getStoredUserTypeId()
+    if (isReadOnlyUserTypeId(userTypeId)) {
+      const response = {
+        status: 403,
+        statusText: 'Forbidden',
+        headers: {},
+        config,
+        data: {
+          title: 'Read-only access for Country Level users.',
+        },
+      }
+      return Promise.reject(
+        new AxiosError(
+          'Read-only access for Country Level users.',
+          'FORBIDDEN',
+          config,
+          undefined,
+          response
+        )
+      )
+    }
+  }
 
   // Try refreshing if token missing but refresh token exists
   if (!token && !isAuthEndpoint && getRefreshToken()) {
@@ -135,3 +162,5 @@ http.interceptors.response.use(
     return Promise.reject(error)
   }
 )
+
+

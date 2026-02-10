@@ -14,11 +14,48 @@ import {
 } from '@/components/ui/command'
 import { sidebarData } from './layout/data/sidebar-data'
 import { ScrollArea } from './ui/scroll-area'
+import { isPathAllowedForUser, resolvePermissions } from '@/lib/authz'
+import { useSelector } from 'react-redux'
+import type { RootState } from '@/store'
 
 export function CommandMenu() {
   const navigate = useNavigate()
   const { setTheme } = useTheme()
   const { open, setOpen } = useSearch()
+  const userGroupId = useSelector((s: RootState) => s.auth.user?.userGroupId)
+  const roleId = useSelector((s: RootState) => s.auth.user?.roleId)
+  const permissions = useSelector((s: RootState) => s.auth.user?.permissions)
+
+  const effectivePermissions = React.useMemo(
+    () =>
+      resolvePermissions({
+        permissions,
+        roleId: userGroupId,
+        subRoleId: roleId,
+      }),
+    [permissions, userGroupId, roleId]
+  )
+
+  const visibleGroups = React.useMemo(() => {
+    return sidebarData.navGroups
+      .map((group) => {
+        const visibleItems = group.items
+          .map((item) => {
+            if (item.items) {
+              const subItems = item.items.filter((sub) =>
+                isPathAllowedForUser(sub.url, effectivePermissions)
+              )
+              return subItems.length ? { ...item, items: subItems } : null
+            }
+            return isPathAllowedForUser(item.url, effectivePermissions)
+              ? item
+              : null
+          })
+          .filter(Boolean) as typeof group.items
+        return visibleItems.length ? { ...group, items: visibleItems } : null
+      })
+      .filter(Boolean) as typeof sidebarData.navGroups
+  }, [effectivePermissions])
 
   const runCommand = React.useCallback(
     (command: () => unknown) => {
@@ -34,7 +71,7 @@ export function CommandMenu() {
       <CommandList>
         <ScrollArea type='hover' className='h-72 pe-1'>
           <CommandEmpty>No results found.</CommandEmpty>
-          {sidebarData.navGroups.map((group) => (
+          {visibleGroups.map((group) => (
             <CommandGroup key={group.title} heading={group.title}>
               {group.items.map((navItem, i) => {
                 if (navItem.url)

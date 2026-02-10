@@ -51,7 +51,7 @@ import {
   type ExcelExportColumn,
 } from '@/components/excel-export-button'
 import { CommonDialog } from '@/components/common-dialog'
-import { AgencyForm } from '@/components/demarcation/agency/agency-form'
+import { CreateAgencyMappingForm } from './CreateAgencyMappingForm'
 
 type AgencyExportRow = {
   agencyCode?: number | string
@@ -498,12 +498,8 @@ export default function AgencyMapping() {
         description='Create a new agency mapping.'
         hideFooter
       >
-        <AgencyForm
-          mode='create'
+        <CreateAgencyMappingForm
           onSubmit={async () => {
-            setCreateDialogOpen(false)
-          }}
-          onCancel={() => {
             setCreateDialogOpen(false)
           }}
         />

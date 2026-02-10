@@ -176,6 +176,15 @@ export type CreateAgencyMappingRequest = CreateAgencyRequest
 
 export type UpdateAgencyMappingRequest = UpdateAgencyRequest
 
+export type CreateAgencyDistributorMappingRequest = {
+  agencyDistributorDTOList: Array<{
+    userId: Id
+    agencyId: Id
+    distributorId: Id
+    isActive: boolean
+  }>
+}
+
 export type DistributorDTO = {
   id: Id
   rangeId?: number | string

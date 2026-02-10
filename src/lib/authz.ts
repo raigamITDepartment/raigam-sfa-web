@@ -182,6 +182,7 @@ export const RoleAccess: Record<string, RoleIdValue[]> = {
     RoleId.SystemAdmin,
     RoleId.TopManager,
     RoleId.ManagerSales,
+    RoleId.ExecutiveCompany,
   ],
   '/dashboard/home-report': [
     RoleId.SystemAdmin,
@@ -632,11 +633,11 @@ export function isPathAllowedForUser(
   if (!pathname) return false
   const effectiveRoleId = roleId ?? getEffectiveRoleId()
   const effectiveSubRoleId = subRoleId ?? getEffectiveSubRoleId()
+  const normalized = normalizePathname(pathname)
   if (
     effectiveSubRoleId === SubRoleId.RegionSalesManager ||
     effectiveSubRoleId === SubRoleId.AreaSalesManager
   ) {
-    const normalized = normalizePathname(pathname)
     const allowedPrefixes = [
       '/dashboard/overview',
       '/hr-module/time-attendance',
@@ -648,6 +649,16 @@ export function isPathAllowedForUser(
       (prefix) => normalized === prefix || normalized.startsWith(prefix + '/')
     )
     if (!allowed) return false
+  }
+  if (
+    effectiveRoleId === RoleId.ExecutiveCompany &&
+    effectiveSubRoleId === SubRoleId.Brand
+  ) {
+    const blockedPrefixes = ['/sales', '/hr-module', '/agency-module']
+    const blocked = blockedPrefixes.some(
+      (prefix) => normalized === prefix || normalized.startsWith(prefix + '/')
+    )
+    if (blocked) return false
   }
   if (pathname.startsWith('/reports') && effectiveRoleId === RoleId.OperationSales) {
     return false

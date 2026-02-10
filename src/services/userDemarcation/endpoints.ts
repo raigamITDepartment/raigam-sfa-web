@@ -21,6 +21,7 @@ import type {
   UpdateAgencyRequest,
   CreateAgencyMappingRequest,
   UpdateAgencyMappingRequest,
+  CreateAgencyDistributorMappingRequest,
   DistributorDTO,
   CountryDTO,
   UserAgencyDTO,
@@ -347,6 +348,15 @@ export function createNewAgencyMapping(body: CreateAgencyMappingRequest) {
   return createAgency(body)
 }
 
+export function createAgencyDistributorMapping(
+  body: CreateAgencyDistributorMappingRequest
+) {
+  return post<unknown, CreateAgencyDistributorMappingRequest>(
+    `${USER_DEMARC_BASE}/agencyDistributor`,
+    body
+  )
+}
+
 export function updateAgencyMapping(body: UpdateAgencyMappingRequest) {
   return updateAgency(body)
 }
@@ -357,6 +367,12 @@ export function deactivateAgencyMapping(id: Id) {
 
 export function getAllDistributors() {
   return get<DistributorDTO[]>(`${USER_DEMARC_BASE}/distributor`)
+}
+
+export function getAllDistributorsByRangeId(rangeId: Id) {
+  return get<DistributorDTO[]>(
+    `${USER_DEMARC_BASE}/distributor/findAllByRangeId/${rangeId}`
+  )
 }
 
 export function createNewDistributor(body: CreateDistributorRequest) {

@@ -815,8 +815,8 @@ export function UserForm(props: UserFormProps) {
               </SelectTrigger>
             </FormControl>
             <SelectContent>
-              {roleOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
+              {roleOptions.map((option, index) => (
+                <SelectItem key={`${option.value}-${index}`} value={option.value}>
                   {option.label}
                 </SelectItem>
               ))}
@@ -848,8 +848,8 @@ export function UserForm(props: UserFormProps) {
               </SelectTrigger>
             </FormControl>
             <SelectContent>
-              {subRoleOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
+              {subRoleOptions.map((option, index) => (
+                <SelectItem key={`${option.value}-${index}`} value={option.value}>
                   {option.label}
                 </SelectItem>
               ))}
@@ -968,11 +968,14 @@ export function UserForm(props: UserFormProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {channelsData.map((channel) => (
-                        <SelectItem key={channel.id} value={String(channel.id)}>
-                          {channel.channelName}
-                        </SelectItem>
-                      ))}
+                  {channelsData.map((channel, index) => (
+                    <SelectItem
+                      key={`${channel.id ?? 'channel'}-${index}`}
+                      value={String(channel.id)}
+                    >
+                      {channel.channelName}
+                    </SelectItem>
+                  ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -1006,9 +1009,9 @@ export function UserForm(props: UserFormProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {filteredSubChannels.map((subChannel) => (
+                      {filteredSubChannels.map((subChannel, index) => (
                         <SelectItem
-                          key={subChannel.id}
+                          key={`${subChannel.id ?? 'subchannel'}-${index}`}
                           value={String(subChannel.id)}
                         >
                           {subChannel.subChannelName ??
@@ -1048,8 +1051,11 @@ export function UserForm(props: UserFormProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {filteredRegions.map((region) => (
-                        <SelectItem key={region.id} value={String(region.id)}>
+                      {filteredRegions.map((region, index) => (
+                        <SelectItem
+                          key={`${region.id ?? 'region'}-${index}`}
+                          value={String(region.id)}
+                        >
                           {region.regionName ??
                             region.name ??
                             `Region ${region.id}`}
@@ -1110,8 +1116,11 @@ export function UserForm(props: UserFormProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {filteredAreas.map((area) => (
-                        <SelectItem key={area.id} value={String(area.id)}>
+                      {filteredAreas.map((area, index) => (
+                        <SelectItem
+                          key={`${area.id ?? 'area'}-${index}`}
+                          value={String(area.id)}
+                        >
                           {area.areaName ?? `Area ${area.id}`}
                         </SelectItem>
                       ))}
@@ -1185,9 +1194,9 @@ export function UserForm(props: UserFormProps) {
                     </FormControl>
                     <SelectContent>
                       {filteredTerritories.length ? (
-                        filteredTerritories.map((territory) => (
+                        filteredTerritories.map((territory, index) => (
                           <SelectItem
-                            key={territory.id}
+                            key={`${territory.id ?? 'territory'}-${index}`}
                             value={String(territory.id)}
                           >
                             {territory.territoryName ??
@@ -1227,8 +1236,11 @@ export function UserForm(props: UserFormProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {filteredAgencies.map((agency) => (
-                        <SelectItem key={agency.id} value={String(agency.id)}>
+                      {filteredAgencies.map((agency, index) => (
+                        <SelectItem
+                          key={`${agency.id ?? 'agency'}-${index}`}
+                          value={String(agency.id)}
+                        >
                           {agency.agencyName ??
                             agency.agencyCode ??
                             `Agency ${agency.id}`}
@@ -1261,8 +1273,8 @@ export function UserForm(props: UserFormProps) {
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {accessLevelOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
+                  {accessLevelOptions.map((option, index) => (
+                    <SelectItem key={`${option.value}-${index}`} value={option.value}>
                       {option.label}
                     </SelectItem>
                   ))}

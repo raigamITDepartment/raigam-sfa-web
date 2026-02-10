@@ -137,6 +137,7 @@ export type AgencyDistributorDTO = {
   id?: Id
   agencyId?: Id | null
   distributorId?: Id | null
+  userId?: Id | null
   agencyName?: string
   agencyCode?: number | string
   distributorName?: string
@@ -159,6 +160,7 @@ export type AgencyWarehouseDTO = {
   warehouseId?: Id
   warehouseName?: string
   sapAgencyCode?: string
+  rangeId?: Id
   range?: string
   distributorId?: Id
   distributorName?: string
@@ -171,8 +173,12 @@ export type AgencyWarehouseDTO = {
 }
 
 export type CreateAgencyWarehouseRequest = {
-  agencyId: Id
-  warehouseId: Id
+  userId: Id
+  distributorId: Id
+  warehouseName: string
+  latitude: number
+  longitude: number
+  sapAgencyCode: string
   isActive: boolean
 }
 
@@ -202,6 +208,15 @@ export type CreateAgencyDistributorMappingRequest = {
     distributorId: Id
     isActive: boolean
   }>
+}
+
+export type UpdateAgencyDistributorMappingRequest = {
+  id: Id
+  userId: Id
+  agencyId: Id
+  distributorId: Id
+  agencyCode?: number | string | null
+  isActive: boolean
 }
 
 export type DistributorDTO = {

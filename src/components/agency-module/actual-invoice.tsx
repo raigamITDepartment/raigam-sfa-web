@@ -25,6 +25,7 @@ import { formatDate as formatDateTime } from '@/lib/format-date'
 import { formatPrice } from '@/lib/format-price'
 import { cn } from '@/lib/utils'
 import { SubRoleId } from '@/lib/authz'
+import { isAreaLevelUserTypeId } from '@/lib/user-type'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -116,6 +117,7 @@ const ActualInvoice = () => {
     roleId === SubRoleId.AreaSalesExecutive
   const isAsm = roleId === SubRoleId.AreaSalesManager
   const isAse = roleId === SubRoleId.AreaSalesExecutive
+  const isAreaLevelUserType = isAreaLevelUserTypeId(user?.userTypeId)
   const defaultDates = useMemo(() => {
     const today = new Date()
     const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
@@ -420,7 +422,7 @@ const ActualInvoice = () => {
                 View Invoice Details
               </TooltipContent>
             </Tooltip>
-            {isAgent || isAsm || isAse ? (
+            {isAgent || isAsm || isAse || isAreaLevelUserType ? (
               row.original.isReverseReqRep && !row.original.isReversed ? (
                 <Tooltip delayDuration={100}>
                   <TooltipTrigger asChild>
@@ -430,7 +432,13 @@ const ActualInvoice = () => {
                       className='size-8'
                       onClick={() => {
                         setPendingApproveInvoice(row.original)
-                        setApproveActor(isAsm ? 'asm' : isAse ? 'ase' : 'agent')
+                        setApproveActor(
+                          isAsm
+                            ? 'asm'
+                            : isAse
+                              ? 'ase'
+                              : 'agent'
+                        )
                         setAsmRemark('')
                       }}
                       disabled={isDetailLoading}
@@ -470,7 +478,7 @@ const ActualInvoice = () => {
         meta: { thClassName: 'text-center' },
       },
     ],
-    [isAgent, isDetailLoading, isRep]
+    [isAgent, isAsm, isAse, isAreaLevelUserType, isDetailLoading, isRep]
   )
 
   const rows = useMemo(

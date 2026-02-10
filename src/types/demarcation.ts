@@ -133,6 +133,25 @@ export type AgencyDTO = {
   status?: string
 }
 
+export type AgencyDistributorDTO = {
+  id?: Id
+  agencyId?: Id | null
+  distributorId?: Id | null
+  agencyName?: string
+  agencyCode?: number | string
+  distributorName?: string
+  channelId?: Id | null
+  channelName?: string
+  territoryId?: Id | null
+  territoryName?: string
+  rangeId?: Id | null
+  range?: string
+  rangeName?: string
+  isActive?: boolean
+  active?: boolean
+  status?: string
+}
+
 export type AgencyWarehouseDTO = {
   id: Id
   agencyId?: Id

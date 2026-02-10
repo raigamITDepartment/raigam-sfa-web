@@ -283,8 +283,11 @@ export default function NotVisitedFliter({
             <SelectValue placeholder='Select Sub Channel' />
           </SelectTrigger>
           <SelectContent>
-            {subChannels.map((subChannel) => (
-              <SelectItem key={subChannel.id} value={String(subChannel.id)}>
+            {subChannels.map((subChannel, index) => (
+              <SelectItem
+                key={`${subChannel.id ?? 'subchannel'}-${index}`}
+                value={String(subChannel.id)}
+              >
                 {subChannel.subChannelName}
               </SelectItem>
             ))}
@@ -309,8 +312,11 @@ export default function NotVisitedFliter({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value='0'>All Areas</SelectItem>
-            {areas.map((area) => (
-              <SelectItem key={area.id} value={String(area.id)}>
+            {areas.map((area, index) => (
+              <SelectItem
+                key={`${area.id ?? 'area'}-${index}`}
+                value={String(area.id)}
+              >
                 {area.areaName ?? `Area ${area.id}`}
               </SelectItem>
             ))}
@@ -339,8 +345,11 @@ export default function NotVisitedFliter({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value='0'>All Territories</SelectItem>
-            {territories.map((territory) => (
-              <SelectItem key={territory.id} value={String(territory.id)}>
+            {territories.map((territory, index) => (
+              <SelectItem
+                key={`${territory.id ?? 'territory'}-${index}`}
+                value={String(territory.id)}
+              >
                 {territory.territoryName ??
                   territory.name ??
                   `Territory ${territory.id}`}
@@ -365,8 +374,11 @@ export default function NotVisitedFliter({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value='0'>All Routes</SelectItem>
-            {routes.map((route) => (
-              <SelectItem key={route.id} value={String(route.id)}>
+            {routes.map((route, index) => (
+              <SelectItem
+                key={`${route.id ?? 'route'}-${index}`}
+                value={String(route.id)}
+              >
                 {route.routeName ?? `Route ${route.id}`}
               </SelectItem>
             ))}

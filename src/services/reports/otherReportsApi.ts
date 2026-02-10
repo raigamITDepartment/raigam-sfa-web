@@ -38,6 +38,7 @@ export type AttendanceReportParams = {
   endDate: string
 }
 
+
 export type AttendanceStatusItem = {
   userId?: number | string | null
   id: number | string
@@ -137,6 +138,7 @@ export async function getAttendanceReport(params: AttendanceReportParams) {
   )
   return res.data
 }
+
 
 export async function getAttendanceStatusList() {
   const res = await http.get<ApiResponse<AttendanceStatusItem[]>>(

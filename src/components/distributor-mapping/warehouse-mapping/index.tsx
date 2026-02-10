@@ -20,7 +20,7 @@ import {
   type ApiResponse,
   type Id,
 } from '@/services/userDemarcationApi'
-import { Pencil } from 'lucide-react'
+import { Pencil, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -51,6 +51,8 @@ import {
   ExcelExportButton,
   type ExcelExportColumn,
 } from '@/components/excel-export-button'
+import { CommonDialog } from '@/components/common-dialog'
+import { CreateWarehouseMappingForm } from './CreateWarehouseMappingForm'
 
 type WarehouseExportRow = {
   sapAgencyCode?: string
@@ -66,6 +68,29 @@ type PendingToggle = {
   sapAgencyCode?: string
   nextActive: boolean
 }
+
+const getWarehouseRawStatus = (mapping: AgencyWarehouseDTO) =>
+  (mapping.status as string | boolean | undefined) ??
+  (mapping.isActive as boolean | undefined) ??
+  (mapping.active as boolean | undefined)
+
+const resolveWarehouseActive = (
+  mapping: AgencyWarehouseDTO,
+  fallback = false
+) => {
+  const rawStatus = getWarehouseRawStatus(mapping)
+  if (typeof rawStatus === 'string') {
+    return rawStatus.toLowerCase() === 'active'
+  }
+  if (typeof rawStatus === 'boolean') return rawStatus
+  return fallback
+}
+
+const isWarehouseActive = (mapping: AgencyWarehouseDTO) =>
+  resolveWarehouseActive(mapping)
+
+const getWarehouseStatusValue = (mapping: AgencyWarehouseDTO) =>
+  isWarehouseActive(mapping) ? 'Active' : 'Inactive'
 
 const exportStatusStyles = `
 .status-active { background-color: #d1fae5; color: #065f46; font-weight: 600; }
@@ -103,6 +128,11 @@ export default function WareHouseMapping() {
   })
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [pendingToggle, setPendingToggle] = useState<PendingToggle | null>(null)
+  const [activeToggleId, setActiveToggleId] = useState<Id | null>(null)
+  const [createDialogOpen, setCreateDialogOpen] = useState(false)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [editingMapping, setEditingMapping] =
+    useState<AgencyWarehouseDTO | null>(null)
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['agencyWarehouses'],
@@ -112,7 +142,19 @@ export default function WareHouseMapping() {
     },
   })
 
-  const rows = useMemo(() => data?.payload ?? [], [data])
+  const rows = useMemo(() => {
+    const list = data?.payload ?? []
+    if (!list.length) return []
+    return list
+      .map((item, index) => ({ item, index }))
+      .sort((a, b) => {
+        const aId = Number(a.item.id ?? 0)
+        const bId = Number(b.item.id ?? 0)
+        if (aId !== bId) return bId - aId
+        return b.index - a.index
+      })
+      .map(({ item }) => item)
+  }, [data])
   const rangeFilterOptions = useMemo(
     () => buildFilterOptions(rows, (mapping) => mapping.range),
     [rows]
@@ -127,18 +169,70 @@ export default function WareHouseMapping() {
 
   const toggleStatusMutation = useMutation({
     mutationFn: async (vars: PendingToggle) => {
-      await deActivateAgencyWarehouse(vars.id)
-      return vars
+      const response = await deActivateAgencyWarehouse(vars.id)
+      return { ...vars, response }
     },
-    onSuccess: () => {
-      toast.success('Warehouse status updated')
-      queryClient.invalidateQueries({ queryKey: ['agencyWarehouses'] })
+    onMutate: async (vars) => {
+      setActiveToggleId(vars.id)
+      await queryClient.cancelQueries({ queryKey: ['agencyWarehouses'] })
+      const previous =
+        queryClient.getQueryData<ApiResponse<AgencyWarehouseDTO[]>>([
+          'agencyWarehouses',
+        ])
+      queryClient.setQueryData<ApiResponse<AgencyWarehouseDTO[]>>(
+        ['agencyWarehouses'],
+        (old) => {
+          if (!old || !Array.isArray(old.payload)) return old
+          const updatedPayload = old.payload.map((mapping) => {
+            if (String(mapping.id) !== String(vars.id)) return mapping
+            return {
+              ...mapping,
+              isActive: vars.nextActive,
+              active: vars.nextActive,
+              status: vars.nextActive ? 'Active' : 'Inactive',
+            }
+          })
+          return { ...old, payload: updatedPayload }
+        }
+      )
+      return { previous }
+    },
+    onSuccess: ({ id, nextActive, response }) => {
+      if (response?.payload) {
+        queryClient.setQueryData<ApiResponse<AgencyWarehouseDTO[]>>(
+          ['agencyWarehouses'],
+          (old) => {
+            if (!old || !Array.isArray(old.payload)) return old
+            const updatedPayload = old.payload.map((mapping) => {
+              if (String(mapping.id) !== String(id)) return mapping
+              const payload = response.payload
+              const merged = { ...mapping, ...payload }
+              const resolvedActive = resolveWarehouseActive(merged, nextActive)
+              return {
+                ...merged,
+                isActive: resolvedActive,
+                active: resolvedActive,
+                status:
+                  payload.status ?? (resolvedActive ? 'Active' : 'Inactive'),
+              }
+            })
+            return { ...old, payload: updatedPayload }
+          }
+        )
+      }
+      toast.success(response?.message ?? 'Warehouse status updated')
       setPendingToggle(null)
     },
-    onError: (err) => {
+    onError: (err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['agencyWarehouses'], context.previous)
+      }
       toast.error(
         (err as Error)?.message ?? 'Failed to update warehouse status'
       )
+    },
+    onSettled: () => {
+      setActiveToggleId(null)
     },
   })
 
@@ -148,7 +242,7 @@ export default function WareHouseMapping() {
       range: mapping.range,
       distributorName: mapping.distributorName,
       warehouseName: mapping.warehouseName,
-      status: mapping.isActive ? 'Active' : 'Inactive',
+      status: getWarehouseStatusValue(mapping),
     }))
   }, [rows])
 
@@ -206,7 +300,7 @@ export default function WareHouseMapping() {
         meta: { thClassName: 'w-[220px]' },
       },
       {
-        accessorFn: (row) => (row.isActive ? 'Active' : 'Inactive'),
+        accessorFn: getWarehouseStatusValue,
         id: 'status',
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title='Status' />
@@ -238,7 +332,9 @@ export default function WareHouseMapping() {
           const original = row.original
           const recordId =
             (original.id as Id | undefined) ?? (row.id as Id | undefined)
-          const isActive = Boolean(original.isActive)
+          const isActive = isWarehouseActive(original)
+          const isRowUpdating =
+            toggleStatusMutation.isPending && recordId === activeToggleId
 
           if (!recordId) return null
 
@@ -251,7 +347,10 @@ export default function WareHouseMapping() {
                     size='icon'
                     className='size-8'
                     aria-label='Edit warehouse mapping'
-                    onClick={() => toast('Edit warehouse mapping coming soon')}
+                    onClick={() => {
+                      setEditingMapping(original)
+                      setEditDialogOpen(true)
+                    }}
                   >
                     <Pencil />
                   </Button>
@@ -260,7 +359,7 @@ export default function WareHouseMapping() {
               </Tooltip>
               <Switch
                 checked={isActive}
-                disabled={toggleStatusMutation.isPending}
+                disabled={isRowUpdating}
                 onCheckedChange={(value) => {
                   setPendingToggle({
                     id: recordId,
@@ -284,7 +383,7 @@ export default function WareHouseMapping() {
         meta: { thClassName: 'w-[120px]' },
       },
     ],
-    [toggleStatusMutation.isPending]
+    [activeToggleId, toggleStatusMutation.isPending]
   )
 
   const table = useReactTable({
@@ -327,6 +426,15 @@ export default function WareHouseMapping() {
             worksheetName='Agency Warehouses'
             customStyles={exportStatusStyles}
           />
+          <Button
+            size='sm'
+            variant='default'
+            className='flex items-center gap-1'
+            onClick={() => setCreateDialogOpen(true)}
+          >
+            <Plus className='size-4 opacity-80' />
+            Create Warehouse Mapping
+          </Button>
         </div>
         <p className='text-muted-foreground text-sm'>
           Showing {filteredCount} of {totalCount} warehouses
@@ -445,6 +553,78 @@ export default function WareHouseMapping() {
         isLoading={toggleStatusMutation.isPending}
         handleConfirm={handleConfirmToggle}
       />
+      <CommonDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        title='Distributor Warehouse Mapping'
+        description='Create a new warehouse mapping.'
+        hideFooter
+      >
+        <CreateWarehouseMappingForm
+          onSubmit={async () => {
+            setCreateDialogOpen(false)
+          }}
+          onCancel={() => setCreateDialogOpen(false)}
+        />
+      </CommonDialog>
+      <CommonDialog
+        open={editDialogOpen}
+        onOpenChange={(open) => {
+          setEditDialogOpen(open)
+          if (!open) setEditingMapping(null)
+        }}
+        title='Update Warehouse Mapping'
+        description='Update warehouse mapping details.'
+        hideFooter
+      >
+        <CreateWarehouseMappingForm
+          mode='edit'
+          hideRange
+          initialValues={
+            editingMapping
+              ? {
+                  rangeId:
+                    editingMapping.rangeId !== undefined &&
+                    editingMapping.rangeId !== null
+                      ? String(editingMapping.rangeId)
+                      : '',
+                  distributorId:
+                    editingMapping.distributorId !== undefined &&
+                    editingMapping.distributorId !== null
+                      ? String(editingMapping.distributorId)
+                      : '',
+                  warehouseName: editingMapping.warehouseName ?? '',
+                  sapAgencyCode: editingMapping.sapAgencyCode ?? '',
+                  latitude:
+                    editingMapping.latitude !== undefined &&
+                    editingMapping.latitude !== null
+                      ? String(editingMapping.latitude)
+                      : '0',
+                  longitude:
+                    editingMapping.longitude !== undefined &&
+                    editingMapping.longitude !== null
+                      ? String(editingMapping.longitude)
+                      : '0',
+                  isActive: isWarehouseActive(editingMapping),
+                }
+              : undefined
+          }
+          mappingId={
+            editingMapping?.id !== undefined && editingMapping?.id !== null
+              ? Number(editingMapping.id)
+              : undefined
+          }
+          mappingUserId={
+            editingMapping?.userId !== undefined && editingMapping?.userId !== null
+              ? Number(editingMapping.userId)
+              : undefined
+          }
+          onSubmit={async () => {
+            setEditDialogOpen(false)
+          }}
+          onCancel={() => setEditDialogOpen(false)}
+        />
+      </CommonDialog>
     </Card>
   )
 }

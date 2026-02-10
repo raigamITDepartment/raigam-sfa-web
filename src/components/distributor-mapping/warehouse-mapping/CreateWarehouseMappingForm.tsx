@@ -4,20 +4,18 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
-  createAgencyDistributorMapping,
-  getAllAgency,
+  createAgencyWarehouseMapping,
   getAllDistributorsByRangeId,
   getAllRange,
-  updateAgencyDistributorMapping,
-  type AgencyDTO,
+  updateAgencyWarehouseMapping,
   type ApiResponse,
-  type CreateAgencyDistributorMappingRequest,
-  type UpdateAgencyDistributorMappingRequest,
+  type AgencyWarehouseDTO,
+  type CreateAgencyWarehouseRequest,
   type DistributorDTO,
   type RangeDTO,
+  type UpdateAgencyWarehouseRequest,
 } from '@/services/userDemarcationApi'
 import { useAppSelector } from '@/store/hooks'
-import { X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -29,7 +27,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
-import { MultiSelect } from '@/components/ui/multi-select'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -38,39 +36,57 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
-const createAgencyMappingFormSchema = z.object({
-  rangeId: z.string().min(1, 'Please select a range'),
+type WarehouseMappingFormValues = {
+  rangeId?: string
+  distributorId: string
+  warehouseName: string
+  sapAgencyCode: string
+  latitude: string
+  longitude: string
+  isActive: boolean
+}
+
+const warehouseMappingSchema = z.object({
+  rangeId: z.string().optional(),
   distributorId: z.string().min(1, 'Please select a distributor'),
-  agencyIds: z.array(z.string().min(1)).min(1, 'Select at least one agency'),
-  isActive: z.boolean().default(true),
+  warehouseName: z.string().min(1, 'Warehouse name is required'),
+  sapAgencyCode: z.string().min(1, 'SAP Agency code is required'),
+  latitude: z
+    .string()
+    .min(1, 'Latitude is required')
+    .refine((value) => !Number.isNaN(Number(value)), 'Invalid latitude'),
+  longitude: z
+    .string()
+    .min(1, 'Longitude is required')
+    .refine((value) => !Number.isNaN(Number(value)), 'Invalid longitude'),
+  isActive: z.boolean(),
 })
 
-export type CreateAgencyMappingFormValues = z.output<
-  typeof createAgencyMappingFormSchema
->
+export type CreateWarehouseMappingFormValues = WarehouseMappingFormValues
 
-type CreateAgencyMappingFormProps = {
-  initialValues?: Partial<CreateAgencyMappingFormValues>
-  onSubmit?: (values: CreateAgencyMappingFormValues) => void | Promise<void>
+type CreateWarehouseMappingFormProps = {
+  initialValues?: Partial<CreateWarehouseMappingFormValues>
+  onSubmit?: (values: CreateWarehouseMappingFormValues) => void | Promise<void>
+  onCancel?: () => void
   mode?: 'create' | 'edit'
   hideRange?: boolean
   mappingId?: number
   mappingUserId?: number | null
-  mappingAgencyCode?: number | string | null
 }
 
-export function CreateAgencyMappingForm({
+export function CreateWarehouseMappingForm({
   initialValues,
   onSubmit,
+  onCancel,
   mode = 'create',
   hideRange = false,
   mappingId,
   mappingUserId,
-  mappingAgencyCode,
-}: CreateAgencyMappingFormProps) {
+}: CreateWarehouseMappingFormProps) {
   const queryClient = useQueryClient()
   const user = useAppSelector((state) => state.auth.user)
   const previousRangeRef = useRef<string>('')
+  const requireRange = mode !== 'edit' && !hideRange
 
   const { data: rangesData } = useQuery({
     queryKey: ['ranges', 'options'],
@@ -82,26 +98,15 @@ export function CreateAgencyMappingForm({
       queryClient.getQueryData<ApiResponse<RangeDTO[]>>(['ranges'])?.payload,
   })
 
-  const { data: agenciesData } = useQuery({
-    queryKey: ['agencies', 'options'],
-    queryFn: async () => {
-      const res = (await getAllAgency()) as ApiResponse<AgencyDTO[]>
-      return res.payload
-    },
-    initialData: () =>
-      queryClient.getQueryData<ApiResponse<AgencyDTO[]>>(['agencies'])?.payload,
-  })
-
-  const form = useForm<
-    z.input<typeof createAgencyMappingFormSchema>,
-    any,
-    CreateAgencyMappingFormValues
-  >({
-    resolver: zodResolver(createAgencyMappingFormSchema),
+  const form = useForm<WarehouseMappingFormValues>({
+    resolver: zodResolver(warehouseMappingSchema),
     defaultValues: {
       rangeId: '',
       distributorId: '',
-      agencyIds: [],
+      warehouseName: '',
+      sapAgencyCode: '',
+      latitude: '0',
+      longitude: '0',
       isActive: true,
       ...initialValues,
     },
@@ -111,7 +116,10 @@ export function CreateAgencyMappingForm({
     form.reset({
       rangeId: '',
       distributorId: '',
-      agencyIds: [],
+      warehouseName: '',
+      sapAgencyCode: '',
+      latitude: '0',
+      longitude: '0',
       isActive: true,
       ...initialValues,
     })
@@ -138,7 +146,6 @@ export function CreateAgencyMappingForm({
     }
     if (previousRangeRef.current && previousRangeRef.current !== selectedRangeId) {
       form.setValue('distributorId', '')
-      form.setValue('agencyIds', [])
     }
     previousRangeRef.current = selectedRangeId
   }, [selectedRangeId, form])
@@ -155,72 +162,62 @@ export function CreateAgencyMappingForm({
     [rangesData]
   )
 
-  const activeAgencies = useMemo(
-    () => agenciesData ?? [],
-    [agenciesData]
-  )
-
-  const agencyOptions = useMemo(() => {
-    return [...activeAgencies]
-      .map((agency) => {
-        const labelBase =
-          agency.agencyName?.trim() ||
-          (agency.agencyCode
-            ? `Agency ${agency.agencyCode}`
-            : `Agency ${agency.id}`)
-        const isActive =
-          (agency.isActive as boolean | undefined) ??
-          (agency.active as boolean | undefined) ??
-          true
-        return {
-          value: String(agency.id),
-          label: isActive ? labelBase : `${labelBase} (Inactive)`,
-        }
-      })
-      .sort((a, b) => a.label.localeCompare(b.label))
-  }, [activeAgencies])
-
-  const agencyOptionMap = useMemo(() => {
-    return new Map(agencyOptions.map((option) => [option.value, option.label]))
-  }, [agencyOptions])
-
   const mutation = useMutation({
-    mutationFn: async (values: CreateAgencyMappingFormValues) => {
+    mutationFn: async (values: CreateWarehouseMappingFormValues) => {
       if (mode === 'edit') {
         if (mappingId == null) {
           throw new Error('Missing mapping id')
         }
-        const agencyId = values.agencyIds[0]
-        const payload: UpdateAgencyDistributorMappingRequest = {
+        const payload: UpdateAgencyWarehouseRequest = {
           id: mappingId,
           userId: user?.userId ?? mappingUserId ?? 0,
-          agencyId: Number(agencyId),
           distributorId: Number(values.distributorId),
-          agencyCode: mappingAgencyCode ?? undefined,
+          warehouseName: values.warehouseName.trim(),
+          sapAgencyCode: values.sapAgencyCode.trim(),
+          latitude: Number(values.latitude),
+          longitude: Number(values.longitude),
           isActive: values.isActive,
         }
-        return updateAgencyDistributorMapping(payload)
+        return updateAgencyWarehouseMapping(payload)
       }
 
-      const payload: CreateAgencyDistributorMappingRequest = {
-        agencyDistributorDTOList: values.agencyIds.map((agencyId) => ({
-          userId: user?.userId ?? 0,
-          agencyId: Number(agencyId),
-          distributorId: Number(values.distributorId),
-          isActive: values.isActive,
-        })),
+      const payload: CreateAgencyWarehouseRequest = {
+        userId: user?.userId ?? 0,
+        distributorId: Number(values.distributorId),
+        warehouseName: values.warehouseName.trim(),
+        sapAgencyCode: values.sapAgencyCode.trim(),
+        latitude: Number(values.latitude),
+        longitude: Number(values.longitude),
+        isActive: values.isActive,
       }
-      return createAgencyDistributorMapping(payload)
+      return createAgencyWarehouseMapping(payload)
     },
-    onSuccess: async (_data, values) => {
+    onSuccess: async (data, values) => {
+      const payload = data?.payload
+      if (payload) {
+        queryClient.setQueryData<ApiResponse<AgencyWarehouseDTO[]>>(
+          ['agencyWarehouses'],
+          (old) => {
+            if (!old || !Array.isArray(old.payload)) return old
+            if (mode === 'edit') {
+              const updatedPayload = old.payload.map((item) =>
+                String(item.id) === String(payload.id) ? { ...item, ...payload } : item
+              )
+              return { ...old, payload: updatedPayload }
+            }
+            const withoutExisting = old.payload.filter(
+              (item) => String(item.id) !== String(payload.id)
+            )
+            return { ...old, payload: [payload, ...withoutExisting] }
+          }
+        )
+      }
       toast.success(
         mode === 'edit'
-          ? 'Agency mapping updated successfully'
-          : 'Agency mapping created successfully'
+          ? 'Warehouse mapping updated successfully'
+          : 'Warehouse mapping created successfully'
       )
-      await queryClient.invalidateQueries({
-        queryKey: ['agency-distributor-mappings'],
-      })
+      await queryClient.invalidateQueries({ queryKey: ['agencyWarehouses'] })
       await onSubmit?.(values)
     },
     onError: (error: unknown) => {
@@ -228,25 +225,30 @@ export function CreateAgencyMappingForm({
         error instanceof Error
           ? error.message
           : mode === 'edit'
-            ? 'Failed to update agency mapping'
-            : 'Failed to create agency mapping'
+            ? 'Failed to update warehouse mapping'
+            : 'Failed to create warehouse mapping'
       toast.error(message)
     },
   })
 
-  const handleSubmit = async (values: CreateAgencyMappingFormValues) => {
-    await mutation.mutateAsync(values)
-  }
-
   const isSubmitting = form.formState.isSubmitting || mutation.isPending
-  const submitLabel = mode === 'edit' ? 'Update' : 'Create'
-  const submittingLabel = mode === 'edit' ? 'Updating...' : 'Creating...'
+
+  const handleSubmit = (values: WarehouseMappingFormValues) => {
+    if (requireRange && !values.rangeId) {
+      form.setError('rangeId', {
+        type: 'manual',
+        message: 'Please select a range',
+      })
+      return
+    }
+    mutation.mutate(values)
+  }
 
   return (
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(handleSubmit)}
-        className='flex flex-col gap-3'
+        className='flex flex-col gap-4'
       >
         {!hideRange ? (
           <FormField
@@ -313,9 +315,9 @@ export function CreateAgencyMappingForm({
                         Loading distributors...
                       </SelectItem>
                     ) : distributorsData?.length ? (
-                      distributorsData.map((distributor) => (
+                      distributorsData.map((distributor, index) => (
                         <SelectItem
-                          key={distributor.id}
+                          key={`${distributor.id}-${index}`}
                           value={String(distributor.id)}
                         >
                           {distributor.distributorName ??
@@ -337,46 +339,73 @@ export function CreateAgencyMappingForm({
 
         <FormField
           control={form.control}
-          name='agencyIds'
+          name='warehouseName'
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Multi Select Agencies</FormLabel>
+              <FormLabel>Warehouse Name</FormLabel>
               <FormControl>
-                <MultiSelect
-                  options={agencyOptions}
-                  value={field.value ?? []}
-                  onValueChange={(value) => field.onChange(value)}
-                  placeholder='Select...'
-                  disabled={!agencyOptions.length}
-                  className='w-full'
+                <Input
+                  placeholder='Warehouse Name'
+                  value={field.value}
+                  onChange={field.onChange}
                 />
               </FormControl>
-              {field.value?.length ? (
-                <div className='mt-2 flex flex-wrap gap-2'>
-                  {field.value.map((id) => (
-                    <div
-                      key={id}
-                      className='flex items-center gap-1 rounded-md border bg-muted px-2 py-1 text-xs'
-                    >
-                      <span className='max-w-[200px] truncate'>
-                        {agencyOptionMap.get(id) ?? `Agency ${id}`}
-                      </span>
-                      <button
-                        type='button'
-                        className='text-muted-foreground hover:text-foreground'
-                        onClick={() =>
-                          field.onChange(
-                            field.value.filter((value) => value !== id)
-                          )
-                        }
-                        aria-label={`Remove ${agencyOptionMap.get(id) ?? id}`}
-                      >
-                        <X className='size-3.5' />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              ) : null}
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name='sapAgencyCode'
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>SAP Agency Code</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder='SAP Agency Code'
+                  value={field.value}
+                  onChange={field.onChange}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name='latitude'
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Latitude</FormLabel>
+              <FormControl>
+                <Input
+                  type='number'
+                  step='any'
+                  value={field.value}
+                  onChange={field.onChange}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name='longitude'
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Longitude</FormLabel>
+              <FormControl>
+                <Input
+                  type='number'
+                  step='any'
+                  value={field.value}
+                  onChange={field.onChange}
+                />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}
@@ -386,7 +415,7 @@ export function CreateAgencyMappingForm({
           control={form.control}
           name='isActive'
           render={({ field }) => (
-            <FormItem className='mt-1 flex flex-row items-center gap-2'>
+            <FormItem className='flex flex-row items-center gap-2'>
               <FormControl>
                 <Checkbox
                   checked={field.value}
@@ -398,9 +427,30 @@ export function CreateAgencyMappingForm({
           )}
         />
 
-        <Button type='submit' className='mt-2 w-full' disabled={isSubmitting}>
-          {isSubmitting ? submittingLabel : submitLabel}
-        </Button>
+        <div className='flex gap-2'>
+          <Button
+            type='button'
+            variant='outline'
+            className='w-full flex-1'
+            onClick={onCancel}
+            disabled={isSubmitting}
+          >
+            Cancel
+          </Button>
+          <Button
+            type='submit'
+            className='w-full flex-1'
+            disabled={isSubmitting}
+          >
+            {isSubmitting
+              ? mode === 'edit'
+                ? 'Updating...'
+                : 'Creating...'
+              : mode === 'edit'
+                ? 'Update'
+                : 'Create'}
+          </Button>
+        </div>
       </form>
     </Form>
   )

@@ -23,12 +23,13 @@ import type {
   BookingInvoiceReportItem,
   InvoiceTypeParam,
 } from '@/types/invoice'
-import { Pencil, Printer } from 'lucide-react'
+import { Eye, Pencil, Printer } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatDate as formatDateTime } from '@/lib/format-date'
 import { formatPrice } from '@/lib/format-price'
 import { cn } from '@/lib/utils'
 import { SubRoleId } from '@/lib/authz'
+import { isAgentLevelUserTypeId, isAreaLevelUserTypeId } from '@/lib/user-type'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -107,6 +108,9 @@ const BookingInvoice = () => {
   const isAreaRole =
     roleId === SubRoleId.AreaSalesManager ||
     roleId === SubRoleId.AreaSalesExecutive
+  const isAgentLevel = isAgentLevelUserTypeId(user?.userTypeId)
+  const isAreaLevelUserType = isAreaLevelUserTypeId(user?.userTypeId)
+  const isReadOnly = isAgentLevel || isAreaLevelUserType
   const defaultDates = useMemo(() => {
     const today = new Date()
     const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
@@ -479,12 +483,18 @@ const BookingInvoice = () => {
                     setInvoicePreviewOpen(true)
                   }}
                 >
-                  <Pencil className='h-4 w-4' />
-                  <span className='sr-only'>Edit</span>
+                  {isReadOnly ? (
+                    <Eye className='h-4 w-4' />
+                  ) : (
+                    <Pencil className='h-4 w-4' />
+                  )}
+                  <span className='sr-only'>
+                    {isReadOnly ? 'View' : 'Edit'}
+                  </span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent side='top' align='center'>
-                Click Edit Invoice
+                {isReadOnly ? 'View Invoice' : 'Click Edit Invoice'}
               </TooltipContent>
             </Tooltip>
           </div>
@@ -492,7 +502,7 @@ const BookingInvoice = () => {
         meta: { thClassName: 'text-center' },
       },
     ],
-    []
+    [isReadOnly]
   )
 
   const rows = useMemo(
@@ -560,27 +570,29 @@ const BookingInvoice = () => {
         <Printer className='h-4 w-4' />
         Print Selected
       </Button>
-      <Select
-        key={`bulk-status-${statusSelectResetCounter}`}
-        disabled={!hasEligibleStatusChange || isBulkStatusUpdating}
-        onValueChange={(value) => {
-          if (value === 'actual' || value === 'late' || value === 'cancel') {
-            triggerBulkStatusChange(value)
-          }
-        }}
-      >
-        <SelectTrigger
-          size='sm'
-          className='min-w-[160px] justify-between'
+      {isAreaLevelUserType ? null : (
+        <Select
+          key={`bulk-status-${statusSelectResetCounter}`}
+          disabled={!hasEligibleStatusChange || isBulkStatusUpdating}
+          onValueChange={(value) => {
+            if (value === 'actual' || value === 'late' || value === 'cancel') {
+              triggerBulkStatusChange(value)
+            }
+          }}
         >
-          <SelectValue placeholder='Change Status' />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value='actual'>Actual</SelectItem>
-          <SelectItem value='late'>Late Delivery</SelectItem>
-          <SelectItem value='cancel'>Cancel</SelectItem>
-        </SelectContent>
-      </Select>
+          <SelectTrigger
+            size='sm'
+            className='min-w-[160px] justify-between'
+          >
+            <SelectValue placeholder='Change Status' />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value='actual'>Actual</SelectItem>
+            <SelectItem value='late'>Late Delivery</SelectItem>
+            <SelectItem value='cancel'>Cancel</SelectItem>
+          </SelectContent>
+        </Select>
+      )}
     </div>
   )
 
@@ -886,11 +898,46 @@ const BookingInvoice = () => {
                 status={deriveStatus(selectedInvoiceFresh)}
                 formatDate={formatDate}
               />
-
-              <BookingInvoiceItemsTable
-                invoice={selectedInvoiceFresh}
-                items={selectedInvoiceFresh.invoiceDetailDTOList ?? []}
-                onUpdated={() => {
+              {isReadOnly ? (
+                <div
+                  className='[&_div.flex.items-center.justify-between>div:last-child]:hidden [&_div.flex.justify-end.gap-3.pt-2]:hidden [&_table tr]:pointer-events-none [&_table tr]:cursor-not-allowed [&_input]:pointer-events-none'
+                  onClickCapture={(e) => e.stopPropagation()}
+                  onDoubleClickCapture={(e) => e.stopPropagation()}
+                  onMouseDownCapture={(e) => e.stopPropagation()}
+                  onKeyDownCapture={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') e.stopPropagation()
+                  }}
+                >
+                  <BookingInvoiceItemsTable
+                    invoice={selectedInvoiceFresh}
+                    items={selectedInvoiceFresh.invoiceDetailDTOList ?? []}
+                    onUpdated={() => {
+                      queryClient.invalidateQueries({
+                        queryKey: [
+                          'booking-invoices',
+                          effectiveTerritoryId,
+                          filters.startDate,
+                          filters.endDate,
+                          filters.invoiceType,
+                          defaultDates.startDate,
+                          defaultDates.endDate,
+                        ],
+                      })
+                      setInvoicePreviewOpen(false)
+                      setSelectedInvoice(null)
+                    }}
+                    userId={user?.userId ?? null}
+                    onCancel={() => {
+                      setInvoicePreviewOpen(false)
+                      setSelectedInvoice(null)
+                    }}
+                  />
+                </div>
+              ) : (
+                <BookingInvoiceItemsTable
+                  invoice={selectedInvoiceFresh}
+                  items={selectedInvoiceFresh.invoiceDetailDTOList ?? []}
+                  onUpdated={() => {
                     queryClient.invalidateQueries({
                       queryKey: [
                         'booking-invoices',
@@ -900,17 +947,18 @@ const BookingInvoice = () => {
                         filters.invoiceType,
                         defaultDates.startDate,
                         defaultDates.endDate,
-                    ],
-                  })
-                  setInvoicePreviewOpen(false)
-                  setSelectedInvoice(null)
-                }}
-                userId={user?.userId ?? null}
-                onCancel={() => {
-                  setInvoicePreviewOpen(false)
-                  setSelectedInvoice(null)
-                }}
-              />
+                      ],
+                    })
+                    setInvoicePreviewOpen(false)
+                    setSelectedInvoice(null)
+                  }}
+                  userId={user?.userId ?? null}
+                  onCancel={() => {
+                    setInvoicePreviewOpen(false)
+                    setSelectedInvoice(null)
+                  }}
+                />
+              )}
             </div>
           ) : null}
         </FullWidthDialog>

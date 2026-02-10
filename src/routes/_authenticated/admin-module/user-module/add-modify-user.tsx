@@ -439,7 +439,7 @@ function AddModifyUser() {
             />
           ) : (
             <div className='rounded-md border'>
-              <Table className='text-xs'>
+              <Table className='text-xs whitespace-nowrap'>
                 <TableHeader>
                   {table.getHeaderGroups().map((headerGroup) => (
                     <TableRow key={headerGroup.id}>

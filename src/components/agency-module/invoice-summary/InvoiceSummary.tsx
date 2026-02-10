@@ -18,6 +18,7 @@ import {
 } from '@/services/reports/invoiceReports'
 import { useAppSelector } from '@/store/hooks'
 import type {
+  ActiveInvoicesByTerritoryParams,
   BookingInvoice,
   BookingInvoiceReportItem,
 } from '@/types/invoice'
@@ -89,13 +90,10 @@ const InvoiceSummary = () => {
     useState<BookingInvoiceReportItem | null>(null)
   const [detailError, setDetailError] = useState<string | null>(null)
   const [isDetailLoading, setIsDetailLoading] = useState(false)
+  const defaultInvoiceType = ''
   const invoicesMutation = useMutation({
-    mutationFn: (payload: {
-      userId: number
-      territoryId?: number
-      startDate: string
-      endDate: string
-    }) => getAllInvoicesbyTerritoryId(payload),
+    mutationFn: (payload: ActiveInvoicesByTerritoryParams) =>
+      getAllInvoicesbyTerritoryId(payload),
   })
 
   const rows = useMemo<BookingInvoice[]>(
@@ -353,12 +351,14 @@ const InvoiceSummary = () => {
       territoryId: user?.territoryId,
       startDate: defaultDates.startDate,
       endDate: defaultDates.endDate,
+      invoiceType: defaultInvoiceType,
     })
   }, [
     user?.userId,
     user?.territoryId,
     defaultDates.startDate,
     defaultDates.endDate,
+    defaultInvoiceType,
     hasRequested,
     invoicesMutation,
   ])
@@ -376,6 +376,7 @@ const InvoiceSummary = () => {
       territoryId: user?.territoryId,
       startDate: next.startDate,
       endDate: next.endDate,
+      invoiceType: next.invoiceType ?? defaultInvoiceType,
     })
   }
 
@@ -385,6 +386,7 @@ const InvoiceSummary = () => {
         <InvoiceSummaryFilter
           initialStartDate={defaultDates.startDate}
           initialEndDate={defaultDates.endDate}
+          initialInvoiceType='ALL'
           onApply={handleApply}
           onReset={() => {
             const userId = user?.userId
@@ -395,6 +397,7 @@ const InvoiceSummary = () => {
               territoryId: user?.territoryId,
               startDate: defaultDates.startDate,
               endDate: defaultDates.endDate,
+              invoiceType: defaultInvoiceType,
             })
           }}
         />

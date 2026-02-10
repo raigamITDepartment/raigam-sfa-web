@@ -15,7 +15,7 @@ import {
 } from '@tanstack/react-table'
 import {
   getAllAgencyDistributors,
-  toggleAgencyActive,
+  updateActiveStatusAgencyDistributor,
   type AgencyDistributorDTO,
   type ApiResponse,
   type Id,
@@ -45,6 +45,7 @@ import {
   DataTableColumnHeader,
   DataTablePagination,
   DataTableToolbar,
+  TableLoadingRows,
 } from '@/components/data-table'
 import {
   ExcelExportButton,
@@ -110,6 +111,9 @@ export default function AgencyMapping() {
     pageSize: 10,
   })
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [editingMapping, setEditingMapping] =
+    useState<AgencyDistributorDTO | null>(null)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [pendingToggle, setPendingToggle] = useState<PendingToggle | null>(null)
 
@@ -121,7 +125,19 @@ export default function AgencyMapping() {
     },
   })
 
-  const rows = useMemo(() => data?.payload ?? [], [data])
+  const rows = useMemo(() => {
+    const list = data?.payload ?? []
+    if (!list.length) return []
+    return list
+      .map((item, index) => ({ item, index }))
+      .sort((a, b) => {
+        const aId = Number(a.item.id ?? a.item.agencyId ?? 0)
+        const bId = Number(b.item.id ?? b.item.agencyId ?? 0)
+        if (aId !== bId) return bId - aId
+        return b.index - a.index
+      })
+      .map(({ item }) => item)
+  }, [data])
   const distributorFilterOptions = useMemo(
     () => buildFilterOptions(rows, (agency) => agency.distributorName),
     [rows]
@@ -140,7 +156,7 @@ export default function AgencyMapping() {
 
   const toggleStatusMutation = useMutation({
     mutationFn: async (vars: PendingToggle) => {
-      await toggleAgencyActive(vars.id)
+      await updateActiveStatusAgencyDistributor(vars.id)
       return vars
     },
     onSuccess: () => {
@@ -238,9 +254,7 @@ export default function AgencyMapping() {
         cell: ({ row }) => {
           const original = row.original
           const recordId =
-            (original.agencyId as Id | undefined) ??
-            (original.id as Id | undefined) ??
-            (row.id as Id | undefined)
+            (original.id as Id | undefined) ?? (row.id as Id | undefined)
           const isActive = resolveAgencyActive(original)
 
           if (!recordId) return null
@@ -254,7 +268,10 @@ export default function AgencyMapping() {
                     size='icon'
                     className='size-8'
                     aria-label='Edit agency mapping'
-                    onClick={() => toast('Edit agency mapping coming soon')}
+                    onClick={() => {
+                      setEditingMapping(original)
+                      setEditDialogOpen(true)
+                    }}
                   >
                     <Pencil />
                   </Button>
@@ -310,6 +327,28 @@ export default function AgencyMapping() {
     setConfirmOpen(false)
     toggleStatusMutation.mutate(pendingToggle)
   }
+
+  const editInitialValues = useMemo(() => {
+    if (!editingMapping) return undefined
+    return {
+      rangeId:
+        editingMapping.rangeId !== undefined &&
+        editingMapping.rangeId !== null
+          ? String(editingMapping.rangeId)
+          : '',
+      distributorId:
+        editingMapping.distributorId !== undefined &&
+        editingMapping.distributorId !== null
+          ? String(editingMapping.distributorId)
+          : '',
+      agencyIds:
+        editingMapping.agencyId !== undefined &&
+        editingMapping.agencyId !== null
+          ? [String(editingMapping.agencyId)]
+          : [],
+      isActive: resolveAgencyActive(editingMapping),
+    }
+  }, [editingMapping])
 
   return (
     <Card>
@@ -391,14 +430,7 @@ export default function AgencyMapping() {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={columns.length}
-                    className='h-20 text-center'
-                  >
-                    Loading agencies...
-                  </TableCell>
-                </TableRow>
+                <TableLoadingRows columns={columns.length || 1} />
               ) : isError ? (
                 <TableRow>
                   <TableCell
@@ -477,6 +509,36 @@ export default function AgencyMapping() {
         <CreateAgencyMappingForm
           onSubmit={async () => {
             setCreateDialogOpen(false)
+          }}
+        />
+      </CommonDialog>
+      <CommonDialog
+        open={editDialogOpen}
+        onOpenChange={(open) => {
+          setEditDialogOpen(open)
+          if (!open) setEditingMapping(null)
+        }}
+        title='Update Agency Mapping'
+        description='Update agency mapping details.'
+        hideFooter
+      >
+        <CreateAgencyMappingForm
+          mode='edit'
+          hideRange
+          initialValues={editInitialValues}
+          mappingId={
+            editingMapping?.id !== undefined && editingMapping?.id !== null
+              ? Number(editingMapping.id)
+              : undefined
+          }
+          mappingUserId={
+            editingMapping?.userId !== undefined && editingMapping?.userId !== null
+              ? Number(editingMapping.userId)
+              : undefined
+          }
+          mappingAgencyCode={editingMapping?.agencyCode ?? null}
+          onSubmit={async () => {
+            setEditDialogOpen(false)
           }}
         />
       </CommonDialog>

@@ -14,6 +14,7 @@ import type {
   OutletCategoryDTO,
   OutletDTO,
   AgencyDTO,
+  AgencyDistributorDTO,
   AgencyWarehouseDTO,
   CreateAgencyWarehouseRequest,
   UpdateAgencyWarehouseRequest,
@@ -355,6 +356,10 @@ export function createAgencyDistributorMapping(
     `${USER_DEMARC_BASE}/agencyDistributor`,
     body
   )
+}
+
+export function getAllAgencyDistributors() {
+  return get<AgencyDistributorDTO[]>(`${USER_DEMARC_BASE}/agencyDistributor`)
 }
 
 export function updateAgencyMapping(body: UpdateAgencyMappingRequest) {

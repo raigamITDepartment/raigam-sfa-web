@@ -38,7 +38,7 @@ import {
   getAllArea,
   getAllAreaRegions,
   getAllRange,
-  getAllTerritories,
+  getTerritoriesByAreaId,
   getAllAgency,
 } from '@/services/userDemarcationApi'
 import { getAllRoles, getAllUserGroups, getAllUserTypes } from '@/services/users/userApi'
@@ -381,14 +381,6 @@ export function UserForm(props: UserFormProps) {
     },
   })
 
-  const { data: territoriesData = [] } = useQuery({
-    queryKey: ['territories', 'options'],
-    queryFn: async () => {
-      const res = (await getAllTerritories()) as ApiResponse<TerritoryDTO[]>
-      return res.payload
-    },
-  })
-
   const { data: agenciesData = [] } = useQuery({
     queryKey: ['agencies', 'options'],
     queryFn: async () => {
@@ -457,31 +449,40 @@ export function UserForm(props: UserFormProps) {
     const lookup = String(selectedRoleValue)
     return subRoleOptions.find((option) => option.value === lookup)?.label ?? ''
   }, [selectedRoleValue, subRoleOptions])
-  const normalizedRoleLabel = selectedRoleLabel.trim().toLowerCase()
+  const normalizedRoleLabel = selectedRoleLabel
+    .trim()
+    .toLowerCase()
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+  const hasRoleWord = (word: string) =>
+    new RegExp(`\\b${word}\\b`, 'i').test(normalizedRoleLabel)
+  const hasRolePhrase = (phrase: string) =>
+    normalizedRoleLabel.includes(phrase)
   const isExecutiveSalesLabel =
     normalizedRoleLabel === 'executive sales' ||
     normalizedRoleLabel === 'sales executive' ||
     normalizedRoleLabel === 'area sales executive'
 
   const isChannelHead =
-    selectedRoleId === SubRoleId.ChannelHead ||
-    normalizedRoleLabel === 'channel head'
+    selectedRoleId === SubRoleId.ChannelHead || hasRolePhrase('channel head')
   const isSubChannelHead =
     selectedRoleId === SubRoleId.SubChannelHead ||
-    normalizedRoleLabel === 'sub channel head'
+    hasRolePhrase('sub channel head')
   const isRegionalManager =
     selectedRoleId === SubRoleId.RegionSalesManager ||
-    normalizedRoleLabel === 'regional sales manager'
+    hasRolePhrase('regional sales manager') ||
+    hasRolePhrase('region sales manager')
   const isAreaManager =
     selectedRoleId === SubRoleId.AreaSalesManager ||
-    normalizedRoleLabel === 'area sales manager'
+    hasRolePhrase('area sales manager')
   const isAreaExecutive =
     selectedRoleId === SubRoleId.AreaSalesExecutive || isExecutiveSalesLabel
   const isRepresentative =
     selectedRoleId === SubRoleId.Representative ||
-    normalizedRoleLabel === 'representative'
+    hasRoleWord('representative') ||
+    hasRoleWord('rep')
   const isAgent =
-    selectedRoleId === SubRoleId.Agent || normalizedRoleLabel === 'agent'
+    selectedRoleId === SubRoleId.Agent || hasRoleWord('agent')
 
   const requiresChannel =
     isChannelHead ||
@@ -518,6 +519,18 @@ export function UserForm(props: UserFormProps) {
   const rangeValue = toSelectValue(form.watch('rangeId'))
   const territoryValue = toSelectValue(form.watch('territoryId'))
   const agencyValue = toSelectValue(form.watch('agencyId'))
+
+  const { data: territoriesData = [] } = useQuery({
+    queryKey: ['territories', 'by-area', areaValue || 'none'],
+    queryFn: async () => {
+      if (!areaValue) return []
+      const res = (await getTerritoriesByAreaId(
+        Number(areaValue)
+      )) as ApiResponse<TerritoryDTO[]>
+      return res.payload
+    },
+    enabled: Boolean(areaValue),
+  })
 
   const showChannel =
     requiresChannel || (mode === 'edit' && Boolean(channelValue))
@@ -676,22 +689,20 @@ export function UserForm(props: UserFormProps) {
   const filteredTerritories = useMemo(() => {
     if (!territoriesData.length) return []
     let filtered = territoriesData.slice()
-    if (channelValue) {
+    const hasChannelField = filtered.some((item) => item.channelId != null)
+    const hasSubChannelField = filtered.some((item) => item.subChannelId != null)
+    const hasRangeField = filtered.some((item) => item.rangeId != null)
+    if (channelValue && hasChannelField) {
       filtered = filtered.filter(
         (item) => String(item.channelId ?? '') === channelValue
       )
     }
-    if (subChannelValue) {
+    if (subChannelValue && hasSubChannelField) {
       filtered = filtered.filter(
         (item) => String(item.subChannelId ?? '') === subChannelValue
       )
     }
-    if (areaValue) {
-      filtered = filtered.filter(
-        (item) => String(item.areaId ?? '') === areaValue
-      )
-    }
-    if (rangeValue) {
+    if (rangeValue && hasRangeField) {
       filtered = filtered.filter(
         (item) => String(item.rangeId ?? '') === rangeValue
       )
@@ -719,22 +730,26 @@ export function UserForm(props: UserFormProps) {
   const filteredAgencies = useMemo(() => {
     if (!agenciesData.length) return []
     let filtered = agenciesData.slice()
-    if (channelValue) {
+    const hasChannelField = filtered.some((item) => item.channelId != null)
+    const hasSubChannelField = filtered.some((item) => item.subChannelId != null)
+    const hasRangeField = filtered.some((item) => item.rangeId != null)
+    const hasTerritoryField = filtered.some((item) => item.territoryId != null)
+    if (channelValue && hasChannelField) {
       filtered = filtered.filter(
         (item) => String(item.channelId ?? '') === channelValue
       )
     }
-    if (subChannelValue) {
+    if (subChannelValue && hasSubChannelField) {
       filtered = filtered.filter(
         (item) => String(item.subChannelId ?? '') === subChannelValue
       )
     }
-    if (rangeValue) {
+    if (rangeValue && hasRangeField) {
       filtered = filtered.filter(
         (item) => String(item.rangeId ?? '') === rangeValue
       )
     }
-    if (territoryValue) {
+    if (territoryValue && hasTerritoryField) {
       filtered = filtered.filter(
         (item) => String(item.territoryId ?? '') === territoryValue
       )
@@ -1161,9 +1176,7 @@ export function UserForm(props: UserFormProps) {
                     field.onChange(toNumberOrUndefined(value))
                     form.setValue('agencyId', undefined)
                   }}
-                  disabled={
-                    !filteredTerritories.length || !areaValue || !rangeValue
-                  }
+                  disabled={!areaValue || !rangeValue}
                 >
                     <FormControl>
                       <SelectTrigger className='w-full'>
@@ -1171,13 +1184,22 @@ export function UserForm(props: UserFormProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {filteredTerritories.map((territory) => (
-                        <SelectItem key={territory.id} value={String(territory.id)}>
-                          {territory.territoryName ??
-                            territory.name ??
-                            `Territory ${territory.id}`}
+                      {filteredTerritories.length ? (
+                        filteredTerritories.map((territory) => (
+                          <SelectItem
+                            key={territory.id}
+                            value={String(territory.id)}
+                          >
+                            {territory.territoryName ??
+                              territory.name ??
+                              `Territory ${territory.id}`}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value='no-territories' disabled>
+                          No territories found
                         </SelectItem>
-                      ))}
+                      )}
                     </SelectContent>
                   </Select>
                   <FormMessage />

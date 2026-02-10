@@ -68,6 +68,14 @@ type GpsMonitoringRecord = {
   batteryPercentage?: string | number | null
   invoiceNumber?: string | number | null
   outletName?: string | null
+  address1?: string | null
+  address2?: string | null
+  addressLine1?: string | null
+  addressLine2?: string | null
+  outletAddress1?: string | null
+  outletAddress2?: string | null
+  outletAddressLine1?: string | null
+  outletAddressLine2?: string | null
   time?: string | null
   createdAt?: string | null
   createdDate?: string | null
@@ -88,6 +96,8 @@ type GpsRoutePoint = {
   isCheckOut?: boolean
   outletName?: string | null
   invoiceNumber?: string | number | null
+  addressLine1?: string | null
+  addressLine2?: string | null
 }
 
 type GpsSummaryRow = {
@@ -97,6 +107,8 @@ type GpsSummaryRow = {
   lng: number
   batteryPercent: number | null
   timeKey: number
+  addressLine1?: string | null
+  addressLine2?: string | null
 }
 
 const REPLAY_INTERVAL_MS = 1400
@@ -233,6 +245,28 @@ const parseBatteryPercent = (value?: string | number | null) => {
   return Number.isNaN(parsed) ? null : Math.round(parsed)
 }
 
+const cleanAddressLine = (value: unknown) => {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim()
+  return trimmed ? trimmed : null
+}
+
+const resolveAddressLines = (record: GpsMonitoringRecord) => {
+  const line1 =
+    cleanAddressLine(record.addressLine1) ??
+    cleanAddressLine(record.address1) ??
+    cleanAddressLine(record.outletAddressLine1) ??
+    cleanAddressLine(record.outletAddress1) ??
+    null
+  const line2 =
+    cleanAddressLine(record.addressLine2) ??
+    cleanAddressLine(record.address2) ??
+    cleanAddressLine(record.outletAddressLine2) ??
+    cleanAddressLine(record.outletAddress2) ??
+    null
+  return { line1, line2 }
+}
+
 const buildAddressKey = (lat: number, lng: number) =>
   `${lat.toFixed(4)},${lng.toFixed(4)}`
 
@@ -314,6 +348,7 @@ export const GPSMonitoring = () => {
   const [isPlaying, setIsPlaying] = useState(true)
   const [speedIndex, setSpeedIndex] = useState(1)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [isMapFollowEnabled, setIsMapFollowEnabled] = useState(true)
   const [outletDialogOpen, setOutletDialogOpen] = useState(false)
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false)
   const [addressLookup, setAddressLookup] = useState<Record<string, string>>({})
@@ -408,6 +443,7 @@ export const GPSMonitoring = () => {
         typeof record.invoiceNumber === 'number'
           ? record.invoiceNumber
           : null
+      const { line1, line2 } = resolveAddressLines(record)
       acc.push({
         lat,
         lng,
@@ -418,6 +454,8 @@ export const GPSMonitoring = () => {
         isCheckOut,
         outletName,
         invoiceNumber,
+        addressLine1: line1,
+        addressLine2: line2,
       })
       return acc
     }, [])
@@ -514,6 +552,8 @@ export const GPSMonitoring = () => {
               lng: point.lng,
               batteryPercent: batteryEstimates[index] ?? null,
               timeKey,
+              addressLine1: point.addressLine1 ?? existing?.addressLine1 ?? null,
+              addressLine2: point.addressLine2 ?? existing?.addressLine2 ?? null,
             })
           }
         }
@@ -533,6 +573,8 @@ export const GPSMonitoring = () => {
               lng: point.lng,
               batteryPercent: batteryEstimates[index] ?? null,
               timeKey,
+              addressLine1: point.addressLine1 ?? existing?.addressLine1 ?? null,
+              addressLine2: point.addressLine2 ?? existing?.addressLine2 ?? null,
             })
           }
         }
@@ -721,10 +763,11 @@ export const GPSMonitoring = () => {
   }, [])
 
   useEffect(() => {
+    if (!isMapFollowEnabled) return
     const map = mapRef.current
     if (!map || !markerPosition) return
     map.panTo(markerPosition)
-  }, [markerPosition])
+  }, [markerPosition, isMapFollowEnabled])
 
   const toggleFullscreen = () => {
     const wrapper = mapWrapperRef.current
@@ -1004,6 +1047,9 @@ export const GPSMonitoring = () => {
                     onUnmount={() => {
                       mapRef.current = null
                     }}
+                    onDragStart={() => setIsMapFollowEnabled(false)}
+                    onZoomChanged={() => setIsMapFollowEnabled(false)}
+                    options={{ gestureHandling: 'greedy' }}
                     mapContainerStyle={{
                       width: '100%',
                       height: isFullscreen ? '100%' : '480px',
@@ -1035,7 +1081,7 @@ export const GPSMonitoring = () => {
                       }}
                     />
                   </GoogleMap>
-                  <div className='pointer-events-auto absolute right-3 top-3'>
+                  <div className='pointer-events-auto absolute right-3 top-3 flex flex-col gap-2'>
                     <Button
                       size='sm'
                       variant='outline'
@@ -1050,6 +1096,21 @@ export const GPSMonitoring = () => {
                       ) : (
                         <Maximize2 className='h-4 w-4' />
                       )}
+                    </Button>
+                    <Button
+                      size='sm'
+                      variant='outline'
+                      className='h-9 w-9 rounded-md bg-white/95 p-0 shadow-sm dark:bg-slate-900/95'
+                      onClick={() => {
+                        setIsMapFollowEnabled(true)
+                        if (markerPosition) {
+                          mapRef.current?.panTo(markerPosition)
+                        }
+                      }}
+                      disabled={isMapFollowEnabled}
+                      aria-label='Recenter map'
+                    >
+                      <RotateCcw className='h-4 w-4' />
                     </Button>
                   </div>
                   {activeAgent ? (
@@ -1238,9 +1299,17 @@ export const GPSMonitoring = () => {
                             ? 'warn'
                             : 'low'
                     const addressKey = buildAddressKey(row.lat, row.lng)
-                    const addressLabel =
+                    const fallbackAddress =
                       addressLookup[addressKey] ??
                       (isLoaded ? 'Resolving...' : '—')
+                    const addressLine1 = row.addressLine1 ?? ''
+                    const addressLine2 = row.addressLine2 ?? ''
+                    const addressParts = [addressLine1, addressLine2].filter(
+                      (value) => value
+                    )
+                    const addressLabel = addressParts.length
+                      ? addressParts.join(', ')
+                      : fallbackAddress
                     return (
                       <div
                         key={row.key}
@@ -1254,11 +1323,23 @@ export const GPSMonitoring = () => {
                         <div className='text-xs text-slate-500 dark:text-slate-400'>
                           {formatLatLng(row.lat, row.lng)}
                         </div>
-                        <div
-                          className='truncate text-xs text-slate-500 dark:text-slate-400'
-                          title={addressLabel}
-                        >
-                          {addressLabel}
+                        <div className='text-xs text-slate-500 dark:text-slate-400'>
+                          {addressParts.length ? (
+                            <div className='flex flex-col'>
+                              <span className='truncate' title={addressLine1}>
+                                {addressLine1}
+                              </span>
+                              {addressLine2 ? (
+                                <span className='truncate' title={addressLine2}>
+                                  {addressLine2}
+                                </span>
+                              ) : null}
+                            </div>
+                          ) : (
+                            <span className='truncate' title={addressLabel}>
+                              {addressLabel}
+                            </span>
+                          )}
                         </div>
                         <Badge
                           variant='outline'
@@ -1322,9 +1403,17 @@ export const GPSMonitoring = () => {
                             ? 'warn'
                             : 'low'
                     const addressKey = buildAddressKey(row.lat, row.lng)
-                    const addressLabel =
+                    const fallbackAddress =
                       addressLookup[addressKey] ??
                       (isLoaded ? 'Resolving...' : '—')
+                    const addressLine1 = row.addressLine1 ?? ''
+                    const addressLine2 = row.addressLine2 ?? ''
+                    const addressParts = [addressLine1, addressLine2].filter(
+                      (value) => value
+                    )
+                    const addressLabel = addressParts.length
+                      ? addressParts.join(', ')
+                      : fallbackAddress
                     return (
                       <div
                         key={row.key}
@@ -1339,11 +1428,23 @@ export const GPSMonitoring = () => {
                         <div className='text-xs text-slate-500 dark:text-slate-400'>
                           {formatLatLng(row.lat, row.lng)}
                         </div>
-                        <div
-                          className='truncate text-xs text-slate-500 dark:text-slate-400'
-                          title={addressLabel}
-                        >
-                          {addressLabel}
+                        <div className='text-xs text-slate-500 dark:text-slate-400'>
+                          {addressParts.length ? (
+                            <div className='flex flex-col'>
+                              <span className='truncate' title={addressLine1}>
+                                {addressLine1}
+                              </span>
+                              {addressLine2 ? (
+                                <span className='truncate' title={addressLine2}>
+                                  {addressLine2}
+                                </span>
+                              ) : null}
+                            </div>
+                          ) : (
+                            <span className='truncate' title={addressLabel}>
+                              {addressLabel}
+                            </span>
+                          )}
                         </div>
                         <Badge
                           variant='outline'

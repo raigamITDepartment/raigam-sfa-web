@@ -651,6 +651,22 @@ export function isPathAllowedForUser(
     if (!allowed) return false
   }
   if (
+    effectiveRoleId === RoleId.SeniorManagerSales ||
+    effectiveSubRoleId === SubRoleId.ChannelHead ||
+    effectiveSubRoleId === SubRoleId.SubChannelHead
+  ) {
+    const blockedPrefixes = [
+      '/master-settings',
+      '/sales',
+      '/admin-module',
+      '/agency-module',
+    ]
+    const blocked = blockedPrefixes.some(
+      (prefix) => normalized === prefix || normalized.startsWith(prefix + '/')
+    )
+    if (blocked) return false
+  }
+  if (
     effectiveRoleId === RoleId.ExecutiveCompany &&
     effectiveSubRoleId === SubRoleId.Brand
   ) {

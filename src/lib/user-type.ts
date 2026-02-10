@@ -1,6 +1,6 @@
 const AUTH_USER_KEY = 'auth_user'
 
-const READ_ONLY_USER_TYPE_IDS = new Set<number>([2])
+const READ_ONLY_USER_TYPE_IDS = new Set<number>([2, 3])
 
 export function getStoredUserTypeId(): number | undefined {
   if (typeof window === 'undefined') return undefined

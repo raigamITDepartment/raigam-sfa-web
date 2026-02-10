@@ -141,6 +141,19 @@ const resolveOutletActive = (outlet: OutletRecord) => {
   return normalizeBool(rawStatus)
 }
 
+const resolveChannelActive = (channel: Record<string, unknown>) => {
+  const rawStatus =
+    (channel as { status?: unknown }).status ??
+    (channel as { isActive?: unknown }).isActive ??
+    (channel as { active?: unknown }).active ??
+    (channel as { enabled?: unknown }).enabled
+  if (typeof rawStatus === 'string') {
+    return rawStatus.toLowerCase() === 'active'
+  }
+  if (typeof rawStatus === 'boolean') return rawStatus
+  return normalizeBool(rawStatus)
+}
+
 export function SeniorManagerSalesOverview() {
   const outletsQuery = useQuery({
     queryKey: ['user-demarcation', 'outlets'],
@@ -206,13 +219,23 @@ export function SeniorManagerSalesOverview() {
   )
 
   const channelSummary = useMemo(() => {
-    const channelNameById = new Map<string, string>()
+    const activeChannels: typeof channels = []
+    const inactiveChannelIds = new Set<string>()
+    const inactiveChannelNames = new Set<string>()
+
     channels.forEach((channel) => {
-      if (channel.id === null || channel.id === undefined) return
-      const key = String(channel.id)
+      const key =
+        channel.id === null || channel.id === undefined
+          ? undefined
+          : String(channel.id)
       const name =
         channel.channelName?.trim() || channel.channelCode?.trim() || key
-      channelNameById.set(key, name)
+      if (resolveChannelActive(channel as Record<string, unknown>)) {
+        activeChannels.push(channel)
+        return
+      }
+      if (key) inactiveChannelIds.add(key)
+      if (name) inactiveChannelNames.add(name)
     })
 
     const statsById = new Map<string, ChannelStats>()
@@ -244,10 +267,12 @@ export function SeniorManagerSalesOverview() {
         : undefined
       const nameFromOutlet = outlet.channelName?.trim()
       if (channelKey) {
+        if (inactiveChannelIds.has(channelKey)) return
         addStats(statsById, channelKey, isActive)
         return
       }
       if (nameFromOutlet) {
+        if (inactiveChannelNames.has(nameFromOutlet)) return
         addStats(statsByName, nameFromOutlet, isActive)
         return
       }
@@ -260,7 +285,7 @@ export function SeniorManagerSalesOverview() {
     })
 
     const knownNames = new Set<string>()
-    const items = channels.map((channel) => {
+    const items = activeChannels.map((channel) => {
       const key = String(channel.id)
       const name =
         channel.channelName?.trim() || channel.channelCode?.trim() || key
@@ -272,7 +297,7 @@ export function SeniorManagerSalesOverview() {
     })
 
     statsByName.forEach((stats, name) => {
-      if (knownNames.has(name)) return
+      if (knownNames.has(name) || inactiveChannelNames.has(name)) return
       items.push({
         key: `name-${name}`,
         name,

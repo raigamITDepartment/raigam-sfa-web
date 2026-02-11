@@ -232,6 +232,7 @@ export function CreateWarehouseMappingForm({
   })
 
   const isSubmitting = form.formState.isSubmitting || mutation.isPending
+  const submitVariant = 'default'
 
   const handleSubmit = (values: WarehouseMappingFormValues) => {
     if (requireRange && !values.rangeId) {
@@ -439,6 +440,7 @@ export function CreateWarehouseMappingForm({
           </Button>
           <Button
             type='submit'
+            variant={submitVariant}
             className='w-full flex-1'
             disabled={isSubmitting}
           >

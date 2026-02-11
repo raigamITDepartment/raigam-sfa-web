@@ -127,18 +127,15 @@ export function ChannelForm(props: ChannelFormProps) {
     },
     onSuccess: async (data, { values }) => {
       toast.success('Channel updated successfully')
-      queryClient.setQueryData<ApiResponse<any>>(
-        ['channels'],
-        (old) => {
-          if (!old || !Array.isArray(old.payload)) return old
-          return {
-            ...old,
-            payload: old.payload.map((ch: any) =>
-              ch.id === data.payload.id ? data.payload : ch
-            ),
-          }
+      queryClient.setQueryData<ApiResponse<any>>(['channels'], (old) => {
+        if (!old || !Array.isArray(old.payload)) return old
+        return {
+          ...old,
+          payload: old.payload.map((ch: any) =>
+            ch.id === data.payload.id ? data.payload : ch
+          ),
         }
-      )
+      })
       await onSubmit?.(values)
     },
     onError: (error: unknown) => {
@@ -164,6 +161,7 @@ export function ChannelForm(props: ChannelFormProps) {
     createMutation.isPending ||
     updateMutation.isPending
   const submitLabel = mode === 'create' ? 'Create' : 'Update'
+  const submitVariant = 'default'
 
   return (
     <Form {...form}>
@@ -258,6 +256,7 @@ export function ChannelForm(props: ChannelFormProps) {
 
           <Button
             type='submit'
+            variant={submitVariant}
             className='w-full sm:flex-1'
             disabled={isSubmitting}
           >

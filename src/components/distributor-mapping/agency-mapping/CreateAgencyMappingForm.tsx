@@ -52,6 +52,7 @@ export type CreateAgencyMappingFormValues = z.output<
 type CreateAgencyMappingFormProps = {
   initialValues?: Partial<CreateAgencyMappingFormValues>
   onSubmit?: (values: CreateAgencyMappingFormValues) => void | Promise<void>
+  onCancel?: () => void
   mode?: 'create' | 'edit'
   hideRange?: boolean
   mappingId?: number
@@ -62,6 +63,7 @@ type CreateAgencyMappingFormProps = {
 export function CreateAgencyMappingForm({
   initialValues,
   onSubmit,
+  onCancel,
   mode = 'create',
   hideRange = false,
   mappingId,
@@ -241,6 +243,7 @@ export function CreateAgencyMappingForm({
   const isSubmitting = form.formState.isSubmitting || mutation.isPending
   const submitLabel = mode === 'edit' ? 'Update' : 'Create'
   const submittingLabel = mode === 'edit' ? 'Updating...' : 'Creating...'
+  const submitVariant = 'default'
 
   return (
     <Form {...form}>
@@ -398,9 +401,36 @@ export function CreateAgencyMappingForm({
           )}
         />
 
-        <Button type='submit' className='mt-2 w-full' disabled={isSubmitting}>
-          {isSubmitting ? submittingLabel : submitLabel}
-        </Button>
+        {onCancel ? (
+          <div className='mt-2 flex gap-2'>
+            <Button
+              type='button'
+              variant='outline'
+              className='w-full flex-1'
+              disabled={isSubmitting}
+              onClick={onCancel}
+            >
+              Cancel
+            </Button>
+            <Button
+              type='submit'
+              variant={submitVariant}
+              className='w-full flex-1'
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? submittingLabel : submitLabel}
+            </Button>
+          </div>
+        ) : (
+          <Button
+            type='submit'
+            variant={submitVariant}
+            className='mt-2 w-full'
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? submittingLabel : submitLabel}
+          </Button>
+        )}
       </form>
     </Form>
   )

@@ -249,6 +249,7 @@ export function AreaRegionForm(props: AreaRegionFormProps) {
     form.formState.isSubmitting ||
     createMutation.isPending ||
     updateMutation.isPending
+  const submitVariant = 'default'
   return (
     <Form {...form}>
       <form
@@ -414,20 +415,21 @@ export function AreaRegionForm(props: AreaRegionFormProps) {
 
         <div className='mt-4 flex flex-col gap-2 sm:flex-row'>
           <Button
-            type='submit'
-            className='w-full sm:flex-1'
-            disabled={isSubmitting}
-          >
-            {isCreateMode ? 'Create Mapping' : 'Update Area'}
-          </Button>
-          <Button
             type='button'
             variant='outline'
-            className='w-full sm:flex-1 text-destructive hover:text-destructive'
+            className='w-full sm:flex-1'
             disabled={isSubmitting}
             onClick={() => onCancel?.()}
           >
             {isCreateMode ? 'Cancel' : 'Discard'}
+          </Button>
+          <Button
+            type='submit'
+            variant={submitVariant}
+            className='w-full sm:flex-1'
+            disabled={isSubmitting}
+          >
+            {isCreateMode ? 'Create' : 'Update Area'}
           </Button>
         </div>
       </form>

@@ -410,6 +410,7 @@ export function RouteForm(props: RouteFormProps) {
     createMutation.isPending ||
     updateMutation.isPending
   const submitLabel = mode === 'create' ? 'Create' : 'Update'
+  const submitVariant = 'default'
 
   const handleInvalid = (errors: FieldErrors<RouteFormInput>) => {
     const entries = Object.entries(errors)
@@ -641,20 +642,21 @@ export function RouteForm(props: RouteFormProps) {
 
         <div className='mt-2 flex flex-col gap-2 sm:flex-row'>
           <Button
-            type='submit'
-            className={`w-full sm:flex-1 ${isEditMode ? 'order-1 sm:order-none' : ''}`}
-            disabled={isSubmitting}
-          >
-            {submitLabel}
-          </Button>
-          <Button
             type='button'
-            variant={isEditMode ? 'destructive' : 'outline'}
+            variant='outline'
             className='w-full sm:flex-1'
             disabled={isSubmitting}
             onClick={onCancel}
           >
             {isEditMode ? 'Discard' : 'Cancel'}
+          </Button>
+          <Button
+            type='submit'
+            variant={submitVariant}
+            className='w-full sm:flex-1'
+            disabled={isSubmitting}
+          >
+            {submitLabel}
           </Button>
         </div>
       </form>

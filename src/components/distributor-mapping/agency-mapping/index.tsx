@@ -510,6 +510,7 @@ export default function AgencyMapping() {
           onSubmit={async () => {
             setCreateDialogOpen(false)
           }}
+          onCancel={() => setCreateDialogOpen(false)}
         />
       </CommonDialog>
       <CommonDialog
@@ -537,6 +538,7 @@ export default function AgencyMapping() {
               : undefined
           }
           mappingAgencyCode={editingMapping?.agencyCode ?? null}
+          onCancel={() => setEditDialogOpen(false)}
           onSubmit={async () => {
             setEditDialogOpen(false)
           }}

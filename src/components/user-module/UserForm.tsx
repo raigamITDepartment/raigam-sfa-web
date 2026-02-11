@@ -305,6 +305,48 @@ const mergeById = <T,>(
   return result
 }
 
+type SelectOption = {
+  label: string
+  value: string
+}
+
+const ensureSelectedOption = (
+  options: SelectOption[],
+  selectedValue: string,
+  fallbackLabel: (value: string) => string
+) => {
+  if (!selectedValue) return options
+  if (options.some((option) => option.value === selectedValue)) return options
+  return [{ value: selectedValue, label: fallbackLabel(selectedValue) }, ...options]
+}
+
+const ensureSelectedOptions = (
+  options: SelectOption[],
+  selectedValues: string[],
+  fallbackLabel: (value: string) => string
+) => {
+  if (!selectedValues.length) return options
+  const seen = new Set(options.map((option) => option.value))
+  const extras: SelectOption[] = []
+
+  for (const rawValue of selectedValues) {
+    const value = String(rawValue)
+    if (!value || seen.has(value)) continue
+    seen.add(value)
+    extras.push({ value, label: fallbackLabel(value) })
+  }
+
+  return extras.length ? [...extras, ...options] : options
+}
+
+const optionsQueryDefaults = {
+  staleTime: 1000 * 60 * 5,
+  gcTime: 1000 * 60 * 30,
+  refetchOnMount: (query: { state: { data: unknown } }) =>
+    query.state.data === undefined,
+  refetchOnWindowFocus: false,
+}
+
 export function UserForm(props: UserFormProps) {
   const { mode, initialValues, onSubmit, onCancel, submitLabel } = props
   const schema = useMemo(() => buildUserSchema(mode), [mode])
@@ -315,6 +357,7 @@ export function UserForm(props: UserFormProps) {
       const res = await getAllUserGroups()
       return res.payload
     },
+    ...optionsQueryDefaults,
   })
 
   const { data: subRolesData = [] } = useQuery({
@@ -323,6 +366,7 @@ export function UserForm(props: UserFormProps) {
       const res = await getAllRoles()
       return res.payload
     },
+    ...optionsQueryDefaults,
   })
 
   const { data: userTypesData = [] } = useQuery({
@@ -331,6 +375,7 @@ export function UserForm(props: UserFormProps) {
       const res = await getAllUserTypes()
       return res.payload
     },
+    ...optionsQueryDefaults,
   })
 
   const { data: channelsData = [] } = useQuery({
@@ -339,6 +384,7 @@ export function UserForm(props: UserFormProps) {
       const res = (await getAllChannel()) as ApiResponse<ChannelDTO[]>
       return res.payload
     },
+    ...optionsQueryDefaults,
   })
 
   const { data: subChannelsData = [] } = useQuery({
@@ -347,6 +393,7 @@ export function UserForm(props: UserFormProps) {
       const res = (await getAllSubChannel()) as ApiResponse<SubChannelDTO[]>
       return res.payload
     },
+    ...optionsQueryDefaults,
   })
 
   const { data: regionsData = [] } = useQuery({
@@ -355,6 +402,7 @@ export function UserForm(props: UserFormProps) {
       const res = (await getAllRegion()) as ApiResponse<RegionDTO[]>
       return res.payload
     },
+    ...optionsQueryDefaults,
   })
 
   const { data: areasData = [] } = useQuery({
@@ -363,6 +411,7 @@ export function UserForm(props: UserFormProps) {
       const res = (await getAllArea()) as ApiResponse<AreaDTO[]>
       return res.payload
     },
+    ...optionsQueryDefaults,
   })
 
   const { data: areaRegionsData = [] } = useQuery({
@@ -371,6 +420,7 @@ export function UserForm(props: UserFormProps) {
       const res = (await getAllAreaRegions()) as ApiResponse<AreaRegionDTO[]>
       return res.payload
     },
+    ...optionsQueryDefaults,
   })
 
   const { data: rangesData = [] } = useQuery({
@@ -379,6 +429,7 @@ export function UserForm(props: UserFormProps) {
       const res = (await getAllRange()) as ApiResponse<RangeDTO[]>
       return res.payload
     },
+    ...optionsQueryDefaults,
   })
 
   const { data: agenciesData = [] } = useQuery({
@@ -387,6 +438,7 @@ export function UserForm(props: UserFormProps) {
       const res = (await getAllAgency()) as ApiResponse<AgencyDTO[]>
       return res.payload
     },
+    ...optionsQueryDefaults,
   })
 
   const roleOptions = useMemo(
@@ -515,10 +567,16 @@ export function UserForm(props: UserFormProps) {
   const subChannelValue = toSelectValue(form.watch('subChannelId'))
   const regionValue = toSelectValue(form.watch('regionId'))
   const areaValue = toSelectValue(form.watch('areaId'))
-  const areaIdsValue = form.watch('areaIds') ?? []
+  const rawAreaIdsValue = form.watch('areaIds') ?? []
+  const areaIdsValue = Array.isArray(rawAreaIdsValue)
+    ? rawAreaIdsValue.map((value) => String(value)).filter(Boolean)
+    : []
   const rangeValue = toSelectValue(form.watch('rangeId'))
   const territoryValue = toSelectValue(form.watch('territoryId'))
   const agencyValue = toSelectValue(form.watch('agencyId'))
+  const userGroupValue = toSelectValue(form.watch('userGroupId'))
+  const roleValue = toSelectValue(selectedRoleValue)
+  const userLevelValue = toSelectValue(form.watch('userLevelId'))
 
   const { data: territoriesData = [] } = useQuery({
     queryKey: ['territories', 'by-area', areaValue || 'none'],
@@ -530,6 +588,7 @@ export function UserForm(props: UserFormProps) {
       return res.payload
     },
     enabled: Boolean(areaValue),
+    ...optionsQueryDefaults,
   })
 
   const showChannel =
@@ -774,6 +833,158 @@ export function UserForm(props: UserFormProps) {
     agencyValue,
   ])
 
+  const userGroupOptions = useMemo(
+    () =>
+      ensureSelectedOption(
+        roleOptions,
+        userGroupValue,
+        (value) => `User Group ${value}`
+      ),
+    [roleOptions, userGroupValue]
+  )
+
+  const roleOptionsWithSelected = useMemo(
+    () =>
+      ensureSelectedOption(
+        subRoleOptions,
+        roleValue,
+        (value) => `Role ${value}`
+      ),
+    [subRoleOptions, roleValue]
+  )
+
+  const accessLevelOptionsWithSelected = useMemo(
+    () =>
+      ensureSelectedOption(
+        accessLevelOptions,
+        userLevelValue,
+        (value) => `Access Level ${value}`
+      ),
+    [accessLevelOptions, userLevelValue]
+  )
+
+  const channelOptions = useMemo(
+    () =>
+      ensureSelectedOption(
+        channelsData.map((channel) => ({
+          label:
+            channel.channelName ??
+            channel.channelCode ??
+            `Channel ${channel.id}`,
+          value: String(channel.id),
+        })),
+        channelValue,
+        (value) => `Channel ${value}`
+      ),
+    [channelsData, channelValue]
+  )
+
+  const subChannelOptions = useMemo(
+    () =>
+      ensureSelectedOption(
+        filteredSubChannels.map((subChannel) => ({
+          label:
+            subChannel.subChannelName ??
+            subChannel.subChannelCode ??
+            `Sub Channel ${subChannel.id}`,
+          value: String(subChannel.id),
+        })),
+        subChannelValue,
+        (value) => `Sub Channel ${value}`
+      ),
+    [filteredSubChannels, subChannelValue]
+  )
+
+  const regionOptions = useMemo(
+    () =>
+      ensureSelectedOption(
+        filteredRegions.map((region) => ({
+          label: region.regionName ?? region.name ?? `Region ${region.id}`,
+          value: String(region.id),
+        })),
+        regionValue,
+        (value) => `Region ${value}`
+      ),
+    [filteredRegions, regionValue]
+  )
+
+  const areaMultiOptions = useMemo(
+    () =>
+      ensureSelectedOptions(
+        filteredAreas.map((area) => ({
+          label: area.areaName ?? `Area ${area.id}`,
+          value: String(area.id),
+        })),
+        areaIdsValue,
+        (value) => `Area ${value}`
+      ),
+    [filteredAreas, areaIdsValue]
+  )
+
+  const areaSingleOptions = useMemo(
+    () =>
+      ensureSelectedOption(
+        filteredAreas.map((area) => ({
+          label: area.areaName ?? `Area ${area.id}`,
+          value: String(area.id),
+        })),
+        areaValue,
+        (value) => `Area ${value}`
+      ),
+    [filteredAreas, areaValue]
+  )
+
+  const rangeOptions = useMemo(
+    () =>
+      ensureSelectedOption(
+        filteredRanges
+          .map((rangeItem) => {
+            const optionId = rangeItem.id ?? rangeItem.rangeId
+            if (optionId === undefined || optionId === null) return null
+            return {
+              label: rangeItem.rangeName ?? `Range ${optionId}`,
+              value: String(optionId),
+            }
+          })
+          .filter((option): option is SelectOption => Boolean(option)),
+        rangeValue,
+        (value) => `Range ${value}`
+      ),
+    [filteredRanges, rangeValue]
+  )
+
+  const territoryOptions = useMemo(
+    () =>
+      ensureSelectedOption(
+        filteredTerritories.map((territory) => ({
+          label:
+            territory.territoryName ??
+            territory.name ??
+            `Territory ${territory.id}`,
+          value: String(territory.id),
+        })),
+        territoryValue,
+        (value) => `Territory ${value}`
+      ),
+    [filteredTerritories, territoryValue]
+  )
+
+  const agencyOptions = useMemo(
+    () =>
+      ensureSelectedOption(
+        filteredAgencies.map((agency) => ({
+          label:
+            agency.agencyName ??
+            agency.agencyCode?.toString() ??
+            `Agency ${agency.id}`,
+          value: String(agency.id),
+        })),
+        agencyValue,
+        (value) => `Agency ${value}`
+      ),
+    [filteredAgencies, agencyValue]
+  )
+
   const isSubmitting = form.formState.isSubmitting
   const buttonLabel =
     submitLabel ?? (mode === 'create' ? 'Add User' : 'Update User')
@@ -815,7 +1026,7 @@ export function UserForm(props: UserFormProps) {
               </SelectTrigger>
             </FormControl>
             <SelectContent>
-              {roleOptions.map((option, index) => (
+              {userGroupOptions.map((option, index) => (
                 <SelectItem key={`${option.value}-${index}`} value={option.value}>
                   {option.label}
                 </SelectItem>
@@ -848,7 +1059,7 @@ export function UserForm(props: UserFormProps) {
               </SelectTrigger>
             </FormControl>
             <SelectContent>
-              {subRoleOptions.map((option, index) => (
+              {roleOptionsWithSelected.map((option, index) => (
                 <SelectItem key={`${option.value}-${index}`} value={option.value}>
                   {option.label}
                 </SelectItem>
@@ -968,14 +1179,14 @@ export function UserForm(props: UserFormProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                  {channelsData.map((channel, index) => (
-                    <SelectItem
-                      key={`${channel.id ?? 'channel'}-${index}`}
-                      value={String(channel.id)}
-                    >
-                      {channel.channelName}
-                    </SelectItem>
-                  ))}
+                      {channelOptions.map((channel, index) => (
+                        <SelectItem
+                          key={`${channel.value}-${index}`}
+                          value={channel.value}
+                        >
+                          {channel.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -1009,14 +1220,12 @@ export function UserForm(props: UserFormProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {filteredSubChannels.map((subChannel, index) => (
+                      {subChannelOptions.map((subChannel, index) => (
                         <SelectItem
-                          key={`${subChannel.id ?? 'subchannel'}-${index}`}
-                          value={String(subChannel.id)}
+                          key={`${subChannel.value}-${index}`}
+                          value={subChannel.value}
                         >
-                          {subChannel.subChannelName ??
-                            subChannel.subChannelCode ??
-                            `Sub Channel ${subChannel.id}`}
+                          {subChannel.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -1051,14 +1260,12 @@ export function UserForm(props: UserFormProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {filteredRegions.map((region, index) => (
+                      {regionOptions.map((region, index) => (
                         <SelectItem
-                          key={`${region.id ?? 'region'}-${index}`}
-                          value={String(region.id)}
+                          key={`${region.value}-${index}`}
+                          value={region.value}
                         >
-                          {region.regionName ??
-                            region.name ??
-                            `Region ${region.id}`}
+                          {region.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -1077,11 +1284,8 @@ export function UserForm(props: UserFormProps) {
                   <FormLabel>Select Area</FormLabel>
                   <FormControl>
                     <MultiSelect
-                      options={filteredAreas.map((area) => ({
-                        label: area.areaName ?? `Area ${area.id}`,
-                        value: String(area.id),
-                      }))}
-                      value={field.value ?? []}
+                      options={areaMultiOptions}
+                      value={areaIdsValue}
                       onValueChange={(value) => field.onChange(value)}
                       placeholder='Select Area'
                       disabled={!filteredAreas.length || !regionValue}
@@ -1116,12 +1320,12 @@ export function UserForm(props: UserFormProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {filteredAreas.map((area, index) => (
+                      {areaSingleOptions.map((area, index) => (
                         <SelectItem
-                          key={`${area.id ?? 'area'}-${index}`}
-                          value={String(area.id)}
+                          key={`${area.value}-${index}`}
+                          value={area.value}
                         >
-                          {area.areaName ?? `Area ${area.id}`}
+                          {area.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -1153,18 +1357,14 @@ export function UserForm(props: UserFormProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {filteredRanges.map((rangeItem, index) => {
-                        const optionId = rangeItem.id ?? rangeItem.rangeId
-                        if (optionId === undefined || optionId === null) return null
-                        return (
-                          <SelectItem
-                            key={`${optionId}-${index}`}
-                            value={String(optionId)}
-                          >
-                            {rangeItem.rangeName ?? `Range ${optionId}`}
-                          </SelectItem>
-                        )
-                      })}
+                      {rangeOptions.map((rangeItem, index) => (
+                        <SelectItem
+                          key={`${rangeItem.value}-${index}`}
+                          value={rangeItem.value}
+                        >
+                          {rangeItem.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -1193,15 +1393,13 @@ export function UserForm(props: UserFormProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {filteredTerritories.length ? (
-                        filteredTerritories.map((territory, index) => (
+                      {territoryOptions.length ? (
+                        territoryOptions.map((territory, index) => (
                           <SelectItem
-                            key={`${territory.id ?? 'territory'}-${index}`}
-                            value={String(territory.id)}
+                            key={`${territory.value}-${index}`}
+                            value={territory.value}
                           >
-                            {territory.territoryName ??
-                              territory.name ??
-                              `Territory ${territory.id}`}
+                            {territory.label}
                           </SelectItem>
                         ))
                       ) : (
@@ -1236,14 +1434,12 @@ export function UserForm(props: UserFormProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {filteredAgencies.map((agency, index) => (
+                      {agencyOptions.map((agency, index) => (
                         <SelectItem
-                          key={`${agency.id ?? 'agency'}-${index}`}
-                          value={String(agency.id)}
+                          key={`${agency.value}-${index}`}
+                          value={agency.value}
                         >
-                          {agency.agencyName ??
-                            agency.agencyCode ??
-                            `Agency ${agency.id}`}
+                          {agency.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -1273,7 +1469,7 @@ export function UserForm(props: UserFormProps) {
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {accessLevelOptions.map((option, index) => (
+                  {accessLevelOptionsWithSelected.map((option, index) => (
                     <SelectItem key={`${option.value}-${index}`} value={option.value}>
                       {option.label}
                     </SelectItem>
@@ -1284,38 +1480,48 @@ export function UserForm(props: UserFormProps) {
             </FormItem>
           )}
         />
-        <div className='grid grid-cols-2 gap-4'>
-          <FormField
-            control={form.control}
-            name='password'
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Password</FormLabel>
-                <FormControl>
-                  <Input type='password' placeholder='Password' {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name='confirmPassword'
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Confirm Password</FormLabel>
-                <FormControl>
-                  <Input
-                    type='password'
-                    placeholder='Confirm Password'
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+        <fieldset className='rounded-lg border border-slate-200 bg-slate-50/70 p-4 shadow-sm'>
+          <div className='mb-3 flex flex-wrap items-start justify-between gap-2'>
+            <div>
+              <p className='text-sm font-semibold text-slate-800'>Password</p>
+              <p className='text-xs text-slate-500'>
+                To change the password, just add a new password in the field.
+              </p>
+            </div>
+          </div>
+          <div className='grid gap-4 sm:grid-cols-2'>
+            <FormField
+              control={form.control}
+              name='password'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Password</FormLabel>
+                  <FormControl>
+                    <Input type='password' placeholder='Password' {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name='confirmPassword'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Confirm Password</FormLabel>
+                  <FormControl>
+                    <Input
+                      type='password'
+                      placeholder='Confirm Password'
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </fieldset>
         <div className='flex flex-wrap items-center justify-end gap-2'>
           {onCancel ? (
             <Button

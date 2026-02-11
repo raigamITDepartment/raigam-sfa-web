@@ -38,6 +38,7 @@ import {
   getAllArea,
   getAllAreaRegions,
   getAllRange,
+  getAllTerritories,
   getTerritoriesByAreaId,
   getAllAgency,
 } from '@/services/userDemarcationApi'
@@ -579,15 +580,18 @@ export function UserForm(props: UserFormProps) {
   const userLevelValue = toSelectValue(form.watch('userLevelId'))
 
   const { data: territoriesData = [] } = useQuery({
-    queryKey: ['territories', 'by-area', areaValue || 'none'],
+    queryKey: ['territories', areaValue ? 'by-area' : 'all', areaValue || 'all'],
     queryFn: async () => {
-      if (!areaValue) return []
-      const res = (await getTerritoriesByAreaId(
-        Number(areaValue)
-      )) as ApiResponse<TerritoryDTO[]>
+      if (areaValue) {
+        const res = (await getTerritoriesByAreaId(
+          Number(areaValue)
+        )) as ApiResponse<TerritoryDTO[]>
+        return res.payload
+      }
+      const res = (await getAllTerritories()) as ApiResponse<TerritoryDTO[]>
       return res.payload
     },
-    enabled: Boolean(areaValue),
+    enabled: Boolean(areaValue || territoryValue),
     ...optionsQueryDefaults,
   })
 
@@ -611,6 +615,11 @@ export function UserForm(props: UserFormProps) {
     requiresTerritory || (mode === 'edit' && Boolean(territoryValue))
   const showAgency =
     requiresAgency || (mode === 'edit' && Boolean(agencyValue))
+
+  const territorySelectDisabled =
+    mode === 'edit'
+      ? (!areaValue || !rangeValue) && !territoryValue
+      : !areaValue || !rangeValue
 
   const filteredSubChannels = useMemo(() => {
     if (!subChannelsData.length) return []
@@ -1385,7 +1394,7 @@ export function UserForm(props: UserFormProps) {
                     field.onChange(toNumberOrUndefined(value))
                     form.setValue('agencyId', undefined)
                   }}
-                  disabled={!areaValue || !rangeValue}
+                  disabled={territorySelectDisabled}
                 >
                     <FormControl>
                       <SelectTrigger className='w-full'>

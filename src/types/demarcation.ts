@@ -92,7 +92,8 @@ export type RangeDTO = {
 }
 
 export type RouteDTO = {
-  id: Id
+  id?: Id
+  routeId?: Id
   routeCode?: number | string
   routeName?: string
   territoryName?: string
@@ -100,7 +101,7 @@ export type RouteDTO = {
   areaId?: Id
   areaName?: string
   oldRouteId?: Id
-  oldRouteCode?: string
+  oldRouteCode?: string | number
   displayOrder?: number
   isActive?: boolean
   active?: boolean
@@ -391,7 +392,7 @@ export type CreateRouteRequest = {
   displayOrder: number
   isActive: boolean
   oldRouteId?: Id
-  oldRouteCode?: string
+  oldRouteCode?: string | number
 }
 
 export type UpdateRouteRequest = CreateRouteRequest & { id: Id }

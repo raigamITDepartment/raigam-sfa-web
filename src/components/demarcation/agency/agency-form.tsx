@@ -279,7 +279,9 @@ export function AgencyForm(props: AgencyFormProps) {
     createMutation.isPending ||
     updateMutation.isPending
   const submitLabel = mode === 'create' ? 'Create' : 'Update Agency'
-  const cancelLabel = 'Discard'
+  const submitVariant = 'default'
+  const cancelLabel = mode === 'edit' ? 'Discard' : 'Cancel'
+  const showCancel = Boolean(onCancel)
 
   return (
     <Form {...form}>
@@ -442,14 +444,7 @@ export function AgencyForm(props: AgencyFormProps) {
         />
 
         <div className='mt-4 flex flex-col gap-2 sm:flex-row'>
-          <Button
-            type='submit'
-            className='w-full sm:flex-1'
-            disabled={isSubmitting}
-          >
-            {submitLabel}
-          </Button>
-          {mode === 'edit' && (
+          {showCancel ? (
             <Button
               type='button'
               variant='outline'
@@ -459,7 +454,15 @@ export function AgencyForm(props: AgencyFormProps) {
             >
               {cancelLabel}
             </Button>
-          )}
+          ) : null}
+          <Button
+            type='submit'
+            variant={submitVariant}
+            className='w-full sm:flex-1'
+            disabled={isSubmitting}
+          >
+            {submitLabel}
+          </Button>
         </div>
       </form>
     </Form>

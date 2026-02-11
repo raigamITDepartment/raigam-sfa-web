@@ -56,7 +56,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { Plus, Pencil } from 'lucide-react'
+import { Download, Plus, Pencil } from 'lucide-react'
 import { toast } from 'sonner'
 import { CommonDialog } from '@/components/common-dialog'
 import { ConfirmDialog } from '@/components/confirm-dialog'
@@ -453,16 +453,18 @@ export default function Agency() {
           <ExcelExportButton
             size='sm'
             variant='outline'
+            className='gap-2'
             data={exportRows}
             columns={exportColumns}
             customStyles={exportStatusStyles}
             disabled={!exportRows.length}
           >
-            Export
+            <Download className='size-4' aria-hidden='true' />
+            <span>Export Excel</span>
           </ExcelExportButton>
           <Button
             size='sm'
-            variant='outline'
+            variant='default'
             onClick={() => {
               setAgencyDialogMode('create')
               setEditingAgencyId(null)

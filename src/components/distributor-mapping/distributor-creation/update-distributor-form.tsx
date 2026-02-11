@@ -67,6 +67,8 @@ export const UpdateDistributorForm = ({
       form={form}
       ranges={availableRanges}
       submitLabel='Update Distributor'
+      submitVariant='default'
+      buttonRowClassName='mt-4 flex flex-col gap-2 sm:flex-row'
       isPending={mutation.isPending}
       onCancel={onCancel}
       distributorNameFirst

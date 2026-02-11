@@ -170,6 +170,8 @@ export type DistributorFormLayoutProps = {
   onSubmit: (values: DistributorFormValues) => void
   onCancel?: () => void
   submitLabel: string
+  submitVariant?: 'default' | 'outline'
+  buttonRowClassName?: string
   isPending?: boolean
   distributorNameFirst?: boolean
 }
@@ -180,6 +182,8 @@ export const DistributorFormLayout = ({
   onSubmit,
   onCancel,
   submitLabel,
+  submitVariant = 'default',
+  buttonRowClassName,
   isPending = false,
   distributorNameFirst = false,
 }: DistributorFormLayoutProps) => {
@@ -241,7 +245,7 @@ export const DistributorFormLayout = ({
   return (
     <Form {...form}>
       <form
-        className='grid gap-4'
+        className='grid gap-2'
         onSubmit={form.handleSubmit(onSubmit)}
         noValidate
       >
@@ -356,14 +360,11 @@ export const DistributorFormLayout = ({
           />
         </div>
 
-        <div className='mt-6 flex flex-col gap-2 sm:flex-row'>
-          <Button
-            type='submit'
-            className='w-full sm:flex-1'
-            disabled={isPending}
-          >
-            {submitLabel}
-          </Button>
+        <div
+          className={
+            buttonRowClassName ?? 'mt-6 flex flex-col gap-2 sm:flex-row'
+          }
+        >
           <Button
             type='button'
             variant='outline'
@@ -372,6 +373,14 @@ export const DistributorFormLayout = ({
             disabled={isPending}
           >
             Cancel
+          </Button>
+          <Button
+            type='submit'
+            variant={submitVariant}
+            className='w-full sm:flex-1'
+            disabled={isPending}
+          >
+            {submitLabel}
           </Button>
         </div>
       </form>

@@ -54,7 +54,8 @@ export const CreateDistributorForm = ({
     <DistributorFormLayout
       form={form}
       ranges={availableRanges}
-      submitLabel='Create Distributor'
+      submitLabel='Create'
+      submitVariant='default'
       isPending={mutation.isPending}
       onCancel={onCancel}
       onSubmit={(values) => mutation.mutate(values)}

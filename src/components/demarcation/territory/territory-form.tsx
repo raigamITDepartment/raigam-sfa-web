@@ -348,6 +348,7 @@ export function TerritoryForm(props: TerritoryFormProps) {
     createMutation.isPending ||
     updateMutation.isPending
   const submitLabel = mode === 'create' ? 'Create' : 'Update'
+  const submitVariant = 'default'
 
   return (
     <Form {...form}>
@@ -567,6 +568,7 @@ export function TerritoryForm(props: TerritoryFormProps) {
 
           <Button
             type='submit'
+            variant={submitVariant}
             className='w-full sm:flex-1'
             disabled={isSubmitting}
           >

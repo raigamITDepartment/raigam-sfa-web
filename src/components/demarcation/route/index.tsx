@@ -17,7 +17,6 @@ import {
   type ApiResponse,
   type Id,
   type RouteDTO,
-  activateRoute,
   deactivateRoute,
   getAllRoutes,
 } from '@/services/userDemarcationApi'
@@ -132,7 +131,7 @@ export default function RouteComponent() {
 
   const exportRows = useMemo<RouteExportRow[]>(() => {
     return rows.map((route) => ({
-      routeId: String(route.id ?? ''),
+      routeId: String(route.id ?? route.routeId ?? ''),
       routeCode: String(route.routeCode ?? ''),
       routeName: route.routeName ?? '',
       territoryName: route.territoryName ?? '',
@@ -186,7 +185,9 @@ export default function RouteComponent() {
     nextActive: boolean
   } | null>(null)
 
-  const [sorting, setSorting] = useState<SortingState>([])
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: 'routeId', desc: true },
+  ])
   const [globalFilter, setGlobalFilter] = useState<string>('')
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
@@ -205,9 +206,7 @@ export default function RouteComponent() {
 
   const toggleStatusMutation = useMutation({
     mutationFn: async (vars: { id: Id; nextActive: boolean }) => {
-      const response = vars.nextActive
-        ? await activateRoute(vars.id)
-        : await deactivateRoute(vars.id)
+      const response = await deactivateRoute(vars.id)
       return { ...vars, response }
     },
     onSuccess: ({ id, nextActive, response }) => {
@@ -215,7 +214,9 @@ export default function RouteComponent() {
         if (!old || !Array.isArray(old.payload)) return old
         const updatedPayload = old.payload.map((route) => {
           const routeId =
-            (route.id as Id | undefined) ?? (route.routeCode as Id | undefined)
+            (route.id as Id | undefined) ??
+            (route.routeId as Id | undefined) ??
+            (route.routeCode as Id | undefined)
           if (String(routeId) !== String(id)) return route
 
           const payload = response?.payload
@@ -319,12 +320,15 @@ export default function RouteComponent() {
         meta: { thClassName: 'w-[120px]' },
       },
       {
-        accessorKey: 'id',
+        accessorFn: (route) => route.id ?? route.routeId,
+        id: 'routeId',
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title='Route ID' />
         ),
         cell: ({ row }) => (
-          <span className='pl-4'>{String(row.getValue('id') ?? '-')}</span>
+          <span className='pl-4'>
+            {String(row.getValue('routeId') ?? '-')}
+          </span>
         ),
         meta: { thClassName: 'w-[120px]' },
       },
@@ -363,6 +367,7 @@ export default function RouteComponent() {
           const original = row.original as RouteDTO
           const recordId =
             (original.id as Id | undefined) ??
+            (original.routeId as Id | undefined) ??
             (original.routeCode as Id | undefined) ??
             (row.id as Id)
           const isActive = isRouteActive(original)
@@ -386,6 +391,7 @@ export default function RouteComponent() {
                         (original.territoryName as string | undefined) ?? undefined
                       )
                       setRouteInitialValues({
+                        id: String(original.id ?? original.routeId ?? ''),
                         areaId: (original.areaId as Id | undefined)
                           ? String(original.areaId)
                           : '',

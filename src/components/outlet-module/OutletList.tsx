@@ -96,16 +96,105 @@ const dedupeOutlets = (items: OutletRecord[]) => {
 export const OutletList = () => {
   const queryClient = useQueryClient()
   const user = useAppSelector((state) => state.auth.user)
+  const persistedAuth = useMemo(() => {
+    if (typeof window === 'undefined') return null
+    try {
+      const raw = window.localStorage.getItem('auth_user')
+      return raw
+        ? (JSON.parse(raw) as {
+            channelId?: unknown
+            channelName?: unknown
+            subChannelId?: unknown
+            subChannelName?: unknown
+            areaNameList?: unknown
+            territoryId?: unknown
+          })
+        : null
+    } catch {
+      return null
+    }
+  }, [])
+  const lockedChannel = useMemo(() => {
+    if (!persistedAuth) return null
+    const channelId = persistedAuth?.channelId
+    const channelName =
+      typeof persistedAuth?.channelName === 'string'
+        ? persistedAuth.channelName.trim()
+        : ''
+    if (!channelName) return null
+    if (channelId === null || channelId === undefined) return null
+    const normalizedId = String(channelId).trim()
+    if (!normalizedId) return null
+    return { id: normalizedId, name: channelName }
+  }, [persistedAuth])
+  const lockedSubChannel = useMemo(() => {
+    if (!persistedAuth) return null
+    const subChannelId = persistedAuth?.subChannelId
+    const subChannelName =
+      typeof persistedAuth?.subChannelName === 'string'
+        ? persistedAuth.subChannelName.trim()
+        : ''
+    if (!subChannelName) return null
+    if (subChannelId === null || subChannelId === undefined) return null
+    const normalizedId = String(subChannelId).trim()
+    if (!normalizedId) return null
+    return { id: normalizedId, name: subChannelName }
+  }, [persistedAuth])
+  const lockedTerritoryId = useMemo(() => {
+    if (!persistedAuth) return ''
+    const territoryId = persistedAuth?.territoryId
+    if (territoryId === null || territoryId === undefined) return ''
+    const normalizedId = String(territoryId).trim()
+    if (!normalizedId || normalizedId === '0') return ''
+    return normalizedId
+  }, [persistedAuth])
+  const lockedAreaId = useMemo(() => {
+    const list = (persistedAuth as { areaNameList?: unknown })?.areaNameList
+    if (!Array.isArray(list) || list.length !== 1) return ''
+    const item = list[0]
+    if (!item || typeof item !== 'object') return ''
+    const record = item as {
+      id?: number | string
+      areaId?: number | string
+    }
+    const id = record.id ?? record.areaId
+    if (id === undefined || id === null) return ''
+    const normalizedId = String(id).trim()
+    if (!normalizedId) return ''
+    return normalizedId
+  }, [persistedAuth])
+  const lockedChannelId = lockedChannel?.id ?? ''
+  const lockedSubChannelId = lockedSubChannel?.id ?? ''
   const storedFilters = readStoredFilters()
   const storedChannelId = storedFilters.channelId?.trim() ?? ''
   const storedSubChannelId = storedFilters.subChannelId?.trim() ?? '0'
   const storedAreaId = storedFilters.areaId?.trim() ?? '0'
+  const resolvedChannelId = lockedChannelId || storedChannelId
+  const channelMismatch =
+    Boolean(lockedChannelId) && storedChannelId !== lockedChannelId
+  const subChannelMismatch =
+    Boolean(lockedSubChannelId) && storedSubChannelId !== lockedSubChannelId
+  const resetBelowSubChannel = channelMismatch || subChannelMismatch
+  const resolvedSubChannelId =
+    lockedSubChannelId || (channelMismatch ? '0' : storedSubChannelId)
+  const resolvedAreaId =
+    lockedAreaId || (resetBelowSubChannel ? '0' : storedAreaId)
+  const areaMismatch =
+    Boolean(lockedAreaId) && storedAreaId !== lockedAreaId
+  const resetBelowArea = resetBelowSubChannel || areaMismatch
   const storedTerritoryId = storedFilters.territoryId?.trim() ?? '0'
-  const storedRouteId = storedFilters.routeId?.trim() ?? '0'
-  const [channelId, setChannelId] = useState<string>(storedChannelId)
-  const [subChannelId, setSubChannelId] = useState<string>(storedSubChannelId)
-  const [areaId, setAreaId] = useState<string>(storedAreaId)
-  const [territoryId, setTerritoryId] = useState<string>(storedTerritoryId)
+  const resolvedTerritoryId =
+    lockedTerritoryId || (resetBelowArea ? '0' : storedTerritoryId)
+  const territoryMismatch =
+    Boolean(lockedTerritoryId) && storedTerritoryId !== lockedTerritoryId
+  const resetBelowTerritory = resetBelowArea || territoryMismatch
+  const storedRouteId = resetBelowTerritory
+    ? '0'
+    : (storedFilters.routeId?.trim() ?? '0')
+  const [channelId, setChannelId] = useState<string>(resolvedChannelId)
+  const [subChannelId, setSubChannelId] = useState<string>(resolvedSubChannelId)
+  const [areaId, setAreaId] = useState<string>(resolvedAreaId)
+  const [territoryId, setTerritoryId] = useState<string>(resolvedTerritoryId)
   const [routeId, setRouteId] = useState<string>(storedRouteId)
   const [activeOutlet, setActiveOutlet] = useState<OutletRecord | null>(null)
   const [dialogMode, setDialogMode] = useState<'edit' | 'view'>('edit')
@@ -331,10 +420,12 @@ export const OutletList = () => {
       <OutletFilter
         initialValues={storedFilters}
         onApply={(filters) => {
-          const nextChannelId = filters.channelId?.trim() ?? ''
-          const nextSubChannelId = filters.subChannelId?.trim() ?? '0'
-          const nextAreaId = filters.areaId?.trim() ?? '0'
-          const nextTerritoryId = filters.territoryId?.trim() ?? '0'
+          const nextChannelId = lockedChannelId || filters.channelId?.trim() || ''
+          const nextSubChannelId =
+            lockedSubChannelId || filters.subChannelId?.trim() || '0'
+          const nextAreaId = lockedAreaId || filters.areaId?.trim() || '0'
+          const nextTerritoryId =
+            lockedTerritoryId || filters.territoryId?.trim() || '0'
           const nextRouteId = filters.routeId?.trim() ?? '0'
           if (!nextChannelId) {
             setApplyError(true)
@@ -357,10 +448,10 @@ export const OutletList = () => {
         onReset={() => {
           setApplyError(false)
           writeStoredFilters(null)
-          setChannelId('')
-          setSubChannelId('0')
-          setAreaId('0')
-          setTerritoryId('0')
+          setChannelId(lockedChannelId || '')
+          setSubChannelId(lockedSubChannelId || '0')
+          setAreaId(lockedAreaId || '0')
+          setTerritoryId(lockedTerritoryId || '0')
           setRouteId('0')
         }}
       />

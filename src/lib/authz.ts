@@ -285,6 +285,8 @@ export const RoleAccess: Record<string, RoleIdValue[]> = {
     RoleId.SystemAdmin,
     RoleId.TopManager,
     RoleId.ManagerSales,
+    SubRoleId.RegionSalesManager,
+    SubRoleId.AreaSalesManager,
     SubRoleId.Representative,
   ],
 
@@ -687,6 +689,7 @@ export function isPathAllowedForUser(
       '/hr-module/time-attendance',
       '/agency-module',
       '/reports',
+      '/outlet-module',
       '/errors',
     ]
     const allowed = allowedPrefixes.some(

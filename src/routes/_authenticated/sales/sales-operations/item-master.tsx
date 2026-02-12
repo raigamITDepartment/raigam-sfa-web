@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { ensureRoleAccess, RoleId } from '@/lib/authz'
 import { Main } from '@/components/layout/main'
 import { PageHeader } from '@/components/layout/page-header'
+import ItemMaster from '@/components/sales/sales-operations/item-master/ItemMaster'
 
 export const Route = createFileRoute('/_authenticated/sales/sales-operations/item-master')({
   beforeLoad: () => ensureRoleAccess([RoleId.SystemAdmin, RoleId.TopManager, RoleId.ManagerSales, RoleId.ExecutiveCompany]),
@@ -16,7 +17,9 @@ export const Route = createFileRoute('/_authenticated/sales/sales-operations/ite
           { label: 'Item Master' },
         ]}
       />
-      <div>Sales Operations - Item Master</div>
+      <div className='mt-4'>
+        <ItemMaster />
+      </div>
     </Main>
   ),
 })

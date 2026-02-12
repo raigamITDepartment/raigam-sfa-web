@@ -9,6 +9,7 @@ export const CATEGORY_TYPE_BASE = '/api/v1/sales/categoryType'
 export const ITEM_SUB_CATEGORY_ONE_BASE = '/api/v1/sales/itemSubCategoryOne'
 export const ITEM_SUB_CATEGORY_TWO_BASE = '/api/v1/sales/itemSubCategoryTwo'
 export const ITEM_SUB_CATEGORY_THREE_BASE = '/api/v1/sales/itemSubCategoryThree'
+export const ITEM_MASTER_BASE = '/api/v1/sales/item/webItemMaster'
 
 export type ItemPrice = {
   id: number
@@ -187,6 +188,39 @@ export type UpdateCategoryTypePayload = {
 export type UpdateCategoryTypeResponse = ApiResponse<CategoryType>
 export type ChangeCategoryTypeStatusResponse = ApiResponse<CategoryType>
 export type FindCategoryTypeByIdResponse = ApiResponse<CategoryType>
+
+export type ItemMaster = {
+  imagePath: string | null
+  itemId: number
+  itemName: string | null
+  sapCode: string | null
+  ln: number | null
+  itemTypeId: number | null
+  itemTypeName: string | null
+  unitOfMeasure: string | null
+  innerCount: number | null
+  size: string | null
+  measurement: string | null
+  weight: number | null
+  volume: number | null
+  catTypeId: number | null
+  categoryType: string | null
+  catTypeSeq: number | null
+  mainCatId: number | null
+  mainCatName: string | null
+  mainCatSeq: number | null
+  subOneId: number | null
+  subCatOneName: string | null
+  subCatSeq: number | null
+  subTwoCatId: number | null
+  subCatTwoName: string | null
+  subSeq: number | null
+  subThreeCatId: number | null
+  subCatThreeName: string | null
+}
+
+export type GetAllItemMasterResponse = ApiResponse<ItemMaster[]>
+export type ChangeItemStatusResponse = ApiResponse<ItemMaster>
 
 export async function findItemPriceById(
   priceId: Id
@@ -394,6 +428,20 @@ export async function getAllItemsSequence(): Promise<ItemSequenceResponse> {
 
 export async function getAllCategoryType(): Promise<CategoryTypeResponse> {
   const res = await http.get<CategoryTypeResponse>(CATEGORY_TYPE_BASE)
+  return res.data
+}
+
+export async function getAllItemMaster(): Promise<GetAllItemMasterResponse> {
+  const res = await http.get<GetAllItemMasterResponse>(ITEM_MASTER_BASE)
+  return res.data
+}
+
+export async function changeStatusItem(
+  itemId: number
+): Promise<ChangeItemStatusResponse> {
+  const res = await http.delete<ChangeItemStatusResponse>(
+    `${ITEM_GROUPED_BASE}/deactivateItem/${itemId}`
+  )
   return res.data
 }
 

@@ -23,6 +23,7 @@ import type {
   BookingInvoiceReportItem,
 } from '@/types/invoice'
 import { formatDate as formatDateTime } from '@/lib/format-date'
+import { formatLocalDate } from '@/lib/local-date'
 import { formatPrice } from '@/lib/format-price'
 import { cn } from '@/lib/utils'
 import InvoiceSummaryFilter, {
@@ -69,7 +70,7 @@ const deriveStatus = (row: BookingInvoice | BookingInvoiceReportItem) => {
 
 const InvoiceSummary = () => {
   const user = useAppSelector((s) => s.auth.user)
-  const toIso = (d: Date) => d.toISOString().slice(0, 10)
+  const toIso = (d: Date) => formatLocalDate(d)
   const defaultDates = useMemo(() => {
     const today = new Date()
     const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)

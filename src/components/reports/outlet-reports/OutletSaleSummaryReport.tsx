@@ -11,6 +11,7 @@ import {
 } from '@tanstack/react-table'
 import { getOutletSummeryReports } from '@/services/reports/outletReportsApi'
 import { formatDate } from '@/lib/format-date'
+import { formatLocalDate } from '@/lib/local-date'
 import { formatPrice } from '@/lib/format-price'
 import { cn } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -143,7 +144,7 @@ const OutletSaleSummaryReport = () => {
     () => cachedFilters
   )
   const [globalFilter, setGlobalFilter] = useState(() => cachedGlobalFilter)
-  const todayIso = useMemo(() => new Date().toISOString().slice(0, 10), [])
+  const todayIso = useMemo(() => formatLocalDate(new Date()), [])
 
   useEffect(() => {
     cachedFilters = filters

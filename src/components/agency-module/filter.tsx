@@ -5,6 +5,7 @@ import type { DateRange } from 'react-day-picker'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Label } from '@/components/ui/label'
+import { parseLocalDate, toLocalDateString } from '@/lib/local-date'
 import {
   Popover,
   PopoverContent,
@@ -28,15 +29,6 @@ type FilterProps = {
   onReset?: () => void
 }
 
-const parseDate = (value?: string) => {
-  if (!value) return undefined
-  const d = new Date(value)
-  return Number.isNaN(d.getTime()) ? undefined : d
-}
-
-const toIsoDate = (value?: Date) =>
-  value ? value.toISOString().slice(0, 10) : undefined
-
 const invoiceTypeOptions: InvoiceType[] = ['ALL', 'NORMAL', 'AGENCY', 'COMPANY']
 
 export default function BookingInvoiceFilter({
@@ -49,8 +41,8 @@ export default function BookingInvoiceFilter({
   onReset,
 }: FilterProps) {
   const [range, setRange] = useState<DateRange | undefined>({
-    from: parseDate(initialStartDate),
-    to: parseDate(initialEndDate),
+    from: parseLocalDate(initialStartDate),
+    to: parseLocalDate(initialEndDate),
   })
   const [invoiceType, setInvoiceType] =
     useState<InvoiceType>(initialInvoiceType)
@@ -65,11 +57,15 @@ export default function BookingInvoiceFilter({
   const hasChanges = useMemo(() => {
     const initialRange: DateRange | undefined =
       initialStartDate || initialEndDate
-        ? { from: parseDate(initialStartDate), to: parseDate(initialEndDate) }
+        ? {
+            from: parseLocalDate(initialStartDate),
+            to: parseLocalDate(initialEndDate),
+          }
         : undefined
     return (
-      toIsoDate(range?.from) !== toIsoDate(initialRange?.from) ||
-      toIsoDate(range?.to) !== toIsoDate(initialRange?.to) ||
+      toLocalDateString(range?.from) !==
+        toLocalDateString(initialRange?.from) ||
+      toLocalDateString(range?.to) !== toLocalDateString(initialRange?.to) ||
       invoiceType !== initialInvoiceType ||
       territoryId !== initialTerritoryId
     )
@@ -86,8 +82,8 @@ export default function BookingInvoiceFilter({
 
   const handleApply = () => {
     onApply?.({
-      startDate: toIsoDate(range?.from),
-      endDate: toIsoDate(range?.to),
+      startDate: toLocalDateString(range?.from),
+      endDate: toLocalDateString(range?.to),
       invoiceType,
       territoryId,
     })

@@ -5,6 +5,7 @@ import type { InvoiceTypeParam, ReportInvoiceTypeParam } from '@/types/invoice'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Label } from '@/components/ui/label'
+import { parseLocalDate, toLocalDateString } from '@/lib/local-date'
 import {
   Popover,
   PopoverContent,
@@ -31,15 +32,6 @@ type InvoiceSummaryFilterProps = {
   onApply?: (filters: InvoiceSummaryFilterValues) => void
   onReset?: () => void
 }
-
-const parseDate = (value?: string) => {
-  if (!value) return undefined
-  const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? undefined : date
-}
-
-const toIsoDate = (value?: Date) =>
-  value ? value.toISOString().slice(0, 10) : undefined
 
 const getCurrentMonthRange = () => {
   const now = new Date()
@@ -69,8 +61,8 @@ export default function InvoiceSummaryFilter({
   onReset,
 }: InvoiceSummaryFilterProps) {
   const [range, setRange] = useState<DateRange | undefined>(() => {
-    const from = parseDate(initialStartDate)
-    const to = parseDate(initialEndDate)
+    const from = parseLocalDate(initialStartDate)
+    const to = parseLocalDate(initialEndDate)
     return from || to ? { from, to } : getCurrentMonthRange()
   })
   const [invoiceType, setInvoiceType] =
@@ -78,11 +70,16 @@ export default function InvoiceSummaryFilter({
 
   const hasChanges = useMemo(() => {
     const initialRange: DateRange | undefined = initialStartDate || initialEndDate
-      ? { from: parseDate(initialStartDate), to: parseDate(initialEndDate) }
+      ? {
+          from: parseLocalDate(initialStartDate),
+          to: parseLocalDate(initialEndDate),
+        }
       : getCurrentMonthRange()
     return (
-      toIsoDate(range?.from) !== toIsoDate(initialRange?.from) ||
-      toIsoDate(range?.to) !== toIsoDate(initialRange?.to) ||
+      toLocalDateString(range?.from) !==
+        toLocalDateString(initialRange?.from) ||
+      toLocalDateString(range?.to) !==
+        toLocalDateString(initialRange?.to) ||
       invoiceType !== initialInvoiceType
     )
   }, [
@@ -96,16 +93,16 @@ export default function InvoiceSummaryFilter({
 
   const handleApply = () => {
     onApply?.({
-      startDate: toIsoDate(range?.from),
-      endDate: toIsoDate(range?.to),
+      startDate: toLocalDateString(range?.from),
+      endDate: toLocalDateString(range?.to),
       invoiceType: toInvoiceTypeParam(invoiceType),
     })
   }
 
   const handleReset = () => {
     setRange({
-      from: parseDate(initialStartDate),
-      to: parseDate(initialEndDate),
+      from: parseLocalDate(initialStartDate),
+      to: parseLocalDate(initialEndDate),
     })
     setInvoiceType(initialInvoiceType)
     onReset?.()

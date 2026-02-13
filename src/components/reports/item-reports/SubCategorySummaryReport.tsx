@@ -38,6 +38,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { formatPrice } from '@/lib/format-price'
+import { formatLocalDate } from '@/lib/local-date'
 import { cn } from '@/lib/utils'
 import type { ReportInvoiceTypeParam } from '@/types/invoice'
 
@@ -232,10 +233,7 @@ const SubCategorySummaryReport = () => {
   )
   const [globalFilter, setGlobalFilter] = useState('')
 
-  const todayIso = useMemo(
-    () => new Date().toISOString().slice(0, 10),
-    []
-  )
+  const todayIso = useMemo(() => formatLocalDate(new Date()), [])
   const queryParams = useMemo(() => {
     if (!filters?.subChannelId) return null
     const invoiceTypeParam: ReportInvoiceTypeParam =

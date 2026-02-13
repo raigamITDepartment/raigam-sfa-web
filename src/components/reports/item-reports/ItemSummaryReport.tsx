@@ -14,6 +14,7 @@ import {
 import { getItemSummery } from '@/services/reports/otherReportsApi'
 import { Download } from 'lucide-react'
 import { formatPrice } from '@/lib/format-price'
+import { formatLocalDate } from '@/lib/local-date'
 import { cn } from '@/lib/utils'
 import type { ReportInvoiceTypeParam } from '@/types/invoice'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -218,7 +219,7 @@ const ItemSummaryReport = () => {
   )
   const [globalFilter, setGlobalFilter] = useState('')
 
-  const todayIso = useMemo(() => new Date().toISOString().slice(0, 10), [])
+  const todayIso = useMemo(() => formatLocalDate(new Date()), [])
   const queryParams = useMemo(() => {
     if (!filters?.subChannelId) return null
     const invoiceTypeParam: ReportInvoiceTypeParam =

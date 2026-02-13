@@ -34,6 +34,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
+import { parseLocalDate } from '@/lib/local-date'
 import type { InvoiceType } from '@/types/invoice'
 
 export type TerritoryWiseItemsFilters = {
@@ -57,12 +58,6 @@ const formatLocalDate = (value: Date) =>
   `${value.getFullYear()}-${pad2(value.getMonth() + 1)}-${pad2(value.getDate())}`
 const toIsoDate = (value?: Date | null) =>
   value ? formatLocalDate(value) : undefined
-
-const parseDate = (value?: string) => {
-  if (!value) return undefined
-  const parsed = new Date(value)
-  return Number.isNaN(parsed.getTime()) ? undefined : parsed
-}
 
 const formatRangeLabel = (range?: DateRange) => {
   if (!range?.from && !range?.to) return 'Select date range'
@@ -196,8 +191,8 @@ export default function TerritoryWiseItemsFilter({
   const [invoiceType, setInvoiceType] = useState<InvoiceType>('ALL')
   const [channelId, setChannelId] = useState<string>('0')
   const [range, setRange] = useState<DateRange | undefined>({
-    from: parseDate(initialValues?.startDate ?? todayIso),
-    to: parseDate(initialValues?.endDate ?? todayIso),
+    from: parseLocalDate(initialValues?.startDate ?? todayIso),
+    to: parseLocalDate(initialValues?.endDate ?? todayIso),
   })
   const [errors, setErrors] = useState({
     subChannelId: false,
@@ -264,8 +259,8 @@ export default function TerritoryWiseItemsFilter({
     )
     setInvoiceType(initialValues.invoiceType ?? 'ALL')
     setRange({
-      from: parseDate(initialValues.startDate ?? todayIso),
-      to: parseDate(initialValues.endDate ?? todayIso),
+      from: parseLocalDate(initialValues.startDate ?? todayIso),
+      to: parseLocalDate(initialValues.endDate ?? todayIso),
     })
   }, [
     initialValues,

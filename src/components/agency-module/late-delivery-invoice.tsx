@@ -22,6 +22,7 @@ import type {
 import { Eye } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatDate as formatDateTime } from '@/lib/format-date'
+import { formatLocalDate } from '@/lib/local-date'
 import { formatPrice } from '@/lib/format-price'
 import { cn } from '@/lib/utils'
 import { SubRoleId } from '@/lib/authz'
@@ -98,7 +99,7 @@ const LateDeliveryInvoice = () => {
   )
   const dispatch = useAppDispatch()
   const queryClient = useQueryClient()
-  const toIso = (d: Date) => d.toISOString().slice(0, 10)
+  const toIso = (d: Date) => formatLocalDate(d)
   const baseTerritoryId = Number(
     user?.territoryId ?? user?.agencyTerritoryId ?? 0
   )

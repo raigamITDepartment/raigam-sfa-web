@@ -54,7 +54,7 @@ function TableRow({ className, ...props }: React.ComponentProps<'tr'>) {
     <tr
       data-slot='table-row'
       className={cn(
-        'border-b transition-colors odd:bg-white even:bg-slate-50 hover:bg-slate-100 data-[state=selected]:bg-blue-100 data-[state=selected]:font-semibold dark:odd:bg-slate-900 dark:even:bg-slate-900/70 dark:hover:bg-slate-800 data-[state=selected]:dark:bg-blue-900/70 [&>td]:h-10 [&>td]:py-1',
+        'border-b transition-colors data-[state=selected]:font-semibold [&>td]:h-10 [&>td]:py-1 [&>th:nth-child(odd)]:bg-slate-100 [&>th:nth-child(even)]:bg-slate-50 [&>td:nth-child(odd)]:bg-slate-50 [&>td:nth-child(even)]:bg-white hover:[&>td]:bg-slate-100 data-[state=selected]:[&>td]:bg-blue-100 dark:[&>th:nth-child(odd)]:bg-slate-900 dark:[&>th:nth-child(even)]:bg-slate-950/60 dark:[&>td:nth-child(odd)]:bg-slate-950/40 dark:[&>td:nth-child(even)]:bg-slate-950/20 dark:hover:[&>td]:bg-slate-800 data-[state=selected]:dark:[&>td]:bg-blue-900/70',
         className
       )}
       {...props}
@@ -67,7 +67,7 @@ function TableHead({ className, ...props }: React.ComponentProps<'th'>) {
     <th
       data-slot='table-head'
       className={cn(
-        'text-foreground h-10 bg-slate-100 px-2 text-start align-middle font-medium dark:bg-slate-900/80 [&>[role=checkbox]]:translate-y-[2px]',
+        'text-foreground h-10 px-2 text-start align-middle font-medium [&>[role=checkbox]]:translate-y-[2px]',
         className
       )}
       {...props}

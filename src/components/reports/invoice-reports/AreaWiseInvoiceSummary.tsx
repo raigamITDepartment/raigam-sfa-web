@@ -40,10 +40,29 @@ import AreaInvoiceReportFilter, {
   type AreaInvoiceReportFilters,
 } from '@/components/reports/invoice-reports/ArearFilter'
 
+const SHORT_HEADER_MAP: Record<string, string> = {
+  territoryid: 'Terr ID',
+  territoryname: 'Territory',
+  workingdayscount: 'Work Days',
+  totalbookvalue: 'Book Val',
+  totalactualvalue: 'Actual Val',
+  targetvalue: 'Target Val',
+  targetpccount: 'Target PC',
+  achievementpercentage: 'Achv %',
+  averageactualvalue: 'Avg Actual',
+  bookingpccount: 'Book PC',
+  actualpccount: 'Actual PC',
+  cancelpccount: 'Cancel PC',
+  averagepccount: 'Avg PC',
+}
+
 const formatHeader = (key: string) => {
   const withSpaces = key.replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2')
   return withSpaces.charAt(0).toUpperCase() + withSpaces.slice(1)
 }
+
+const formatTableHeader = (key: string) =>
+  SHORT_HEADER_MAP[normalizeKey(key)] ?? formatHeader(key)
 
 const normalizeKey = (key: string) =>
   key.toLowerCase().replace(/[^a-z0-9]/g, '')
@@ -100,12 +119,13 @@ const getCellAlignmentClassName = (key: string) => {
 type ToolbarFilterOption = {
   columnId?: string
   title: string
+  showCountBadge?: boolean
   options: { label: string; value: string }[]
 }
 
-const hasColumnId = (
-  filter: ToolbarFilterOption
-): filter is Omit<ToolbarFilterOption, 'columnId'> & { columnId: string } =>
+const hasColumnId = <T extends ToolbarFilterOption>(
+  filter: T
+): filter is T & { columnId: string } =>
   Boolean(filter.columnId && filter.options.length > 0)
 
 const buildFacetOptions = (values: unknown[]) => {
@@ -285,12 +305,20 @@ const AreaWiseInvoiceSummary = () => {
               header: ({ column }) => (
                 <DataTableColumnHeader
                   column={column}
-                  title={formatHeader(key)}
+                  title={formatTableHeader(key)}
+                  tooltip={formatHeader(key)}
                   className={getHeaderAlignmentClassName(key)}
                 />
               ),
               cell: ({ row }) => {
                 const value = row.getValue(key)
+                if (normalizeKey(key) === 'territoryid') {
+                  return (
+                    <span className='block truncate pl-3'>
+                      {formatValue(key, value)}
+                    </span>
+                  )
+                }
                 return (
                   <span className='block truncate'>
                     {formatValue(key, value)}
@@ -401,8 +429,8 @@ const AreaWiseInvoiceSummary = () => {
                           <TableHead
                             key={header.id}
                             className={cn(
-                              'text-muted-foreground bg-gray-100 px-3 text-xs font-semibold tracking-wide uppercase dark:bg-gray-900',
-                              getCellAlignmentClassName(
+                              'text-muted-foreground px-3 text-xs font-semibold tracking-wide uppercase',
+                              getHeaderAlignmentClassName(
                                 String(header.column.id)
                               )
                             )}
@@ -440,7 +468,9 @@ const AreaWiseInvoiceSummary = () => {
                                 'px-3 py-2',
                                 getCellAlignmentClassName(
                                   String(cell.column.id)
-                                )
+                                ),
+                                normalizeKey(String(cell.column.id)) ===
+                                  'territoryid' && 'pl-3'
                               )}
                             >
                               {flexRender(

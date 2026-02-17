@@ -17,6 +17,7 @@ export type OutletRecord = {
   shopCode?: number | string
   channelName?: string
   areaName?: string
+  territoryName?: string
   routeName?: string
   rangeId?: Id
   range?: string

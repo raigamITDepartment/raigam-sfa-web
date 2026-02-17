@@ -39,10 +39,26 @@ import NotVisitedFliter, {
   type NotVisitedFilters,
 } from '@/components/reports/outlet-reports/NotVisitedFliter'
 
+const SHORT_HEADER_MAP: Record<string, string> = {
+  outletname: 'Outlet',
+  address: 'Address',
+  ownername: 'Owner',
+  mobileno: 'Mobile',
+  latitude: 'Lat',
+  longitude: 'Long',
+  approvestatus: 'Active Status',
+  isapproved: 'Active Status',
+  created: 'Created On',
+  updated: 'Updated On',
+}
+
 const formatHeader = (key: string) => {
   const withSpaces = key.replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2')
   return withSpaces.charAt(0).toUpperCase() + withSpaces.slice(1)
 }
+
+const formatTableHeader = (key: string) =>
+  SHORT_HEADER_MAP[normalizeKey(key)] ?? formatHeader(key)
 
 const normalizeKey = (key: string) =>
   key.toLowerCase().replace(/[^a-z0-9]/g, '')
@@ -221,7 +237,8 @@ const NotVisitedOutletReport = () => {
             header: ({ column }) => (
               <DataTableColumnHeader
                 column={column}
-                title={formatHeader('address')}
+                title={formatTableHeader('address')}
+                tooltip={formatHeader('address')}
                 className={getHeaderAlignmentClassName('address')}
               />
             ),
@@ -241,7 +258,8 @@ const NotVisitedOutletReport = () => {
           header: ({ column }) => (
             <DataTableColumnHeader
               column={column}
-              title={formatHeader(key)}
+              title={formatTableHeader(key)}
+              tooltip={formatHeader(key)}
               className={getHeaderAlignmentClassName(key)}
             />
           ),

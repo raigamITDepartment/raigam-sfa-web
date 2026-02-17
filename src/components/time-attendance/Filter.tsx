@@ -5,10 +5,13 @@ import type { DateRange } from 'react-day-picker'
 import {
   getAllArea,
   getAllRange,
+  getAllSubChannel,
+  getAreasBySubChannelId,
   getTerritoriesByAreaId,
   type ApiResponse,
   type AreaDTO,
   type RangeDTO,
+  type SubChannelDTO,
   type TerritoryDTO,
 } from '@/services/userDemarcationApi'
 import { Button } from '@/components/ui/button'
@@ -29,6 +32,7 @@ import { useAppSelector } from '@/store/hooks'
 import { cn } from '@/lib/utils'
 
 export type TimeAttendanceFilters = {
+  subChannelId?: number
   areaId?: number
   rangeId?: number
   territoryId?: number
@@ -88,6 +92,9 @@ export default function TimeAttendanceFilter({
     []
   )
   const user = useAppSelector((state) => state.auth.user)
+  const [subChannelId, setSubChannelId] = useState<string>(
+    toSelectValue(initialValues?.subChannelId)
+  )
   const [areaId, setAreaId] = useState<string>(
     toSelectValue(initialValues?.areaId)
   )
@@ -109,12 +116,14 @@ export default function TimeAttendanceFilter({
 
   useEffect(() => {
     if (!initialValues) {
+      setSubChannelId('0')
       setAreaId('0')
       setRangeId('0')
       setTerritoryId('0')
       setRange({ from: defaultRange.from, to: defaultRange.to })
       return
     }
+    setSubChannelId(toSelectValue(initialValues.subChannelId))
     setAreaId(toSelectValue(initialValues.areaId))
     setRangeId(toSelectValue(initialValues.rangeId))
     setTerritoryId(toSelectValue(initialValues.territoryId))
@@ -149,11 +158,26 @@ export default function TimeAttendanceFilter({
 
   const useUserAreas = Boolean(userAreas?.length)
 
+  const { data: subChannels = [], isLoading: loadingSubChannels } = useQuery({
+    queryKey: ['time-attendance', 'sub-channels'],
+    queryFn: async () => {
+      const res = (await getAllSubChannel()) as ApiResponse<SubChannelDTO[]>
+      return res.payload ?? []
+    },
+    staleTime: 5 * 60 * 1000,
+  })
+
   const { data: apiAreas = [], isLoading: loadingApiAreas } = useQuery({
-    queryKey: ['time-attendance', 'areas'],
+    queryKey: [
+      'time-attendance',
+      'areas',
+      !useUserAreas && subChannelId !== '0' ? subChannelId : 'all',
+    ],
     enabled: !useUserAreas,
     queryFn: async () => {
-      const res = (await getAllArea()) as ApiResponse<AreaDTO[]>
+      const res = (await (subChannelId !== '0'
+        ? getAreasBySubChannelId(Number(subChannelId))
+        : getAllArea())) as ApiResponse<AreaDTO[]>
       return res.payload ?? []
     },
     staleTime: 5 * 60 * 1000,
@@ -190,6 +214,7 @@ export default function TimeAttendanceFilter({
 
   const handleApply = () => {
     onApply?.({
+      subChannelId: toNumberValue(subChannelId),
       areaId: toNumberValue(areaId),
       rangeId: toNumberValue(rangeId),
       territoryId: toNumberValue(territoryId),
@@ -199,12 +224,14 @@ export default function TimeAttendanceFilter({
   }
 
   const handleReset = () => {
+    setSubChannelId('0')
     setAreaId('0')
     setRangeId('0')
     setTerritoryId('0')
     setRange({ from: defaultRange.from, to: defaultRange.to })
     onReset?.()
     onApply?.({
+      subChannelId: 0,
       areaId: 0,
       rangeId: 0,
       territoryId: 0,
@@ -218,24 +245,25 @@ export default function TimeAttendanceFilter({
       <div className='flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end'>
         <div className='flex w-full flex-col gap-2 sm:w-[220px]'>
           <Select
-            value={areaId}
+            value={subChannelId}
             onValueChange={(value) => {
-              setAreaId(value)
+              setSubChannelId(value)
+              setAreaId('0')
               setTerritoryId('0')
             }}
-            disabled={loadingAreas}
+            disabled={loadingSubChannels}
           >
             <SelectTrigger
-              id='time-attendance-area'
+              id='time-attendance-sub-channel'
               className={cn(controlHeight, 'w-full')}
             >
-              <SelectValue placeholder='Select Area' />
+              <SelectValue placeholder='Select Sub Channel' />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value='0'>Select Area</SelectItem>
-              {areas.map((area) => (
-                <SelectItem key={area.id} value={String(area.id)}>
-                  {area.areaName ?? `Area ${area.id}`}
+              <SelectItem value='0'>All Sub Channels</SelectItem>
+              {subChannels.map((subChannel) => (
+                <SelectItem key={subChannel.id} value={String(subChannel.id)}>
+                  {subChannel.subChannelName ?? `Sub Channel ${subChannel.id}`}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -262,19 +290,41 @@ export default function TimeAttendanceFilter({
                   if (id === undefined || id === null) return null
                   return {
                     id: String(id),
-                    label:
-                      rangeItem.rangeName ?? `Range ${String(id)}`,
+                    label: rangeItem.rangeName ?? `Range ${String(id)}`,
                   }
                 })
                 .filter(Boolean)
                 .map((rangeItem) => (
-                  <SelectItem
-                    key={rangeItem!.id}
-                    value={rangeItem!.id}
-                  >
+                  <SelectItem key={rangeItem!.id} value={rangeItem!.id}>
                     {rangeItem!.label}
                   </SelectItem>
                 ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className='flex w-full flex-col gap-2 sm:w-[220px]'>
+          <Select
+            value={areaId}
+            onValueChange={(value) => {
+              setAreaId(value)
+              setTerritoryId('0')
+            }}
+            disabled={loadingAreas}
+          >
+            <SelectTrigger
+              id='time-attendance-area'
+              className={cn(controlHeight, 'w-full')}
+            >
+              <SelectValue placeholder='Select Area' />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value='0'>Select Area</SelectItem>
+              {areas.map((area) => (
+                <SelectItem key={area.id} value={String(area.id)}>
+                  {area.areaName ?? `Area ${area.id}`}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

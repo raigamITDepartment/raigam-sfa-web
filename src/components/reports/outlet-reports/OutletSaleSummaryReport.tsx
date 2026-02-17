@@ -2,12 +2,15 @@ import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   flexRender,
+  getFacetedRowModel,
+  getFacetedUniqueValues,
   getCoreRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
   type ColumnDef,
+  type VisibilityState,
 } from '@tanstack/react-table'
 import { getOutletSummeryReports } from '@/services/reports/outletReportsApi'
 import { formatDate } from '@/lib/format-date'
@@ -39,10 +42,32 @@ import OutletSaleFilter, {
   type NotVisitedOutletFilters,
 } from '@/components/reports/outlet-reports/OutletSaleFilter'
 
+const SHORT_HEADER_MAP: Record<string, string> = {
+  channelname: 'Channel',
+  subchannelname: 'Sub Ch',
+  regionname: 'Region',
+  areaname: 'Area',
+  territoryname: 'Territory',
+  routename: 'Route',
+  outletcategoryname: 'Outlet Cat',
+  outletname: 'Outlet',
+  totalactualvalue: 'Actual Val',
+  totalactualinvoicecount: 'Actual Inv',
+  totaldiscountvalue: 'Disc Val',
+  totalfreevalue: 'Free Val',
+  totalmarketreturnvalue: 'Mkt Ret Val',
+  totalgoodreturnvalue: 'Good Ret Val',
+  totalcancelvalue: 'Cancel Val',
+  totalcancelinvoicecount: 'Cancel Inv',
+}
+
 const formatHeader = (key: string) => {
   const withSpaces = key.replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2')
   return withSpaces.charAt(0).toUpperCase() + withSpaces.slice(1)
 }
+
+const formatTableHeader = (key: string) =>
+  SHORT_HEADER_MAP[normalizeKey(key)] ?? formatHeader(key)
 
 const normalizeKey = (key: string) =>
   key.toLowerCase().replace(/[^a-z0-9]/g, '')
@@ -96,12 +121,13 @@ const getCellAlignmentClassName = (key: string) => {
 type ToolbarFilterOption = {
   columnId?: string
   title: string
+  showCountBadge?: boolean
   options: { label: string; value: string }[]
 }
 
-const hasColumnId = (
-  filter: ToolbarFilterOption
-): filter is Omit<ToolbarFilterOption, 'columnId'> & { columnId: string } =>
+const hasColumnId = <T extends ToolbarFilterOption>(
+  filter: T
+): filter is T & { columnId: string } =>
   Boolean(filter.columnId && filter.options.length > 0)
 
 const buildFacetOptions = (values: unknown[]) => {
@@ -118,6 +144,17 @@ const buildFacetOptions = (values: unknown[]) => {
       label: value,
       value,
     }))
+}
+
+const matchesMultiSelect = (rowValue: unknown, filterValue: unknown) => {
+  const values = Array.isArray(filterValue)
+    ? filterValue
+    : filterValue
+      ? [String(filterValue)]
+      : []
+  if (!values.length) return true
+  if (rowValue === null || rowValue === undefined) return false
+  return values.includes(String(rowValue))
 }
 
 const findColumnKey = (keys: string[], candidates: string[]) =>
@@ -144,6 +181,8 @@ const OutletSaleSummaryReport = () => {
     () => cachedFilters
   )
   const [globalFilter, setGlobalFilter] = useState(() => cachedGlobalFilter)
+  const [columnVisibility, setColumnVisibility] =
+    useState<VisibilityState>({})
   const todayIso = useMemo(() => formatLocalDate(new Date()), [])
 
   useEffect(() => {
@@ -189,6 +228,10 @@ const OutletSaleSummaryReport = () => {
   )
   const filterColumnKeys = useMemo(
     () => ({
+      territoryName: findColumnKey(columnKeys, [
+        'territoryname',
+        'territory',
+      ]),
       outletCategoryName: findColumnKey(columnKeys, [
         'outletcategoryname',
         'outletcategory',
@@ -203,17 +246,47 @@ const OutletSaleSummaryReport = () => {
       columnKey ? buildFacetOptions(rows.map((row) => row[columnKey])) : []
     return [
       {
+        columnId: filterColumnKeys.territoryName,
+        title: 'Territory',
+        options: buildOptions(filterColumnKeys.territoryName),
+        showCountBadge: true,
+      },
+      {
         columnId: filterColumnKeys.outletCategoryName,
         title: 'Outlet Category Name',
         options: buildOptions(filterColumnKeys.outletCategoryName),
+        showCountBadge: true,
       },
     ].filter(hasColumnId)
-  }, [rows, filterColumnKeys.outletCategoryName])
+  }, [
+    rows,
+    filterColumnKeys.territoryName,
+    filterColumnKeys.outletCategoryName,
+  ])
 
   const visibleKeys = useMemo(
     () => columnKeys.filter((key) => !hiddenColumnKeys.has(normalizeKey(key))),
     [columnKeys]
   )
+
+  const hiddenByDefault = useMemo<VisibilityState>(() => {
+    const targets = new Set([
+      'channelname',
+      'subchannelname',
+      'regionname',
+      'areaname',
+    ])
+    const entries = columnKeys
+      .filter((key) => targets.has(normalizeKey(key)))
+      .map((key) => [key, false] as const)
+    return Object.fromEntries(entries)
+  }, [columnKeys])
+
+  useEffect(() => {
+    if (Object.keys(columnVisibility).length > 0) return
+    if (Object.keys(hiddenByDefault).length === 0) return
+    setColumnVisibility(hiddenByDefault)
+  }, [hiddenByDefault, columnVisibility])
 
   const exportColumns = useMemo<ExcelExportColumn<Record<string, unknown>>[]>(
     () =>
@@ -226,19 +299,22 @@ const OutletSaleSummaryReport = () => {
 
   const columns = useMemo<ColumnDef<Record<string, unknown>>[]>(
     () =>
-      visibleKeys.map((key) => ({
+      visibleKeys.map((key, index) => ({
         accessorKey: key,
+        filterFn: (row, columnId, filterValue) =>
+          matchesMultiSelect(row.getValue(columnId), filterValue),
         header: ({ column }) => (
           <DataTableColumnHeader
             column={column}
-            title={formatHeader(key)}
+            title={formatTableHeader(key)}
+            tooltip={formatHeader(key)}
             className={getHeaderAlignmentClassName(key)}
           />
         ),
         cell: ({ row }) => {
           const value = row.getValue(key)
           return (
-            <span className='block truncate'>
+            <span className={cn('block truncate', index === 0 && 'pl-3')}>
               {formatValue(key, value)}
             </span>
           )
@@ -252,12 +328,16 @@ const OutletSaleSummaryReport = () => {
     columns,
     state: {
       globalFilter,
+      columnVisibility,
     },
     onGlobalFilterChange: setGlobalFilter,
+    onColumnVisibilityChange: setColumnVisibility,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    getFacetedRowModel: getFacetedRowModel(),
+    getFacetedUniqueValues: getFacetedUniqueValues(),
     initialState: {
       pagination: {
         pageSize: 10,

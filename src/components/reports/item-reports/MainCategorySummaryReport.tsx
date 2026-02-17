@@ -44,12 +44,39 @@ import type { ReportInvoiceTypeParam } from '@/types/invoice'
 
 const FILTER_STORAGE_KEY = 'main-category-summary-report-filters'
 
+const SHORT_HEADER_MAP: Record<string, string> = {
+  maincatid: 'MainCat ID',
+  maincategoryid: 'MainCat ID',
+  maincatname: 'MainCat',
+  maincategoryname: 'MainCat',
+  totalbookingqty: 'Book Qty',
+  totalbookingvalue: 'Book Val',
+  soldqty: 'Sold Qty',
+  totalsoldvalue: 'Sold Val',
+  totalcancelqty: 'Cancel Qty',
+  totalcancelvalue: 'Cancel Val',
+  totalfreeqty: 'Free Qty',
+  totalfreevalue: 'Free Val',
+  totalgoodreturnqty: 'Good Ret Qty',
+  totalgoodreturnvalue: 'Good Ret Val',
+  totalgoodreturnfreeqty: 'Good Ret F.Qty',
+  totalgoodreturnfreevalue: 'Good Ret F.Val',
+  totalmarketreturnqty: 'Mkt Ret Qty',
+  totalmarketreturnvalue: 'Mkt Ret Val',
+  totalmarketreturnfreeqty: 'Mkt Ret F.Qty',
+  totalmarketreturnfreevalue: 'Mkt Ret F.Val',
+  totaldiscountvalue: 'Disc Val',
+}
+
 const formatHeader = (key: string) => {
   const withSpaces = key
     .replace(/_/g, ' ')
     .replace(/([a-z])([A-Z])/g, '$1 $2')
   return withSpaces.charAt(0).toUpperCase() + withSpaces.slice(1)
 }
+
+const formatTableHeader = (key: string) =>
+  SHORT_HEADER_MAP[normalizeKey(key)] ?? formatHeader(key)
 
 const normalizeKey = (key: string) =>
   key.toLowerCase().replace(/[^a-z0-9]/g, '')
@@ -74,12 +101,13 @@ const findColumnKey = (keys: string[], candidates: string[]) =>
 type ToolbarFilterOption = {
   columnId?: string
   title: string
+  showCountBadge?: boolean
   options: { label: string; value: string }[]
 }
 
-const hasColumnId = (
-  filter: ToolbarFilterOption
-): filter is Omit<ToolbarFilterOption, 'columnId'> & { columnId: string } =>
+const hasColumnId = <T extends ToolbarFilterOption>(
+  filter: T
+): filter is T & { columnId: string } =>
   Boolean(filter.columnId && filter.options.length > 0)
 
 const isFilterMatch = (rowValue: unknown, filterValue: unknown) => {
@@ -359,7 +387,8 @@ const MainCategorySummaryReport = () => {
       header: ({ column }) => (
         <DataTableColumnHeader
           column={column}
-          title={formatHeader(key)}
+          title={formatTableHeader(key)}
+          tooltip={formatHeader(key)}
           className={getHeaderAlignmentClassName(key)}
         />
       ),

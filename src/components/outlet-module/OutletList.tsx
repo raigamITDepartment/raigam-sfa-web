@@ -4,6 +4,8 @@ import {
   type ColumnDef,
   flexRender,
   getCoreRowModel,
+  getFacetedRowModel,
+  getFacetedUniqueValues,
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
@@ -42,6 +44,7 @@ import {
   formatRangeLabel,
   parseCreatedDate,
   pickFirstValue,
+  buildFacetOptions,
 } from '@/components/outlet-module/outlet-list-utils'
 import { toast } from 'sonner'
 import { useAppSelector } from '@/store/hooks'
@@ -370,6 +373,8 @@ export const OutletList = () => {
     onPaginationChange: setPagination,
     onColumnVisibilityChange: setColumnVisibility,
     getCoreRowModel: getCoreRowModel(),
+    getFacetedRowModel: getFacetedRowModel(),
+    getFacetedUniqueValues: getFacetedUniqueValues(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -377,22 +382,22 @@ export const OutletList = () => {
   })
 
   const categoryFilterOptions = useMemo(() => {
-    const values = new Map<string, string>()
-    filteredData.forEach((row) => {
-      const value = pickFirstValue(row, [
-        'outletCategoryName',
-        'outletCategory',
-        'category',
-      ])
-      if (value === null || value === undefined || value === '') return
-      const label = String(value)
-      if (!values.has(label)) values.set(label, label)
-    })
-    return Array.from(values.keys()).map((label) => ({
-      label,
-      value: label,
-    }))
+    return buildFacetOptions(
+      filteredData.map((row) =>
+        pickFirstValue(row, [
+          'outletCategoryName',
+          'outletCategory',
+          'category',
+        ])
+      )
+    )
   }, [filteredData])
+
+  const territoryFilterOptions = useMemo(
+    () =>
+      buildFacetOptions(filteredData.map((row) => row.territoryName)),
+    [filteredData]
+  )
 
   const approvedFilterOptions = useMemo(
     () => [
@@ -489,16 +494,25 @@ export const OutletList = () => {
                     columnId: 'category',
                     title: 'Category',
                     options: categoryFilterOptions,
+                    showCountBadge: true,
+                  },
+                  {
+                    columnId: 'territoryName',
+                    title: 'Territory',
+                    options: territoryFilterOptions,
+                    showCountBadge: true,
                   },
                   {
                     columnId: 'approved',
                     title: 'Approved',
                     options: approvedFilterOptions,
+                    showCountBadge: true,
                   },
                   {
                     columnId: 'status',
                     title: 'Status',
                     options: statusFilterOptions,
+                    showCountBadge: true,
                   },
                 ]}
               />
@@ -575,7 +589,7 @@ export const OutletList = () => {
                       {headerGroup.headers.map((header) => (
                         <TableHead
                           key={header.id}
-                          className='text-muted-foreground bg-gray-100 px-3 text-xs font-semibold tracking-wide uppercase dark:bg-gray-900'
+                          className='text-muted-foreground bg-gray-100 whitespace-nowrap px-3 text-xs font-semibold tracking-wide uppercase dark:bg-gray-900'
                         >
                           {header.isPlaceholder
                             ? null
@@ -604,7 +618,10 @@ export const OutletList = () => {
                     table.getRowModel().rows.map((row) => (
                       <TableRow key={row.id}>
                         {row.getVisibleCells().map((cell) => (
-                          <TableCell key={cell.id} className='px-3 py-2'>
+                          <TableCell
+                            key={cell.id}
+                            className='whitespace-nowrap px-3 py-2'
+                          >
                             {flexRender(
                               cell.column.columnDef.cell,
                               cell.getContext()

@@ -441,41 +441,40 @@ export default function AreaInvoiceReportFilter({
   }
 
   return (
-    <div className='rounded-sm border bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900'>
-      <div className='flex flex-wrap items-end gap-2'>
-        {canPickSubChannel && !useUserAreas ? (
-          <div className='flex w-full flex-col gap-2 sm:min-w-[170px] sm:flex-1'>
-            <Select
-              value={effectiveChannelId}
-              onValueChange={(value) => {
-                setChannelId(value)
-                setSubChannelId('')
-                setAreaId(isAreaLocked ? lockedAreaId : '')
-                setErrors((prev) => ({
-                  ...prev,
-                  subChannelId: false,
-                  areaId: false,
-                }))
-              }}
-              disabled={loadingChannels || isChannelLocked}
+    <div className='flex flex-wrap items-end gap-2'>
+      {canPickSubChannel && !useUserAreas ? (
+        <div className='flex w-full flex-col gap-2 sm:min-w-[170px] sm:flex-1'>
+          <Select
+            value={effectiveChannelId}
+            onValueChange={(value) => {
+              setChannelId(value)
+              setSubChannelId('')
+              setAreaId(isAreaLocked ? lockedAreaId : '')
+              setErrors((prev) => ({
+                ...prev,
+                subChannelId: false,
+                areaId: false,
+              }))
+            }}
+            disabled={loadingChannels || isChannelLocked}
+          >
+            <SelectTrigger
+              id='area-report-channel'
+              className={cn(controlHeight, 'w-full')}
             >
-              <SelectTrigger
-                id='area-report-channel'
-                className={cn(controlHeight, 'w-full')}
-              >
-                <SelectValue placeholder='Select Channel' />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value='0'>All Channels</SelectItem>
-                {channelOptions.map((channel) => (
-                  <SelectItem key={channel.id} value={String(channel.id)}>
-                    {channel.channelName ?? channel.channelCode ?? channel.id}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        ) : null}
+              <SelectValue placeholder='Select Channel' />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value='0'>All Channels</SelectItem>
+              {channelOptions.map((channel) => (
+                <SelectItem key={channel.id} value={String(channel.id)}>
+                  {channel.channelName ?? channel.channelCode ?? channel.id}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      ) : null}
 
         <div className='flex w-full flex-col gap-2 sm:min-w-[170px] sm:flex-1'>
           <Select
@@ -616,21 +615,20 @@ export default function AreaInvoiceReportFilter({
           </Popover>
         </div>
 
-        <div className='flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-end'>
-          <Button
-            className={cn(controlHeight, 'min-w-[150px]')}
-            onClick={handleApply}
-          >
-            Apply Filters
-          </Button>
-          <Button
-            variant='outline'
-            className={cn(controlHeight, 'min-w-[150px]')}
-            onClick={handleReset}
-          >
-            Reset
-          </Button>
-        </div>
+      <div className='flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-end'>
+        <Button
+          className={cn(controlHeight, 'min-w-[150px]')}
+          onClick={handleApply}
+        >
+          Apply Filters
+        </Button>
+        <Button
+          variant='outline'
+          className={cn(controlHeight, 'min-w-[150px]')}
+          onClick={handleReset}
+        >
+          Reset
+        </Button>
       </div>
     </div>
   )

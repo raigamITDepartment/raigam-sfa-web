@@ -174,6 +174,12 @@ const parseNum = (v: string | number | undefined): number => {
   return isNaN(n) ? 0 : n
 }
 
+const formatAvgWithDirect = (value: number) =>
+  value.toLocaleString('en-LK', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
+
 const formatPastMonthCurrency = (value: number): string => {
   return Math.round(value).toLocaleString('en-LK')
 }
@@ -365,6 +371,7 @@ const createRowFromItem = (
   const totalValue = Math.round(item.totalValue || 0)
   const targetValue = Math.round(item.valueTarget || 0)
   const variance = targetValue - totalValue
+  const avgWithDirect = item.averageWithDirectValue ?? 0
 
   Object.assign(row, {
     Target: targetValue.toLocaleString('en-LK'),
@@ -380,7 +387,7 @@ const createRowFromItem = (
     WD: wd,
     'WD Variance': givenWD - wd,
     'Avg PC': wd > 0 ? Math.round((item.totalCount || 0) / wd) : 0,
-    'Avg (With Direct)': '0',
+    'Avg (With Direct)': formatAvgWithDirect(avgWithDirect),
   })
 
   pastMonthMeta.forEach((meta) => {
@@ -412,6 +419,7 @@ const buildTableData = (
 
 const isPercentHeader = (h: string) => h.includes('%')
 const isAverageHeader = (h: string) => /avg/i.test(h)
+const isAvgWithDirectHeader = (h: string) => h === 'Avg (With Direct)'
 const isPCHeader = (h: string) => /PC$/.test(h)
 
 const aggregateRows = (rows: RowRecord[], headers: string[]): RowRecord => {
@@ -444,6 +452,8 @@ const aggregateRows = (rows: RowRecord[], headers: string[]): RowRecord => {
     let result: string | number
     if (isPercentHeader(h)) {
       result = `${Math.round(avg)}%`
+    } else if (isAvgWithDirectHeader(h)) {
+      result = formatAvgWithDirect(avg)
     } else if (isAverageHeader(h)) {
       result = Math.round(avg)
     } else if (isPCHeader(h)) {

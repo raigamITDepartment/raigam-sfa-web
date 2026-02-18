@@ -90,6 +90,7 @@ export type HomeReportItem = {
   day31Value: number
   totalCount: number
   totalValue: number
+  averageWithDirectValue?: number
   currentMonthName: string
   currentMonthNumber: number
   past1MonthTotalPcCount: number

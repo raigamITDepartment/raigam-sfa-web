@@ -363,7 +363,7 @@ const buildPastMonthMeta = (
     return {
       ...column,
       label,
-      pcHeader: `${label} Avg PC Count`,
+      pcHeader: `${label} PC Count`,
       totalHeader: `${label} Total Value`,
       normalHeader: `${label} Normal Value`,
       agencyHeader: `${label} Agency Value`,
@@ -500,7 +500,7 @@ const PAST_MONTH_COLUMN_SUFFIXES = [
   ' Company Value',
   ' Agency Value',
   ' Normal Value',
-  ' Avg PC Count',
+  ' PC Count',
   ' Total Value',
 ]
 

@@ -32,6 +32,48 @@ export type PastMonthValueKey =
   | 'past11MonthTotalValue'
   | 'past12MonthTotalValue'
 
+export type PastMonthNormalValueKey =
+  | 'past1MonthTotalNormalValue'
+  | 'past2MonthTotalNormalValue'
+  | 'past3MonthTotalNormalValue'
+  | 'past4MonthTotalNormalValue'
+  | 'past5MonthTotalNormalValue'
+  | 'past6MonthTotalNormalValue'
+  | 'past7MonthTotalNormalValue'
+  | 'past8MonthTotalNormalValue'
+  | 'past9MonthTotalNormalValue'
+  | 'past10MonthTotalNormalValue'
+  | 'past11MonthTotalNormalValue'
+  | 'past12MonthTotalNormalValue'
+
+export type PastMonthAgencyValueKey =
+  | 'past1MonthTotalAgencyValue'
+  | 'past2MonthTotalAgencyValue'
+  | 'past3MonthTotalAgencyValue'
+  | 'past4MonthTotalAgencyValue'
+  | 'past5MonthTotalAgencyValue'
+  | 'past6MonthTotalAgencyValue'
+  | 'past7MonthTotalAgencyValue'
+  | 'past8MonthTotalAgencyValue'
+  | 'past9MonthTotalAgencyValue'
+  | 'past10MonthTotalAgencyValue'
+  | 'past11MonthTotalAgencyValue'
+  | 'past12MonthTotalAgencyValue'
+
+export type PastMonthCompanyValueKey =
+  | 'past1MonthTotalCompanyValue'
+  | 'past2MonthTotalCompanyValue'
+  | 'past3MonthTotalCompanyValue'
+  | 'past4MonthTotalCompanyValue'
+  | 'past5MonthTotalCompanyValue'
+  | 'past6MonthTotalCompanyValue'
+  | 'past7MonthTotalCompanyValue'
+  | 'past8MonthTotalCompanyValue'
+  | 'past9MonthTotalCompanyValue'
+  | 'past10MonthTotalCompanyValue'
+  | 'past11MonthTotalCompanyValue'
+  | 'past12MonthTotalCompanyValue'
+
 export type PastMonthPcKey =
   | 'past1MonthTotalPcCount'
   | 'past2MonthTotalPcCount'
@@ -78,6 +120,9 @@ export type PastMonthColumnDef = {
   index: number
   defaultLabel: string
   valueKey: PastMonthValueKey
+  normalValueKey: PastMonthNormalValueKey
+  agencyValueKey: PastMonthAgencyValueKey
+  companyValueKey: PastMonthCompanyValueKey
   pcKey: PastMonthPcKey
   nameKey: PastMonthNameKey
   numberKey: PastMonthNumberKey
@@ -85,8 +130,11 @@ export type PastMonthColumnDef = {
 
 export type PastMonthMeta = PastMonthColumnDef & {
   label: string
-  valueHeader: string
   pcHeader: string
+  totalHeader: string
+  normalHeader: string
+  agencyHeader: string
+  companyHeader: string
 }
 
 export type HomeReportTableProps = {

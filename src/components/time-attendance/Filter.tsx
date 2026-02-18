@@ -81,6 +81,16 @@ const toNumberValue = (value: string) => {
   return Number.isNaN(parsed) ? undefined : parsed
 }
 
+const subChannelRangeMap: Record<number, number[]> = {
+  1: [1, 3],
+  2: [2, 3],
+  3: [4],
+  4: [6],
+  5: [7],
+  6: [9],
+  7: [8],
+}
+
 export default function TimeAttendanceFilter({
   initialValues,
   onApply,
@@ -104,6 +114,11 @@ export default function TimeAttendanceFilter({
   const [territoryId, setTerritoryId] = useState<string>(
     toSelectValue(initialValues?.territoryId)
   )
+  const [errors, setErrors] = useState({
+    subChannelId: false,
+    rangeId: false,
+    areaId: false,
+  })
   const [range, setRange] = useState<DateRange | undefined>(() => {
     if (initialValues?.startDate || initialValues?.endDate) {
       return {
@@ -131,6 +146,7 @@ export default function TimeAttendanceFilter({
       from: parseDate(initialValues.startDate) ?? defaultRange.from,
       to: parseDate(initialValues.endDate) ?? defaultRange.to,
     })
+    setErrors({ subChannelId: false, rangeId: false, areaId: false })
   }, [initialValues, defaultRange.from, defaultRange.to])
 
   const userAreas = useMemo<AreaDTO[] | null>(() => {
@@ -195,6 +211,32 @@ export default function TimeAttendanceFilter({
     staleTime: 5 * 60 * 1000,
   })
 
+  const filteredRanges = useMemo(() => {
+    if (!ranges.length) return []
+    if (subChannelId === '0') return ranges
+    const allowed = subChannelRangeMap[Number(subChannelId)] ?? []
+    if (!allowed.length) return ranges
+    return ranges.filter((rangeItem) => {
+      const id = rangeItem.id ?? rangeItem.rangeId
+      if (id === undefined || id === null) return false
+      return allowed.includes(Number(id))
+    })
+  }, [ranges, subChannelId])
+
+  useEffect(() => {
+    if (rangeId === '0') return
+    if (!filteredRanges.length) return
+    const allowedRangeIds = new Set(
+      filteredRanges
+        .map((item) => item.id ?? item.rangeId)
+        .filter((id): id is number => id !== undefined && id !== null)
+        .map((id) => Number(id))
+    )
+    if (!allowedRangeIds.has(Number(rangeId))) {
+      setRangeId('0')
+    }
+  }, [filteredRanges, rangeId])
+
   const {
     data: territories = [],
     isLoading: loadingTerritories,
@@ -213,6 +255,18 @@ export default function TimeAttendanceFilter({
   })
 
   const handleApply = () => {
+    const nextErrors = {
+      subChannelId: subChannelId === '0',
+      rangeId: rangeId === '0',
+      areaId: areaId === '0',
+    }
+    const hasErrors =
+      nextErrors.subChannelId || nextErrors.rangeId || nextErrors.areaId
+    if (hasErrors) {
+      setErrors(nextErrors)
+      return
+    }
+    setErrors({ subChannelId: false, rangeId: false, areaId: false })
     onApply?.({
       subChannelId: toNumberValue(subChannelId),
       areaId: toNumberValue(areaId),
@@ -229,6 +283,7 @@ export default function TimeAttendanceFilter({
     setRangeId('0')
     setTerritoryId('0')
     setRange({ from: defaultRange.from, to: defaultRange.to })
+    setErrors({ subChannelId: false, rangeId: false, areaId: false })
     onReset?.()
     onApply?.({
       subChannelId: 0,
@@ -250,12 +305,14 @@ export default function TimeAttendanceFilter({
               setSubChannelId(value)
               setAreaId('0')
               setTerritoryId('0')
+              setErrors((prev) => ({ ...prev, subChannelId: false }))
             }}
             disabled={loadingSubChannels}
           >
             <SelectTrigger
               id='time-attendance-sub-channel'
               className={cn(controlHeight, 'w-full')}
+              aria-invalid={errors.subChannelId}
             >
               <SelectValue placeholder='Select Sub Channel' />
             </SelectTrigger>
@@ -273,18 +330,22 @@ export default function TimeAttendanceFilter({
         <div className='flex w-full flex-col gap-2 sm:w-[200px]'>
           <Select
             value={rangeId}
-            onValueChange={setRangeId}
+            onValueChange={(value) => {
+              setRangeId(value)
+              setErrors((prev) => ({ ...prev, rangeId: false }))
+            }}
             disabled={loadingRanges}
           >
             <SelectTrigger
               id='time-attendance-range-select'
               className={cn(controlHeight, 'w-full')}
+              aria-invalid={errors.rangeId}
             >
               <SelectValue placeholder='Select Range' />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value='0'>All Ranges</SelectItem>
-              {ranges
+              <SelectItem value='0'>Select Range</SelectItem>
+              {filteredRanges
                 .map((rangeItem) => {
                   const id = rangeItem.id ?? rangeItem.rangeId
                   if (id === undefined || id === null) return null
@@ -309,12 +370,14 @@ export default function TimeAttendanceFilter({
             onValueChange={(value) => {
               setAreaId(value)
               setTerritoryId('0')
+              setErrors((prev) => ({ ...prev, areaId: false }))
             }}
             disabled={loadingAreas}
           >
             <SelectTrigger
               id='time-attendance-area'
               className={cn(controlHeight, 'w-full')}
+              aria-invalid={errors.areaId}
             >
               <SelectValue placeholder='Select Area' />
             </SelectTrigger>

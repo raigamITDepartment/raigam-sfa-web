@@ -1,11 +1,9 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { z } from 'zod'
+import { format } from 'date-fns'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery } from '@tanstack/react-query'
-import { format } from 'date-fns'
-import { CalendarIcon } from 'lucide-react'
-import type { DateRange } from 'react-day-picker'
 import {
   getAllRange,
   getAllSubChannel,
@@ -14,6 +12,9 @@ import {
   type RangeDTO,
   type SubChannelDTO,
 } from '@/services/userDemarcationApi'
+import { getAchievementData } from '@/services/reports/achievementApi'
+import { CalendarIcon } from 'lucide-react'
+import type { DateRange } from 'react-day-picker'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
@@ -179,7 +180,10 @@ export default function AchievementFilter({
   }, [form, selectedSubChannelId])
 
   const subChannels = useMemo(
-    () => (Array.isArray(subChannelResponse?.payload) ? subChannelResponse.payload : []),
+    () =>
+      Array.isArray(subChannelResponse?.payload)
+        ? subChannelResponse.payload
+        : [],
     [subChannelResponse]
   ) as SubChannelDTO[]
 
@@ -206,6 +210,16 @@ export default function AchievementFilter({
   ) as AreaDTO[]
 
   const handleSubmit = async (values: AchievementFilterValues) => {
+    if (!values.dateRange.from || !values.dateRange.to) return
+
+    const response = await getAchievementData({
+      subChannelId: values.subChannelId,
+      areaId: values.areaId,
+      startDate: format(values.dateRange.from, 'yyyy-MM-dd'),
+      endDate: format(values.dateRange.to, 'yyyy-MM-dd'),
+    })
+    console.log('getAchievementData response:', response)
+
     await onGenerateReport?.(values)
   }
 
@@ -234,7 +248,9 @@ export default function AchievementFilter({
                         className={cn(
                           controlHeight,
                           'w-full bg-slate-50 text-left',
-                          fieldState.invalid ? 'border-red-500 text-red-600' : ''
+                          fieldState.invalid
+                            ? 'border-red-500 text-red-600'
+                            : ''
                         )}
                       >
                         <SelectValue placeholder='Select sub channel' />
@@ -247,7 +263,10 @@ export default function AchievementFilter({
                         </SelectItem>
                       ) : (
                         subChannels.map((subChannel) => (
-                          <SelectItem key={subChannel.id} value={String(subChannel.id)}>
+                          <SelectItem
+                            key={subChannel.id}
+                            value={String(subChannel.id)}
+                          >
                             {subChannel.subChannelName}
                           </SelectItem>
                         ))
@@ -276,7 +295,9 @@ export default function AchievementFilter({
                         className={cn(
                           controlHeight,
                           'w-full bg-slate-50 text-left',
-                          fieldState.invalid ? 'border-red-500 text-red-600' : ''
+                          fieldState.invalid
+                            ? 'border-red-500 text-red-600'
+                            : ''
                         )}
                       >
                         <SelectValue placeholder='Select range' />
@@ -293,7 +314,8 @@ export default function AchievementFilter({
                             key={String(range.id ?? range.rangeId)}
                             value={String(range.id ?? range.rangeId)}
                           >
-                            {range.rangeName ?? `Range ${range.id ?? range.rangeId}`}
+                            {range.rangeName ??
+                              `Range ${range.id ?? range.rangeId}`}
                           </SelectItem>
                         ))
                       )}
@@ -314,14 +336,18 @@ export default function AchievementFilter({
                   <Select
                     value={field.value}
                     onValueChange={field.onChange}
-                    disabled={!selectedSubChannelId || loadingAreas || fetchingAreas}
+                    disabled={
+                      !selectedSubChannelId || loadingAreas || fetchingAreas
+                    }
                   >
                     <FormControl>
                       <SelectTrigger
                         className={cn(
                           controlHeight,
                           'w-full bg-slate-50 text-left',
-                          fieldState.invalid ? 'border-red-500 text-red-600' : ''
+                          fieldState.invalid
+                            ? 'border-red-500 text-red-600'
+                            : ''
                         )}
                       >
                         <SelectValue placeholder='Select area' />
@@ -334,7 +360,10 @@ export default function AchievementFilter({
                         </SelectItem>
                       ) : (
                         areas.map((area) => (
-                          <SelectItem key={String(area.id)} value={String(area.id)}>
+                          <SelectItem
+                            key={String(area.id)}
+                            value={String(area.id)}
+                          >
                             {area.areaName ?? `Area ${area.id}`}
                           </SelectItem>
                         ))
@@ -366,7 +395,9 @@ export default function AchievementFilter({
                               controlHeight,
                               'w-full justify-between bg-slate-50 text-left font-normal',
                               !hasRange ? 'text-muted-foreground' : '',
-                              fieldState.invalid ? 'border-red-500 text-red-600' : ''
+                              fieldState.invalid
+                                ? 'border-red-500 text-red-600'
+                                : ''
                             )}
                           >
                             <span className='truncate'>
@@ -374,6 +405,7 @@ export default function AchievementFilter({
                                 ? `${format(selectedRange.from, 'yyyy-MM-dd')} ~ ${format(selectedRange.to, 'yyyy-MM-dd')}`
                                 : 'Select date range'}
                             </span>
+
                             <CalendarIcon className='h-4 w-4 opacity-60' />
                           </Button>
                         </PopoverTrigger>
@@ -412,7 +444,9 @@ export default function AchievementFilter({
                         className={cn(
                           controlHeight,
                           'w-full bg-slate-50 text-left',
-                          fieldState.invalid ? 'border-red-500 text-red-600' : ''
+                          fieldState.invalid
+                            ? 'border-red-500 text-red-600'
+                            : ''
                         )}
                       >
                         <SelectValue placeholder='Select template' />
@@ -424,7 +458,10 @@ export default function AchievementFilter({
                           <SelectGroup key={group.category}>
                             <SelectLabel>{group.category}</SelectLabel>
                             {group.options.map((template) => (
-                              <SelectItem key={template.value} value={template.value}>
+                              <SelectItem
+                                key={template.value}
+                                value={template.value}
+                              >
                                 {template.label}
                               </SelectItem>
                             ))}
@@ -444,7 +481,10 @@ export default function AchievementFilter({
           </div>
 
           <div className='flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-end'>
-            <Button type='submit' className={cn(controlHeight, 'min-w-[150px]')}>
+            <Button
+              type='submit'
+              className={cn(controlHeight, 'min-w-[150px]')}
+            >
               Generate Report
             </Button>
             <Button

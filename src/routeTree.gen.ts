@@ -55,6 +55,7 @@ import { Route as AuthenticatedReportsItemReportsMainCategorySummaryReportRouteI
 import { Route as AuthenticatedReportsItemReportsItemSummaryReportRouteImport } from './routes/_authenticated/reports/item-reports/item-summary-report'
 import { Route as AuthenticatedReportsInvoiceReportsTerritoryWiseInvoiceSummaryRouteImport } from './routes/_authenticated/reports/invoice-reports/territory-wise-invoice-summary'
 import { Route as AuthenticatedReportsInvoiceReportsAreaWiseInvoiceSummaryRouteImport } from './routes/_authenticated/reports/invoice-reports/area-wise-invoice-summary'
+import { Route as AuthenticatedReportsAchievementReportsGenerateAchievementReportRouteImport } from './routes/_authenticated/reports/achievement-reports/generate-achievement-report'
 import { Route as AuthenticatedAgencyModuleStockViewStockRouteImport } from './routes/_authenticated/agency-module/stock/view-stock'
 import { Route as AuthenticatedAgencyModuleStockRequestOrderRouteImport } from './routes/_authenticated/agency-module/stock/request-order'
 import { Route as AuthenticatedAgencyModuleStockAddStockRouteImport } from './routes/_authenticated/agency-module/stock/add-stock'
@@ -333,6 +334,14 @@ const AuthenticatedReportsInvoiceReportsAreaWiseInvoiceSummaryRoute =
     path: '/reports/invoice-reports/area-wise-invoice-summary',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedReportsAchievementReportsGenerateAchievementReportRoute =
+  AuthenticatedReportsAchievementReportsGenerateAchievementReportRouteImport.update(
+    {
+      id: '/reports/achievement-reports/generate-achievement-report',
+      path: '/reports/achievement-reports/generate-achievement-report',
+      getParentRoute: () => AuthenticatedRouteRoute,
+    } as any,
+  )
 const AuthenticatedAgencyModuleStockViewStockRoute =
   AuthenticatedAgencyModuleStockViewStockRouteImport.update({
     id: '/agency-module/stock/view-stock',
@@ -438,6 +447,7 @@ export interface FileRoutesByFullPath {
   '/agency-module/stock/add-stock': typeof AuthenticatedAgencyModuleStockAddStockRoute
   '/agency-module/stock/request-order': typeof AuthenticatedAgencyModuleStockRequestOrderRoute
   '/agency-module/stock/view-stock': typeof AuthenticatedAgencyModuleStockViewStockRoute
+  '/reports/achievement-reports/generate-achievement-report': typeof AuthenticatedReportsAchievementReportsGenerateAchievementReportRoute
   '/reports/invoice-reports/area-wise-invoice-summary': typeof AuthenticatedReportsInvoiceReportsAreaWiseInvoiceSummaryRoute
   '/reports/invoice-reports/territory-wise-invoice-summary': typeof AuthenticatedReportsInvoiceReportsTerritoryWiseInvoiceSummaryRoute
   '/reports/item-reports/item-summary-report': typeof AuthenticatedReportsItemReportsItemSummaryReportRoute
@@ -495,6 +505,7 @@ export interface FileRoutesByTo {
   '/agency-module/stock/add-stock': typeof AuthenticatedAgencyModuleStockAddStockRoute
   '/agency-module/stock/request-order': typeof AuthenticatedAgencyModuleStockRequestOrderRoute
   '/agency-module/stock/view-stock': typeof AuthenticatedAgencyModuleStockViewStockRoute
+  '/reports/achievement-reports/generate-achievement-report': typeof AuthenticatedReportsAchievementReportsGenerateAchievementReportRoute
   '/reports/invoice-reports/area-wise-invoice-summary': typeof AuthenticatedReportsInvoiceReportsAreaWiseInvoiceSummaryRoute
   '/reports/invoice-reports/territory-wise-invoice-summary': typeof AuthenticatedReportsInvoiceReportsTerritoryWiseInvoiceSummaryRoute
   '/reports/item-reports/item-summary-report': typeof AuthenticatedReportsItemReportsItemSummaryReportRoute
@@ -555,6 +566,7 @@ export interface FileRoutesById {
   '/_authenticated/agency-module/stock/add-stock': typeof AuthenticatedAgencyModuleStockAddStockRoute
   '/_authenticated/agency-module/stock/request-order': typeof AuthenticatedAgencyModuleStockRequestOrderRoute
   '/_authenticated/agency-module/stock/view-stock': typeof AuthenticatedAgencyModuleStockViewStockRoute
+  '/_authenticated/reports/achievement-reports/generate-achievement-report': typeof AuthenticatedReportsAchievementReportsGenerateAchievementReportRoute
   '/_authenticated/reports/invoice-reports/area-wise-invoice-summary': typeof AuthenticatedReportsInvoiceReportsAreaWiseInvoiceSummaryRoute
   '/_authenticated/reports/invoice-reports/territory-wise-invoice-summary': typeof AuthenticatedReportsInvoiceReportsTerritoryWiseInvoiceSummaryRoute
   '/_authenticated/reports/item-reports/item-summary-report': typeof AuthenticatedReportsItemReportsItemSummaryReportRoute
@@ -614,6 +626,7 @@ export interface FileRouteTypes {
     | '/agency-module/stock/add-stock'
     | '/agency-module/stock/request-order'
     | '/agency-module/stock/view-stock'
+    | '/reports/achievement-reports/generate-achievement-report'
     | '/reports/invoice-reports/area-wise-invoice-summary'
     | '/reports/invoice-reports/territory-wise-invoice-summary'
     | '/reports/item-reports/item-summary-report'
@@ -671,6 +684,7 @@ export interface FileRouteTypes {
     | '/agency-module/stock/add-stock'
     | '/agency-module/stock/request-order'
     | '/agency-module/stock/view-stock'
+    | '/reports/achievement-reports/generate-achievement-report'
     | '/reports/invoice-reports/area-wise-invoice-summary'
     | '/reports/invoice-reports/territory-wise-invoice-summary'
     | '/reports/item-reports/item-summary-report'
@@ -730,6 +744,7 @@ export interface FileRouteTypes {
     | '/_authenticated/agency-module/stock/add-stock'
     | '/_authenticated/agency-module/stock/request-order'
     | '/_authenticated/agency-module/stock/view-stock'
+    | '/_authenticated/reports/achievement-reports/generate-achievement-report'
     | '/_authenticated/reports/invoice-reports/area-wise-invoice-summary'
     | '/_authenticated/reports/invoice-reports/territory-wise-invoice-summary'
     | '/_authenticated/reports/item-reports/item-summary-report'
@@ -1084,6 +1099,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedReportsInvoiceReportsAreaWiseInvoiceSummaryRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/reports/achievement-reports/generate-achievement-report': {
+      id: '/_authenticated/reports/achievement-reports/generate-achievement-report'
+      path: '/reports/achievement-reports/generate-achievement-report'
+      fullPath: '/reports/achievement-reports/generate-achievement-report'
+      preLoaderRoute: typeof AuthenticatedReportsAchievementReportsGenerateAchievementReportRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/agency-module/stock/view-stock': {
       id: '/_authenticated/agency-module/stock/view-stock'
       path: '/agency-module/stock/view-stock'
@@ -1208,6 +1230,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAgencyModuleStockAddStockRoute: typeof AuthenticatedAgencyModuleStockAddStockRoute
   AuthenticatedAgencyModuleStockRequestOrderRoute: typeof AuthenticatedAgencyModuleStockRequestOrderRoute
   AuthenticatedAgencyModuleStockViewStockRoute: typeof AuthenticatedAgencyModuleStockViewStockRoute
+  AuthenticatedReportsAchievementReportsGenerateAchievementReportRoute: typeof AuthenticatedReportsAchievementReportsGenerateAchievementReportRoute
   AuthenticatedReportsInvoiceReportsAreaWiseInvoiceSummaryRoute: typeof AuthenticatedReportsInvoiceReportsAreaWiseInvoiceSummaryRoute
   AuthenticatedReportsInvoiceReportsTerritoryWiseInvoiceSummaryRoute: typeof AuthenticatedReportsInvoiceReportsTerritoryWiseInvoiceSummaryRoute
   AuthenticatedReportsItemReportsItemSummaryReportRoute: typeof AuthenticatedReportsItemReportsItemSummaryReportRoute
@@ -1282,6 +1305,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedAgencyModuleStockRequestOrderRoute,
   AuthenticatedAgencyModuleStockViewStockRoute:
     AuthenticatedAgencyModuleStockViewStockRoute,
+  AuthenticatedReportsAchievementReportsGenerateAchievementReportRoute:
+    AuthenticatedReportsAchievementReportsGenerateAchievementReportRoute,
   AuthenticatedReportsInvoiceReportsAreaWiseInvoiceSummaryRoute:
     AuthenticatedReportsInvoiceReportsAreaWiseInvoiceSummaryRoute,
   AuthenticatedReportsInvoiceReportsTerritoryWiseInvoiceSummaryRoute:

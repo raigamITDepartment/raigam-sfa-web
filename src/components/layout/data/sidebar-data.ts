@@ -19,6 +19,7 @@ import {
   AudioWaveform,
   Command,
   GalleryVerticalEnd,
+  Trophy,
 } from 'lucide-react'
 import { type SidebarData } from '../types'
 
@@ -182,6 +183,16 @@ export const sidebarData: SidebarData = {
             {
               title: 'Outlet Sale Summary Report',
               url: '/reports/outlet-reports/outlet-sale-summary-report',
+            },
+          ],
+        },
+        {
+          title: 'Achievement reports',
+          icon: Trophy,
+          items: [
+            {
+              title: 'Generate Achievement Report',
+              url: '/reports/achievement-reports/generate-achievement-report',
             },
           ],
         },

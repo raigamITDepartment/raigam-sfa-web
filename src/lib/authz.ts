@@ -137,6 +137,8 @@ export const RoutePermissions: Record<
   // Reports
   '/reports/achievement-category-wise':
     PermissionKey.ReportsAchievementCategoryWise,
+  '/reports/achievement-reports/generate-achievement-report':
+    PermissionKey.ReportsAchievementCategoryWise,
   '/reports/area-wise-sales-report': PermissionKey.ReportsAreaWiseSales,
   '/reports/territory-wise-sales-report':
     PermissionKey.ReportsTerritoryWiseSales,
@@ -292,6 +294,12 @@ export const RoleAccess: Record<string, RoleIdValue[]> = {
 
   // Reports
   '/reports/achievement-category-wise': [
+    RoleId.SystemAdmin,
+    RoleId.TopManager,
+    RoleId.ExecutiveCompany,
+    RoleId.ManagerSales,
+  ],
+  '/reports/achievement-reports/generate-achievement-report': [
     RoleId.SystemAdmin,
     RoleId.TopManager,
     RoleId.ExecutiveCompany,

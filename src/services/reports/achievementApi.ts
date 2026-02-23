@@ -5,6 +5,7 @@ export const ACHIEVEMENT_REPORT_BASE = '/api/v1/reports/achievementReport'
 
 export type AchievementDataParams = {
   subChannelId: number | string
+  rangeId?: number | string
   areaId: number | string
   startDate: string
   endDate: string

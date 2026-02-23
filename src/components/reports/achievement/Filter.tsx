@@ -12,8 +12,7 @@ import {
   type RangeDTO,
   type SubChannelDTO,
 } from '@/services/userDemarcationApi'
-import { getAchievementData } from '@/services/reports/achievementApi'
-import { CalendarIcon } from 'lucide-react'
+import { CalendarIcon, Loader2 } from 'lucide-react'
 import type { DateRange } from 'react-day-picker'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -144,6 +143,7 @@ export default function AchievementFilter({
     resolver: zodResolver(achievementFilterSchema),
     defaultValues: DEFAULT_VALUES,
   })
+  const isSubmitting = form.formState.isSubmitting
 
   const selectedSubChannelId = form.watch('subChannelId')
   const previousSubChannelId = useRef<string>('')
@@ -211,15 +211,6 @@ export default function AchievementFilter({
 
   const handleSubmit = async (values: AchievementFilterValues) => {
     if (!values.dateRange.from || !values.dateRange.to) return
-
-    const response = await getAchievementData({
-      subChannelId: values.subChannelId,
-      areaId: values.areaId,
-      startDate: format(values.dateRange.from, 'yyyy-MM-dd'),
-      endDate: format(values.dateRange.to, 'yyyy-MM-dd'),
-    })
-    console.log('getAchievementData response:', response)
-
     await onGenerateReport?.(values)
   }
 
@@ -484,14 +475,23 @@ export default function AchievementFilter({
             <Button
               type='submit'
               className={cn(controlHeight, 'min-w-[150px]')}
+              disabled={isSubmitting}
             >
-              Generate Report
+              {isSubmitting ? (
+                <>
+                  <Loader2 className='size-4 animate-spin' aria-hidden='true' />
+                  <span>Generating...</span>
+                </>
+              ) : (
+                'Generate Report'
+              )}
             </Button>
             <Button
               type='button'
               variant='outline'
               className={cn(controlHeight, 'min-w-[150px]')}
               onClick={handleReset}
+              disabled={isSubmitting}
             >
               Reset
             </Button>

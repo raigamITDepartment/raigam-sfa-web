@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
-  getAllArea,
+  getAreasBySubChannelId,
   getAllRange,
   getAllSubChannel,
   type ApiResponse,
@@ -94,9 +94,13 @@ function Filters({ onApply, initialValues }: FiltersProps) {
   })
 
   const { data: areas } = useQuery({
-    queryKey: ['user-demarcation', 'areas'],
+    queryKey: ['user-demarcation', 'areas', subChannelId || 'none'],
+    enabled: Boolean(subChannelId),
     queryFn: async () => {
-      const res = (await getAllArea()) as ApiResponse<AreaDTO[]>
+      if (!subChannelId) return []
+      const res = (await getAreasBySubChannelId(
+        Number(subChannelId)
+      )) as ApiResponse<AreaDTO[]>
       return res.payload
     },
   })

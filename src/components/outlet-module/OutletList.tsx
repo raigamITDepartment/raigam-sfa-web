@@ -208,6 +208,7 @@ export const OutletList = () => {
     channelName: false,
     areaName: false,
     route: false,
+    mobile: false,
   })
   const [createdRange, setCreatedRange] = useState<DateRange | undefined>()
   const [pendingRange, setPendingRange] = useState<DateRange | undefined>()

@@ -396,6 +396,12 @@ export function getAllDistributorsByRangeId(rangeId: Id) {
   )
 }
 
+export function findDistributorById(distributorId: Id) {
+  return get<DistributorDTO>(
+    `${USER_DEMARC_BASE}/distributor/findById/${distributorId}`
+  )
+}
+
 export function createNewDistributor(body: CreateDistributorRequest) {
   return post<DistributorDTO, CreateDistributorRequest>(
     `${USER_DEMARC_BASE}/distributor`,

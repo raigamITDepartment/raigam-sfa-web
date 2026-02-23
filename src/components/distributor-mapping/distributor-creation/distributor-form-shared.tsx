@@ -144,12 +144,21 @@ export const useDistributorFormState = ({
     if (!ranges.length) return
     if (form.getValues('rangeId')) return
 
+    const normalizedTarget = targetName.toLowerCase()
     const matchedRange = ranges.find(
-      (range) =>
-        range.rangeName?.trim().toLowerCase() === targetName.toLowerCase()
+      (range) => {
+        const normalizedName = range.rangeName?.trim().toLowerCase()
+        if (normalizedName === normalizedTarget) return true
+
+        const optionId = range.id ?? range.rangeId
+        if (optionId === undefined || optionId === null) return false
+        return String(optionId).trim().toLowerCase() === normalizedTarget
+      }
     )
     if (!matchedRange) return
-    form.setValue('rangeId', String(matchedRange.id ?? ''))
+    const matchedRangeId = matchedRange.id ?? matchedRange.rangeId
+    if (matchedRangeId === undefined || matchedRangeId === null) return
+    form.setValue('rangeId', String(matchedRangeId))
   }, [
     form,
     initialValues?.rangeId,

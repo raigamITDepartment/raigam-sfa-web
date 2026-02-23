@@ -107,6 +107,7 @@ type GpsSummaryRow = {
   lng: number
   batteryPercent: number | null
   timeKey: number
+  time?: string
   addressLine1?: string | null
   addressLine2?: string | null
 }
@@ -219,14 +220,16 @@ const getInterpolatedPosition = (
 const formatLatLng = (lat: number, lng: number) =>
   `${lat.toFixed(4)}, ${lng.toFixed(4)}`
 
-const formatTimeLabel = (value?: string) => {
+const formatDateTimeLabel = (value?: string) => {
   if (!value) return '--'
   const parsed = new Date(value)
   if (Number.isNaN(parsed.getTime())) return value
-  return parsed.toLocaleTimeString('en-US', {
+  return parsed.toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
-    second: '2-digit',
   })
 }
 
@@ -552,6 +555,7 @@ export const GPSMonitoring = () => {
               lng: point.lng,
               batteryPercent: batteryEstimates[index] ?? null,
               timeKey,
+              time: point.time,
               addressLine1: point.addressLine1 ?? existing?.addressLine1 ?? null,
               addressLine2: point.addressLine2 ?? existing?.addressLine2 ?? null,
             })
@@ -573,6 +577,7 @@ export const GPSMonitoring = () => {
               lng: point.lng,
               batteryPercent: batteryEstimates[index] ?? null,
               timeKey,
+              time: point.time,
               addressLine1: point.addressLine1 ?? existing?.addressLine1 ?? null,
               addressLine2: point.addressLine2 ?? existing?.addressLine2 ?? null,
             })
@@ -677,7 +682,7 @@ export const GPSMonitoring = () => {
     getInterpolatedPosition(snappedPath, snappedIndexFloat) ?? mapCenter
   const playheadPercent =
     routeProgress > 0 ? (clampedPlayhead / routeProgress) * 100 : 0
-  const playheadTimeLabel = formatTimeLabel(routeData[routeIndex]?.time)
+  const playheadTimeLabel = formatDateTimeLabel(routeData[routeIndex]?.time)
   const currentLocationLabel =
     geocodeLabel ??
     routeData[routeIndex]?.label ??
@@ -1281,10 +1286,11 @@ export const GPSMonitoring = () => {
           </DialogHeader>
           <div className='px-6 py-5'>
             <div className='rounded-lg border border-slate-200/70 bg-white/70 dark:border-slate-800/60 dark:bg-slate-950/40'>
-              <div className='grid grid-cols-[1.1fr_0.8fr_1.4fr_0.6fr] gap-3 border-b border-slate-200/70 bg-slate-100/80 px-3 py-2 text-[10px] font-semibold tracking-[0.2em] text-slate-500 uppercase dark:border-slate-800/60 dark:bg-slate-900/60 dark:text-slate-400'>
+              <div className='grid grid-cols-[1.1fr_0.8fr_1.2fr_1fr_0.6fr] gap-3 border-b border-slate-200/70 bg-slate-100/80 px-3 py-2 text-[10px] font-semibold tracking-[0.2em] text-slate-500 uppercase dark:border-slate-800/60 dark:bg-slate-900/60 dark:text-slate-400'>
                 <span>Outlet</span>
                 <span>Location</span>
                 <span>Address</span>
+                <span>Date/Time</span>
                 <span>Battery</span>
               </div>
               <div className='max-h-[50vh] overflow-y-auto'>
@@ -1313,7 +1319,7 @@ export const GPSMonitoring = () => {
                     return (
                       <div
                         key={row.key}
-                        className='grid grid-cols-[1.1fr_0.8fr_1.4fr_0.6fr] items-center gap-3 border-b border-slate-200/60 px-3 py-2 text-sm last:border-b-0 dark:border-slate-800/50'
+                        className='grid grid-cols-[1.1fr_0.8fr_1.2fr_1fr_0.6fr] items-center gap-3 border-b border-slate-200/60 px-3 py-2 text-sm last:border-b-0 dark:border-slate-800/50'
                       >
                         <div className='min-w-0'>
                           <p className='truncate font-semibold text-slate-900 dark:text-slate-100'>
@@ -1340,6 +1346,11 @@ export const GPSMonitoring = () => {
                               {addressLabel}
                             </span>
                           )}
+                        </div>
+                        <div className='text-xs text-slate-500 dark:text-slate-400'>
+                          <span className='truncate' title={formatDateTimeLabel(row.time)}>
+                            {formatDateTimeLabel(row.time)}
+                          </span>
                         </div>
                         <Badge
                           variant='outline'
@@ -1385,10 +1396,11 @@ export const GPSMonitoring = () => {
           </DialogHeader>
           <div className='px-6 py-5'>
             <div className='rounded-lg border border-slate-200/70 bg-white/70 dark:border-slate-800/60 dark:bg-slate-950/40'>
-              <div className='grid grid-cols-[1.1fr_0.8fr_1.4fr_0.6fr] gap-3 border-b border-slate-200/70 bg-slate-100/80 px-3 py-2 text-[10px] font-semibold tracking-[0.2em] text-slate-500 uppercase dark:border-slate-800/60 dark:bg-slate-900/60 dark:text-slate-400'>
+              <div className='grid grid-cols-[1.1fr_0.8fr_1.2fr_1fr_0.6fr] gap-3 border-b border-slate-200/70 bg-slate-100/80 px-3 py-2 text-[10px] font-semibold tracking-[0.2em] text-slate-500 uppercase dark:border-slate-800/60 dark:bg-slate-900/60 dark:text-slate-400'>
                 <span>Invoice</span>
                 <span>Location</span>
                 <span>Address</span>
+                <span>Date/Time</span>
                 <span>Battery</span>
               </div>
               <div className='max-h-[50vh] overflow-y-auto'>
@@ -1417,7 +1429,7 @@ export const GPSMonitoring = () => {
                     return (
                       <div
                         key={row.key}
-                        className='grid grid-cols-[1.1fr_0.8fr_1.4fr_0.6fr] items-center gap-3 border-b border-slate-200/60 px-3 py-2 text-sm last:border-b-0 dark:border-slate-800/50'
+                        className='grid grid-cols-[1.1fr_0.8fr_1.2fr_1fr_0.6fr] items-center gap-3 border-b border-slate-200/60 px-3 py-2 text-sm last:border-b-0 dark:border-slate-800/50'
                       >
                         <div className='min-w-0'>
                           <InvoiceNumber
@@ -1445,6 +1457,11 @@ export const GPSMonitoring = () => {
                               {addressLabel}
                             </span>
                           )}
+                        </div>
+                        <div className='text-xs text-slate-500 dark:text-slate-400'>
+                          <span className='truncate' title={formatDateTimeLabel(row.time)}>
+                            {formatDateTimeLabel(row.time)}
+                          </span>
                         </div>
                         <Badge
                           variant='outline'

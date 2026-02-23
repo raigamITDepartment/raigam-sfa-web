@@ -1,8 +1,15 @@
 'use client'
 
 import * as React from 'react'
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
 
 type ButtonVariant = React.ComponentProps<typeof Button>['variant']
 
@@ -79,13 +86,15 @@ export function CommonDialog(props: CommonDialogProps) {
         {(title || description) && (
           <DialogHeader className={headerClassName}>
             {title && <DialogTitle>{title}</DialogTitle>}
-            {description && <DialogDescription>{description}</DialogDescription>}
+            {description && (
+              <DialogDescription>{description}</DialogDescription>
+            )}
           </DialogHeader>
         )}
 
         {children && (
           <div
-            className={`max-h-[70vh] overflow-y-auto px-4 pb-4 ${bodyClassName ?? ''}`.trim()}
+            className={`max-h-[70vh] overflow-y-auto pb-4 ${bodyClassName ?? ''}`.trim()}
           >
             {children}
           </div>
@@ -100,7 +109,9 @@ export function CommonDialog(props: CommonDialogProps) {
                 disabled={secondaryAction.disabled || secondaryAction.loading}
                 onClick={secondaryAction.onClick}
               >
-                {secondaryAction.loading ? 'Please wait...' : secondaryAction.label}
+                {secondaryAction.loading
+                  ? 'Please wait...'
+                  : secondaryAction.label}
               </Button>
             )}
             {primaryAction && (
@@ -119,4 +130,3 @@ export function CommonDialog(props: CommonDialogProps) {
     </Dialog>
   )
 }
-

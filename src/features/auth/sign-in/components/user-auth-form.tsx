@@ -9,6 +9,7 @@ import { Loader2, LogIn } from 'lucide-react'
 import { toast } from 'sonner'
 // import { IconFacebook, IconGithub } from '@/assets/brand-icons'
 import { cn } from '@/lib/utils'
+import { defaultLandingFor } from '@/lib/landing'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -71,8 +72,11 @@ export function UserAuthForm({
 
     toast.promise(promise, {
       loading: 'Signing in...',
-      success: (_result) => {
-        const targetPath = redirectTo || '/dashboard/overview'
+      success: (result) => {
+        const roleId = result.user.userGroupId ?? result.user.roleId
+        const subRoleId = result.user.roleId ?? result.user.subRoleId
+        const targetPath =
+          redirectTo || defaultLandingFor(roleId, subRoleId)
         navigate({ to: targetPath, replace: true })
         return `Welcome back, ${data.username}!`
       },

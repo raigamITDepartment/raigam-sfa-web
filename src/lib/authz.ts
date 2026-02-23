@@ -680,6 +680,30 @@ export function isPathAllowedForUser(
       return true
     }
   }
+  const isCCU =
+    effectiveSubRoleId === SubRoleId.CCU ||
+    effectiveRoleId === SubRoleId.CCU
+  if (isCCU) {
+    const blockedPrefixes = [
+      '/master-settings',
+      '/sales',
+      '/outlet-module',
+      '/agency-module',
+    ]
+    const blocked = blockedPrefixes.some(
+      (prefix) => normalized === prefix || normalized.startsWith(prefix + '/')
+    )
+    if (blocked) return false
+    if (
+      normalized === '/hr-module/gps-monitoring' ||
+      normalized.startsWith('/hr-module/gps-monitoring/')
+    ) {
+      return false
+    }
+    if (normalized === '/reports' || normalized.startsWith('/reports/')) {
+      return true
+    }
+  }
   if (
     effectiveSubRoleId === SubRoleId.RegionSalesManager ||
     effectiveSubRoleId === SubRoleId.AreaSalesManager
@@ -804,6 +828,38 @@ export async function ensureRoleAccess(
     if (
       normalizedPath === '/agency-module/invoice/view-invoice' ||
       normalizedPath.startsWith('/agency-module/invoice/view-invoice/')
+    ) {
+      return
+    }
+  }
+  const effectiveRoleId = getEffectiveRoleId()
+  const effectiveSubRoleId = getEffectiveSubRoleId()
+  const isCCU =
+    effectiveSubRoleId === SubRoleId.CCU ||
+    effectiveRoleId === SubRoleId.CCU
+  if (isCCU) {
+    const blockedPrefixes = [
+      '/master-settings',
+      '/sales',
+      '/outlet-module',
+      '/agency-module',
+    ]
+    const blocked = blockedPrefixes.some(
+      (prefix) =>
+        normalizedPath === prefix || normalizedPath.startsWith(prefix + '/')
+    )
+    if (blocked) {
+      throw redirect({ to: '/errors/unauthorized', replace: true })
+    }
+    if (
+      normalizedPath === '/hr-module/gps-monitoring' ||
+      normalizedPath.startsWith('/hr-module/gps-monitoring/')
+    ) {
+      throw redirect({ to: '/errors/unauthorized', replace: true })
+    }
+    if (
+      normalizedPath === '/reports' ||
+      normalizedPath.startsWith('/reports/')
     ) {
       return
     }

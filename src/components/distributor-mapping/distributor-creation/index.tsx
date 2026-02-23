@@ -133,10 +133,18 @@ export default function DistributorCreation() {
   const rangeLookup = useMemo(() => {
     const lookup = new Map<string, Id>()
     ranges.forEach((range) => {
-      const normalized = range.rangeName?.trim().toLowerCase()
       const optionId = range.id ?? range.rangeId
-      if (!normalized || optionId === undefined || optionId === null) return
-      lookup.set(normalized, optionId)
+      if (optionId === undefined || optionId === null) return
+
+      const normalizedRangeName = range.rangeName?.trim().toLowerCase()
+      if (normalizedRangeName) {
+        lookup.set(normalizedRangeName, optionId)
+      }
+
+      const normalizedOptionId = String(optionId).trim().toLowerCase()
+      if (normalizedOptionId) {
+        lookup.set(normalizedOptionId, optionId)
+      }
     })
     return lookup
   }, [ranges])

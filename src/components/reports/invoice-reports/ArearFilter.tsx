@@ -3,10 +3,13 @@ import { useQuery } from '@tanstack/react-query'
 import { CalendarIcon } from 'lucide-react'
 import type { DateRange } from 'react-day-picker'
 import {
+  getAllChannel,
   getAllSubChannel,
+  getAllSubChannelsByChannelId,
   getAreasBySubChannelId,
   type ApiResponse,
   type AreaDTO,
+  type ChannelDTO,
   type SubChannelDTO,
 } from '@/services/userDemarcationApi'
 import { Button } from '@/components/ui/button'
@@ -81,18 +84,98 @@ export default function AreaInvoiceReportFilter({
   const controlHeight = 'h-9 min-h-[36px]'
   const todayIso = useMemo(() => formatLocalDate(new Date()), [])
   const user = useAppSelector((state) => state.auth.user)
+  type PersistedAuth = {
+    areaNameList?: unknown
+    channelId?: unknown
+    channelName?: unknown
+    subChannelId?: unknown
+    subChannelName?: unknown
+  }
+
+  const persistedAuth = useMemo<PersistedAuth | null>(() => {
+    if (typeof window === 'undefined') return null
+    try {
+      const raw = window.localStorage.getItem('auth_user')
+      return raw ? (JSON.parse(raw) as PersistedAuth) : null
+    } catch {
+      return null
+    }
+  }, [])
+  const userAreas = useMemo<AreaDTO[] | null>(() => {
+    const list = persistedAuth?.areaNameList
+    if (!Array.isArray(list) || list.length === 0) return null
+    const mapped = list
+      .map((item) => {
+        if (!item || typeof item !== 'object') return null
+        const record = item as {
+          id?: number | string
+          areaId?: number | string
+          name?: string
+          areaName?: string
+        }
+        const id = record.id ?? record.areaId
+        if (id === undefined || id === null) return null
+        return {
+          id,
+          areaName: record.name ?? record.areaName ?? `Area ${id}`,
+        } as AreaDTO
+      })
+      .filter(Boolean) as AreaDTO[]
+    return mapped.length ? mapped : null
+  }, [persistedAuth])
+  const useUserAreas = Boolean(userAreas?.length)
+  const lockedChannel = useMemo(() => {
+    if (!persistedAuth) return null
+    const channelId = persistedAuth.channelId
+    const channelName =
+      typeof persistedAuth.channelName === 'string'
+        ? persistedAuth.channelName.trim()
+        : ''
+    if (!channelName) return null
+    if (channelId === null || channelId === undefined) return null
+    const normalizedId = String(channelId).trim()
+    if (!normalizedId || normalizedId === '0') return null
+    return { id: normalizedId, name: channelName }
+  }, [persistedAuth])
+  const lockedChannelId = lockedChannel?.id ?? ''
+  const isChannelLocked = Boolean(lockedChannelId)
+  const lockedAreaId = useMemo(() => {
+    if (!userAreas || userAreas.length !== 1) return ''
+    const only = userAreas[0]
+    if (only?.id === undefined || only?.id === null) return ''
+    const normalizedId = String(only.id).trim()
+    if (!normalizedId) return ''
+    return normalizedId
+  }, [userAreas])
+  const isAreaLocked = Boolean(lockedAreaId)
   const canPickSubChannel = useMemo(() => {
     const userTypeId = user?.userTypeId
     return userTypeId === 1 || userTypeId === 2 || userTypeId === 3
   }, [user?.userTypeId])
+  const lockedSubChannel = useMemo(() => {
+    if (!persistedAuth) return null
+    const subChannelId = persistedAuth.subChannelId
+    const subChannelName =
+      typeof persistedAuth.subChannelName === 'string'
+        ? persistedAuth.subChannelName.trim()
+        : ''
+    if (!subChannelName) return null
+    if (subChannelId === null || subChannelId === undefined) return null
+    const normalizedId = String(subChannelId).trim()
+    if (!normalizedId || normalizedId === '0') return null
+    return { id: normalizedId, name: subChannelName }
+  }, [persistedAuth])
   const lockedSubChannelId = useMemo(() => {
+    if (lockedSubChannel) return lockedSubChannel.id
     if (canPickSubChannel) return ''
     const value = user?.subChannelId
     return value !== undefined && value !== null ? String(value) : ''
-  }, [canPickSubChannel, user?.subChannelId])
+  }, [lockedSubChannel, canPickSubChannel, user?.subChannelId])
+  const isSubChannelLocked = Boolean(lockedSubChannelId)
 
   const [subChannelId, setSubChannelId] = useState<string>('')
   const [areaId, setAreaId] = useState<string>('')
+  const [channelId, setChannelId] = useState<string>('0')
   const [invoiceType, setInvoiceType] = useState<InvoiceTypeParam>('ALL')
   const [range, setRange] = useState<DateRange | undefined>({
     from: parseDate(initialValues?.startDate ?? todayIso),
@@ -103,19 +186,32 @@ export default function AreaInvoiceReportFilter({
     areaId: false,
   })
 
-  const effectiveSubChannelId = canPickSubChannel
-    ? subChannelId
-    : lockedSubChannelId
+  const effectiveSubChannelId = isSubChannelLocked
+    ? lockedSubChannelId
+    : canPickSubChannel
+      ? subChannelId
+      : lockedSubChannelId
 
   useEffect(() => {
     if (!initialValues) {
       if (!canPickSubChannel) {
         setSubChannelId(lockedSubChannelId)
       }
+      if (isSubChannelLocked) {
+        setSubChannelId(lockedSubChannelId)
+      }
+      if (isChannelLocked) {
+        setChannelId(lockedChannelId)
+      }
+      if (isAreaLocked) {
+        setAreaId(lockedAreaId)
+      }
       return
     }
     setSubChannelId(
-      canPickSubChannel
+      isSubChannelLocked
+        ? lockedSubChannelId
+        : canPickSubChannel
         ? initialValues.subChannelId !== undefined &&
           initialValues.subChannelId !== null
           ? String(initialValues.subChannelId)
@@ -123,7 +219,9 @@ export default function AreaInvoiceReportFilter({
         : lockedSubChannelId
     )
     setAreaId(
-      initialValues.areaId !== undefined && initialValues.areaId !== null
+      isAreaLocked
+        ? lockedAreaId
+        : initialValues.areaId !== undefined && initialValues.areaId !== null
         ? String(initialValues.areaId)
         : ''
     )
@@ -137,6 +235,11 @@ export default function AreaInvoiceReportFilter({
     todayIso,
     canPickSubChannel,
     lockedSubChannelId,
+    isSubChannelLocked,
+    isChannelLocked,
+    lockedChannelId,
+    isAreaLocked,
+    lockedAreaId,
   ])
 
   useEffect(() => {
@@ -144,17 +247,107 @@ export default function AreaInvoiceReportFilter({
     if (!lockedSubChannelId) return
     if (subChannelId === lockedSubChannelId) return
     setSubChannelId(lockedSubChannelId)
-    setAreaId('')
-  }, [canPickSubChannel, lockedSubChannelId, subChannelId])
+    setAreaId(isAreaLocked ? lockedAreaId : '')
+  }, [
+    canPickSubChannel,
+    lockedSubChannelId,
+    subChannelId,
+    isAreaLocked,
+    lockedAreaId,
+  ])
 
-  const { data: subChannels = [], isLoading: loadingSubChannels } = useQuery({
-    queryKey: ['reports', 'invoice-reports', 'area', 'sub-channels'],
+  useEffect(() => {
+    if (!isSubChannelLocked) return
+    if (subChannelId === lockedSubChannelId) return
+    setSubChannelId(lockedSubChannelId)
+    setAreaId(isAreaLocked ? lockedAreaId : '')
+  }, [
+    isSubChannelLocked,
+    lockedSubChannelId,
+    subChannelId,
+    isAreaLocked,
+    lockedAreaId,
+  ])
+
+  useEffect(() => {
+    if (!isAreaLocked) return
+    if (areaId === lockedAreaId) return
+    setAreaId(lockedAreaId)
+  }, [isAreaLocked, lockedAreaId, areaId])
+
+  useEffect(() => {
+    if (!useUserAreas) return
+    if (isChannelLocked) return
+    if (channelId === '0') return
+    setChannelId('0')
+  }, [useUserAreas, isChannelLocked, channelId])
+
+  useEffect(() => {
+    if (!isChannelLocked) return
+    if (channelId === lockedChannelId) return
+    setChannelId(lockedChannelId)
+  }, [isChannelLocked, lockedChannelId, channelId])
+
+  const { data: channels = [], isLoading: loadingChannels } = useQuery({
+    queryKey: ['reports', 'invoice-reports', 'area', 'channels'],
+    enabled: canPickSubChannel && !useUserAreas,
     queryFn: async () => {
-      const res = (await getAllSubChannel()) as ApiResponse<SubChannelDTO[]>
+      const res = (await getAllChannel()) as ApiResponse<ChannelDTO[]>
       return res.payload ?? []
     },
     staleTime: 5 * 60 * 1000,
   })
+
+  const channelOptions = useMemo(() => {
+    if (!lockedChannel) return channels
+    const exists = channels.some(
+      (option) => String(option.id) === lockedChannel.id
+    )
+    if (exists) return channels
+    return [
+      {
+        id: lockedChannel.id,
+        channelCode: lockedChannel.id,
+        channelName: lockedChannel.name,
+      } satisfies ChannelDTO,
+      ...channels,
+    ]
+  }, [channels, lockedChannel])
+
+  const effectiveChannelId = isChannelLocked ? lockedChannelId : channelId
+  const hasChannel = Boolean(effectiveChannelId) && effectiveChannelId !== '0'
+
+  const { data: subChannels = [], isLoading: loadingSubChannels } = useQuery({
+    queryKey: [
+      'reports',
+      'invoice-reports',
+      'area',
+      'sub-channels',
+      hasChannel ? effectiveChannelId : 'all',
+    ],
+    queryFn: async () => {
+      const res = (await (hasChannel
+        ? getAllSubChannelsByChannelId(Number(effectiveChannelId))
+        : getAllSubChannel())) as ApiResponse<SubChannelDTO[]>
+      return res.payload ?? []
+    },
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const subChannelOptions = useMemo(() => {
+    if (!lockedSubChannel) return subChannels
+    const exists = subChannels.some(
+      (option) => String(option.id) === lockedSubChannel.id
+    )
+    if (exists) return subChannels
+    return [
+      {
+        id: lockedSubChannel.id,
+        subChannelName: lockedSubChannel.name,
+      } satisfies SubChannelDTO,
+      ...subChannels,
+    ]
+  }, [subChannels, lockedSubChannel])
 
   const { data: areas = [], isLoading: loadingAreas } = useQuery({
     queryKey: [
@@ -164,7 +357,7 @@ export default function AreaInvoiceReportFilter({
       'areas',
       effectiveSubChannelId || 'none',
     ],
-    enabled: Boolean(effectiveSubChannelId),
+    enabled: Boolean(effectiveSubChannelId) && !useUserAreas,
     queryFn: async () => {
       if (!effectiveSubChannelId) return []
       const res = (await getAreasBySubChannelId(
@@ -174,6 +367,31 @@ export default function AreaInvoiceReportFilter({
     },
     staleTime: 5 * 60 * 1000,
   })
+
+  const areaOptions = useMemo(() => {
+    const source = useUserAreas ? userAreas ?? [] : areas
+    if (!source.length) return []
+    const map = new Map<string, AreaDTO>()
+    source.forEach((area) => {
+      if (!area || area.id === undefined || area.id === null) return
+      const key = String(area.id)
+      const existing = map.get(key)
+      if (!existing) {
+        map.set(key, area)
+        return
+      }
+      const existingName = existing.areaName?.trim()
+      const nextName = area.areaName?.trim()
+      if (!existingName && nextName) {
+        map.set(key, { ...existing, areaName: nextName })
+      }
+    })
+    return Array.from(map.values())
+  }, [areas, userAreas, useUserAreas])
+  const isAreaLoading = !useUserAreas && loadingAreas
+  const isAreaSelectDisabled =
+    isAreaLocked ||
+    (!useUserAreas && (!effectiveSubChannelId || isAreaLoading))
 
   const handleApply = () => {
     const hasSubChannel = Boolean(effectiveSubChannelId)
@@ -201,15 +419,21 @@ export default function AreaInvoiceReportFilter({
 
   const handleReset = () => {
     const resetSubChannelId = canPickSubChannel ? '' : lockedSubChannelId
-    setSubChannelId(resetSubChannelId)
-    setAreaId('')
+    const resetAreaId = isAreaLocked ? lockedAreaId : ''
+    setChannelId(isChannelLocked ? lockedChannelId : '0')
+    setSubChannelId(isSubChannelLocked ? lockedSubChannelId : resetSubChannelId)
+    setAreaId(resetAreaId)
     setInvoiceType('ALL')
     setRange(undefined)
     setErrors({ subChannelId: false, areaId: false })
     onReset?.()
     onApply?.({
-      subChannelId: resetSubChannelId ? Number(resetSubChannelId) : undefined,
-      areaId: undefined,
+      subChannelId: isSubChannelLocked
+        ? Number(lockedSubChannelId)
+        : resetSubChannelId
+          ? Number(resetSubChannelId)
+          : undefined,
+      areaId: resetAreaId ? toNumberValue(resetAreaId) : undefined,
       invoiceType: '',
       startDate: undefined,
       endDate: undefined,
@@ -217,17 +441,56 @@ export default function AreaInvoiceReportFilter({
   }
 
   return (
-    <div className='rounded-sm border bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900'>
-      <div className='flex flex-wrap items-end gap-2'>
+    <div className='flex flex-wrap items-end gap-2'>
+      {canPickSubChannel && !useUserAreas ? (
+        <div className='flex w-full flex-col gap-2 sm:min-w-[170px] sm:flex-1'>
+          <Select
+            value={effectiveChannelId}
+            onValueChange={(value) => {
+              setChannelId(value)
+              setSubChannelId('')
+              setAreaId(isAreaLocked ? lockedAreaId : '')
+              setErrors((prev) => ({
+                ...prev,
+                subChannelId: false,
+                areaId: false,
+              }))
+            }}
+            disabled={loadingChannels || isChannelLocked}
+          >
+            <SelectTrigger
+              id='area-report-channel'
+              className={cn(controlHeight, 'w-full')}
+            >
+              <SelectValue placeholder='Select Channel' />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value='0'>All Channels</SelectItem>
+              {channelOptions.map((channel) => (
+                <SelectItem key={channel.id} value={String(channel.id)}>
+                  {channel.channelName ?? channel.channelCode ?? channel.id}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      ) : null}
+
         <div className='flex w-full flex-col gap-2 sm:min-w-[170px] sm:flex-1'>
           <Select
             value={effectiveSubChannelId}
             onValueChange={(value) => {
               setSubChannelId(value)
-              setAreaId('')
-              setErrors((prev) => ({ ...prev, subChannelId: false, areaId: false }))
+              setAreaId(isAreaLocked ? lockedAreaId : '')
+              setErrors((prev) => ({
+                ...prev,
+                subChannelId: false,
+                areaId: false,
+              }))
             }}
-            disabled={loadingSubChannels || !canPickSubChannel}
+            disabled={
+              loadingSubChannels || !canPickSubChannel || isSubChannelLocked
+            }
           >
             <SelectTrigger
               id='area-report-sub-channel'
@@ -241,7 +504,7 @@ export default function AreaInvoiceReportFilter({
               <SelectValue placeholder='Select Sub Channel' />
             </SelectTrigger>
             <SelectContent>
-              {subChannels.map((subChannel) => (
+              {subChannelOptions.map((subChannel) => (
                 <SelectItem key={subChannel.id} value={String(subChannel.id)}>
                   {subChannel.subChannelName}
                 </SelectItem>
@@ -257,7 +520,7 @@ export default function AreaInvoiceReportFilter({
               setAreaId(value)
               setErrors((prev) => ({ ...prev, areaId: false }))
             }}
-            disabled={loadingAreas || !effectiveSubChannelId}
+            disabled={isAreaSelectDisabled}
           >
             <SelectTrigger
               id='area-report-area'
@@ -271,7 +534,7 @@ export default function AreaInvoiceReportFilter({
               <SelectValue placeholder='Select Area' />
             </SelectTrigger>
             <SelectContent>
-              {areas.map((area) => (
+              {areaOptions.map((area) => (
                 <SelectItem key={area.id} value={String(area.id)}>
                   {area.areaName ?? `Area ${area.id}`}
                 </SelectItem>
@@ -285,7 +548,10 @@ export default function AreaInvoiceReportFilter({
             value={invoiceType}
             onValueChange={(value) => setInvoiceType(value as InvoiceTypeParam)}
           >
-            <SelectTrigger id='area-report-type' className={cn(controlHeight, 'w-full')}>
+            <SelectTrigger
+              id='area-report-type'
+              className={cn(controlHeight, 'w-full')}
+            >
               <SelectValue placeholder='Select Invoice Type' />
             </SelectTrigger>
             <SelectContent>
@@ -349,21 +615,20 @@ export default function AreaInvoiceReportFilter({
           </Popover>
         </div>
 
-        <div className='flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-end'>
-          <Button
-            className={cn(controlHeight, 'min-w-[150px]')}
-            onClick={handleApply}
-          >
-            Apply Filters
-          </Button>
-          <Button
-            variant='outline'
-            className={cn(controlHeight, 'min-w-[150px]')}
-            onClick={handleReset}
-          >
-            Reset
-          </Button>
-        </div>
+      <div className='flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-end'>
+        <Button
+          className={cn(controlHeight, 'min-w-[150px]')}
+          onClick={handleApply}
+        >
+          Apply Filters
+        </Button>
+        <Button
+          variant='outline'
+          className={cn(controlHeight, 'min-w-[150px]')}
+          onClick={handleReset}
+        >
+          Reset
+        </Button>
       </div>
     </div>
   )

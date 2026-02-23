@@ -150,6 +150,8 @@ function AddModifyUser() {
   const {
     data: editingUserResponse,
     isFetching: isFetchingUserDetail,
+    isError: isUserDetailError,
+    error: userDetailError,
   } = useQuery({
     queryKey: ['user-demarcation', 'user', editingUser?.id],
     queryFn: async () => {
@@ -439,7 +441,7 @@ function AddModifyUser() {
             />
           ) : (
             <div className='rounded-md border'>
-              <Table className='text-xs'>
+              <Table className='text-xs whitespace-nowrap'>
                 <TableHeader>
                   {table.getHeaderGroups().map((headerGroup) => (
                     <TableRow key={headerGroup.id}>
@@ -514,22 +516,38 @@ function AddModifyUser() {
             Loading user details...
           </div>
         ) : null}
-        <UserForm
-          mode={userDialogMode}
-          initialValues={userFormInitialValues}
-          onSubmit={async (values) => {
-            if (userDialogMode === 'edit') {
-              await updateMutation.mutateAsync(values)
-              setUserDialogOpen(false)
-              return
+        {userDialogMode === 'edit' && isUserDetailError ? (
+          <CommonAlert
+            variant='error'
+            title='Unable to load user details'
+            description={(userDetailError as Error)?.message ?? 'Please try again.'}
+          />
+        ) : null}
+        {userDialogMode === 'edit' && isFetchingUserDetail ? null : (
+          <UserForm
+            key={
+              userDialogMode === 'edit'
+                ? `edit-${activeEditingUser?.id ?? 'unknown'}-${
+                    editingUserDetail ? 'detail' : 'list'
+                  }`
+                : 'create'
             }
-            await createMutation.mutateAsync(values)
-            setUserDialogOpen(false)
-          }}
-          onCancel={() => {
-            setUserDialogOpen(false)
-          }}
-        />
+            mode={userDialogMode}
+            initialValues={userFormInitialValues}
+            onSubmit={async (values) => {
+              if (userDialogMode === 'edit') {
+                await updateMutation.mutateAsync(values)
+                setUserDialogOpen(false)
+                return
+              }
+              await createMutation.mutateAsync(values)
+              setUserDialogOpen(false)
+            }}
+            onCancel={() => {
+              setUserDialogOpen(false)
+            }}
+          />
+        )}
       </CommonDialog>
       <ConfirmDialog
         destructive

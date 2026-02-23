@@ -1077,7 +1077,7 @@ export function TimeAttendance() {
                             <TableCell
                               key={cell.id}
                               className={cn(
-                                'px-3 py-2',
+                                'px-3 py-2 whitespace-nowrap',
                                 meta?.className,
                                 isSelectColumn &&
                                   'sticky left-0 z-20 bg-inherit shadow-[1px_0_0_0_rgba(0,0,0,0.04)]'

@@ -1,35 +1,37 @@
 import { useMemo, useState } from 'react'
 import { CalendarIcon } from 'lucide-react'
 import type { DateRange } from 'react-day-picker'
+import type { InvoiceTypeParam, ReportInvoiceTypeParam } from '@/types/invoice'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Label } from '@/components/ui/label'
+import { parseLocalDate, toLocalDateString } from '@/lib/local-date'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 type InvoiceSummaryFilterValues = {
   startDate?: string
   endDate?: string
+  invoiceType?: ReportInvoiceTypeParam
 }
 
 type InvoiceSummaryFilterProps = {
   initialStartDate?: string
   initialEndDate?: string
+  initialInvoiceType?: InvoiceTypeParam
   onApply?: (filters: InvoiceSummaryFilterValues) => void
   onReset?: () => void
 }
-
-const parseDate = (value?: string) => {
-  if (!value) return undefined
-  const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? undefined : date
-}
-
-const toIsoDate = (value?: Date) =>
-  value ? value.toISOString().slice(0, 10) : undefined
 
 const getCurrentMonthRange = () => {
   const now = new Date()
@@ -38,44 +40,76 @@ const getCurrentMonthRange = () => {
   return { from: start, to: end }
 }
 
+const invoiceTypeOptions: Array<{
+  label: string
+  value: InvoiceTypeParam
+}> = [
+  { label: 'All', value: 'ALL' },
+  { label: 'Normal', value: 'NORMAL' },
+  { label: 'Agency', value: 'AGENCY' },
+  { label: 'Company', value: 'COMPANY' },
+]
+
+const toInvoiceTypeParam = (value: InvoiceTypeParam) =>
+  value && value !== 'ALL' ? (value as ReportInvoiceTypeParam) : ''
+
 export default function InvoiceSummaryFilter({
   initialStartDate,
   initialEndDate,
+  initialInvoiceType = 'ALL',
   onApply,
   onReset,
 }: InvoiceSummaryFilterProps) {
   const [range, setRange] = useState<DateRange | undefined>(() => {
-    const from = parseDate(initialStartDate)
-    const to = parseDate(initialEndDate)
+    const from = parseLocalDate(initialStartDate)
+    const to = parseLocalDate(initialEndDate)
     return from || to ? { from, to } : getCurrentMonthRange()
   })
+  const [invoiceType, setInvoiceType] =
+    useState<InvoiceTypeParam>(initialInvoiceType)
 
   const hasChanges = useMemo(() => {
     const initialRange: DateRange | undefined = initialStartDate || initialEndDate
-      ? { from: parseDate(initialStartDate), to: parseDate(initialEndDate) }
+      ? {
+          from: parseLocalDate(initialStartDate),
+          to: parseLocalDate(initialEndDate),
+        }
       : getCurrentMonthRange()
     return (
-      toIsoDate(range?.from) !== toIsoDate(initialRange?.from) ||
-      toIsoDate(range?.to) !== toIsoDate(initialRange?.to)
+      toLocalDateString(range?.from) !==
+        toLocalDateString(initialRange?.from) ||
+      toLocalDateString(range?.to) !==
+        toLocalDateString(initialRange?.to) ||
+      invoiceType !== initialInvoiceType
     )
-  }, [range?.from, range?.to, initialStartDate, initialEndDate])
+  }, [
+    range?.from,
+    range?.to,
+    invoiceType,
+    initialStartDate,
+    initialEndDate,
+    initialInvoiceType,
+  ])
 
   const handleApply = () => {
     onApply?.({
-      startDate: toIsoDate(range?.from),
-      endDate: toIsoDate(range?.to),
+      startDate: toLocalDateString(range?.from),
+      endDate: toLocalDateString(range?.to),
+      invoiceType: toInvoiceTypeParam(invoiceType),
     })
   }
 
   const handleReset = () => {
     setRange({
-      from: parseDate(initialStartDate),
-      to: parseDate(initialEndDate),
+      from: parseLocalDate(initialStartDate),
+      to: parseLocalDate(initialEndDate),
     })
+    setInvoiceType(initialInvoiceType)
     onReset?.()
     onApply?.({
       startDate: initialStartDate,
       endDate: initialEndDate,
+      invoiceType: toInvoiceTypeParam(initialInvoiceType),
     })
   }
 
@@ -119,6 +153,26 @@ export default function InvoiceSummaryFilter({
             />
           </PopoverContent>
         </Popover>
+      </div>
+      <div className='flex min-w-[180px] flex-col gap-2'>
+        <Label className='text-xs font-semibold text-slate-600 uppercase dark:text-slate-300'>
+          Invoice Type
+        </Label>
+        <Select
+          value={invoiceType}
+          onValueChange={(value) => setInvoiceType(value as InvoiceTypeParam)}
+        >
+          <SelectTrigger className='w-[200px]'>
+            <SelectValue placeholder='Select type' />
+          </SelectTrigger>
+          <SelectContent>
+            {invoiceTypeOptions.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <div className='flex items-center gap-2'>
         <Button onClick={handleApply}>Apply Filter</Button>

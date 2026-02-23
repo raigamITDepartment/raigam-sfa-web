@@ -577,7 +577,7 @@ export function EditOutletForm({
 
           <div className='grid gap-4 md:grid-cols-3'>
             <div className='space-y-2'>
-              <Label>Is Approved</Label>
+              <Label>Approve status</Label>
               <div className='flex items-center gap-2 rounded-md border border-dashed p-3'>
                 <Checkbox
                   checked={Boolean(formValues.isApproved)}
@@ -604,7 +604,7 @@ export function EditOutletForm({
                   disabled={isRep}
                 />
                 <Label htmlFor='outlet-closed' className='text-sm'>
-                  Is close
+                  Close
                 </Label>
               </div>
             </div>
@@ -620,7 +620,7 @@ export function EditOutletForm({
                   disabled={isRep}
                 />
                 <Label htmlFor='outlet-new' className='text-sm'>
-                  Is new
+                  New
                 </Label>
               </div>
             </div>

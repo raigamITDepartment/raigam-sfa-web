@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { useForm } from 'react-hook-form'
+import { useForm, type FieldErrors } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useEffect, useMemo } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -52,21 +52,58 @@ const numericRequiredString = z
     message: 'Please enter route code',
   })
 
-const routeFormSchema = z.object({
+const toNumberValue = (value: unknown) => {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    if (!trimmed) return undefined
+    const parsed = Number(trimmed)
+    return Number.isFinite(parsed) ? parsed : undefined
+  }
+  return undefined
+}
+
+const normalizeOldRouteCode = (value: string | number | undefined) => {
+  if (value === undefined || value === null) return '0'
+  if (typeof value === 'number') return value
+  const trimmed = value.trim()
+  if (!trimmed) return '0'
+  const parsed = Number(trimmed)
+  return Number.isFinite(parsed) ? parsed : trimmed
+}
+
+const baseRouteFormSchema = z.object({
+  id: z.string().optional(),
   areaId: z.string().optional(),
   territoryId: z.string().min(1, 'Please select a territory'),
   routeCode: numericRequiredString,
   routeName: z.string().min(1, 'Please enter route name'),
   displayOrder: z
     .coerce.number()
-    .min(0, 'Display order must be zero or greater'),
+    .min(0, 'Display order must be zero or greater')
+    .optional(),
   oldRouteId: z.string().optional(),
-  oldRouteCode: z.string().optional(),
+  oldRouteCode: z.union([z.string(), z.number()]).optional(),
   isActive: z.boolean().default(true),
 })
 
-export type RouteFormInput = z.input<typeof routeFormSchema>
-export type RouteFormValues = z.output<typeof routeFormSchema>
+const createRouteFormSchema = baseRouteFormSchema.extend({
+  displayOrder: z
+    .coerce.number()
+    .min(0, 'Display order must be zero or greater'),
+})
+
+const editRouteFormSchema = z.object({
+  id: z.string().optional(),
+  areaId: z.string().optional(),
+  territoryId: z.string().min(1, 'Please select a territory'),
+  routeCode: numericRequiredString,
+  routeName: z.string().min(1, 'Please enter route name'),
+  isActive: z.boolean().default(true),
+})
+
+export type RouteFormInput = z.input<typeof baseRouteFormSchema>
+export type RouteFormValues = z.output<typeof baseRouteFormSchema>
 
 export type RouteFormMode = 'create' | 'edit'
 
@@ -95,8 +132,9 @@ export function RouteForm(props: RouteFormProps) {
   })
 
   const form = useForm<RouteFormInput, any, RouteFormValues>({
-    resolver: zodResolver(routeFormSchema),
+    resolver: zodResolver(isEditMode ? editRouteFormSchema : createRouteFormSchema),
     defaultValues: {
+      id: '',
       territoryId: '',
       routeCode: '',
       routeName: '',
@@ -108,6 +146,27 @@ export function RouteForm(props: RouteFormProps) {
       ...initialValues,
     },
   })
+
+  useEffect(() => {
+    form.reset({
+      id: '',
+      territoryId: '',
+      routeCode: '',
+      routeName: '',
+      displayOrder: 0,
+      areaId: '',
+      oldRouteId: mode === 'create' ? '0' : '',
+      oldRouteCode: mode === 'create' ? '0' : '',
+      isActive: true,
+      ...initialValues,
+    })
+  }, [form, initialValues, mode])
+
+  const fallbackDisplayOrder = toNumberValue(initialValues?.displayOrder)
+  const fallbackOldRouteId = toNumberValue(initialValues?.oldRouteId)
+  const fallbackOldRouteCode = normalizeOldRouteCode(
+    initialValues?.oldRouteCode as string | number | undefined
+  )
 
   const selectedAreaId = form.watch('areaId')
   const selectedTerritoryId = form.watch('territoryId')
@@ -160,19 +219,22 @@ export function RouteForm(props: RouteFormProps) {
 
   const createMutation = useMutation({
     mutationFn: async (values: RouteFormValues) => {
+      const resolvedDisplayOrder =
+        toNumberValue(values.displayOrder) ?? fallbackDisplayOrder ?? 0
+      const resolvedOldRouteId =
+        toNumberValue(values.oldRouteId) ?? fallbackOldRouteId ?? 0
+      const resolvedOldRouteCode = normalizeOldRouteCode(
+        values.oldRouteCode ?? fallbackOldRouteCode
+      )
       const payload: CreateRouteRequest = {
         territoryId: Number(values.territoryId),
         userId: user?.userId ?? 0,
         routeName: values.routeName,
         routeCode: values.routeCode,
-        displayOrder: values.displayOrder,
+        displayOrder: resolvedDisplayOrder,
         isActive: values.isActive,
-      }
-      if (values.oldRouteId) {
-        payload.oldRouteId = Number(values.oldRouteId)
-      }
-      if (values.oldRouteCode) {
-        payload.oldRouteCode = values.oldRouteCode
+        oldRouteId: resolvedOldRouteId,
+        oldRouteCode: resolvedOldRouteCode,
       }
       return createRoute(payload)
     },
@@ -225,32 +287,88 @@ export function RouteForm(props: RouteFormProps) {
       values: RouteFormValues
     }) => {
       const { id, values } = params
+      const resolvedDisplayOrder =
+        toNumberValue(values.displayOrder) ?? fallbackDisplayOrder ?? 0
+      const resolvedOldRouteId =
+        toNumberValue(values.oldRouteId) ?? fallbackOldRouteId ?? 0
+      const resolvedOldRouteCode = normalizeOldRouteCode(
+        values.oldRouteCode ?? fallbackOldRouteCode
+      )
       const payload: UpdateRouteRequest = {
         id,
         territoryId: Number(values.territoryId),
         userId: user?.userId ?? 0,
         routeName: values.routeName,
         routeCode: values.routeCode,
-        displayOrder: values.displayOrder,
+        displayOrder: resolvedDisplayOrder,
         isActive: values.isActive,
-      }
-      if (values.oldRouteId) {
-        payload.oldRouteId = Number(values.oldRouteId)
-      }
-      if (values.oldRouteCode) {
-        payload.oldRouteCode = values.oldRouteCode
+        oldRouteId: resolvedOldRouteId,
+        oldRouteCode: resolvedOldRouteCode,
       }
       return updateRoute(payload)
     },
     onSuccess: (data, { id, values }) => {
       toast.success('Route updated successfully')
+      const resolvedTerritory = displayedTerritoryOptions.find(
+        (territory) => String(territory.id) === String(values.territoryId)
+      )
+      const resolvedTerritoryName =
+        (resolvedTerritory?.territoryName as string | undefined) ??
+        (resolvedTerritory?.name as string | undefined) ??
+        ''
+      const resolvedTerritoryId = values.territoryId
+        ? Number(values.territoryId)
+        : undefined
+      const resolvedOldRouteId =
+        toNumberValue(values.oldRouteId) ?? fallbackOldRouteId
+      const resolvedOldRouteCode =
+        normalizeOldRouteCode(values.oldRouteCode ?? fallbackOldRouteCode)
+      const payload = data.payload as RouteDTO | undefined
+      const resolvedActive =
+        (payload?.isActive as boolean | undefined) ??
+        (payload?.active as boolean | undefined) ??
+        values.isActive
+      const resolvedStatus =
+        payload?.status ?? (resolvedActive ? 'Active' : 'Inactive')
+
       queryClient.setQueryData<ApiResponse<RouteDTO[]>>(['routes'], (old) => {
         if (!old || !Array.isArray(old.payload)) return old
         const updated = old.payload.map((route) => {
-          if (String(route.id) !== String(id)) return route
+          const routeId =
+            (route.id as Id | undefined) ??
+            (route.routeId as Id | undefined) ??
+            (route.routeCode as Id | undefined)
+          if (String(routeId) !== String(id)) return route
+
           return {
             ...route,
-            ...data.payload,
+            ...payload,
+            id: (payload?.id as Id | undefined) ?? id,
+            routeId: (payload?.routeId as Id | undefined) ?? route.routeId,
+            territoryId:
+              (payload?.territoryId as Id | undefined) ??
+              resolvedTerritoryId ??
+              route.territoryId,
+            ...(resolvedTerritoryName
+              ? {
+                  territoryName:
+                    (payload?.territoryName as string | undefined) ??
+                    resolvedTerritoryName,
+                }
+              : {}),
+            routeCode: payload?.routeCode ?? values.routeCode ?? route.routeCode,
+            routeName: payload?.routeName ?? values.routeName ?? route.routeName,
+            displayOrder:
+              payload?.displayOrder ?? values.displayOrder ?? route.displayOrder,
+            oldRouteId:
+              payload?.oldRouteId ?? resolvedOldRouteId ?? route.oldRouteId,
+            oldRouteCode:
+              payload?.oldRouteCode ??
+              resolvedOldRouteCode ??
+              route.oldRouteCode,
+            isActive: resolvedActive,
+            active: (payload?.active as boolean | undefined) ?? resolvedActive,
+            status: resolvedStatus,
           }
         })
         return {
@@ -271,7 +389,17 @@ export function RouteForm(props: RouteFormProps) {
     if (mode === 'create') {
       await createMutation.mutateAsync(values)
     } else if (mode === 'edit' && routeId != null) {
-      await updateMutation.mutateAsync({ id: routeId, values })
+      const resolvedId =
+        values.id !== undefined && values.id !== '' ? values.id : routeId
+      await updateMutation.mutateAsync({ id: resolvedId, values })
+    } else if (mode === 'edit') {
+      const resolvedId =
+        values.id !== undefined && values.id !== '' ? values.id : routeId
+      if (resolvedId === undefined || resolvedId === null || resolvedId === '') {
+        toast.error('Route ID is missing. Please reopen and try again.')
+        return
+      }
+      await updateMutation.mutateAsync({ id: resolvedId, values })
     } else {
       await onSubmit?.(values)
     }
@@ -282,13 +410,36 @@ export function RouteForm(props: RouteFormProps) {
     createMutation.isPending ||
     updateMutation.isPending
   const submitLabel = mode === 'create' ? 'Create' : 'Update'
+  const submitVariant = 'default'
+
+  const handleInvalid = (errors: FieldErrors<RouteFormInput>) => {
+    const entries = Object.entries(errors)
+    if (!entries.length) {
+      toast.error('Please fill the required fields before updating.')
+      return
+    }
+    const details = entries
+      .map(([key, value]) => {
+        const message =
+          value && 'message' in value && value.message
+            ? String(value.message)
+            : 'Invalid value'
+        return `${key}: ${message}`
+      })
+      .join(' | ')
+    toast.error(details)
+    if (import.meta.env.DEV) {
+      console.warn('[RouteForm] validation errors', errors)
+    }
+  }
 
   return (
     <Form {...form}>
       <form
-        onSubmit={form.handleSubmit(handleSubmit)}
+        onSubmit={form.handleSubmit(handleSubmit, handleInvalid)}
         className='flex flex-col gap-3'
       >
+        <input type='hidden' {...form.register('id')} />
         {!isEditMode ? (
           <FormField
             control={form.control}
@@ -466,7 +617,7 @@ export function RouteForm(props: RouteFormProps) {
           <>
             <input
               type='hidden'
-              {...form.register('displayOrder', { valueAsNumber: true })}
+              {...form.register('displayOrder')}
             />
             <input type='hidden' {...form.register('oldRouteCode')} />
             <input type='hidden' {...form.register('oldRouteId')} />
@@ -491,20 +642,21 @@ export function RouteForm(props: RouteFormProps) {
 
         <div className='mt-2 flex flex-col gap-2 sm:flex-row'>
           <Button
-            type='submit'
-            className={`w-full sm:flex-1 ${isEditMode ? 'order-1 sm:order-none' : ''}`}
-            disabled={isSubmitting}
-          >
-            {submitLabel}
-          </Button>
-          <Button
             type='button'
-            variant={isEditMode ? 'destructive' : 'outline'}
+            variant='outline'
             className='w-full sm:flex-1'
             disabled={isSubmitting}
             onClick={onCancel}
           >
             {isEditMode ? 'Discard' : 'Cancel'}
+          </Button>
+          <Button
+            type='submit'
+            variant={submitVariant}
+            className='w-full sm:flex-1'
+            disabled={isSubmitting}
+          >
+            {submitLabel}
           </Button>
         </div>
       </form>

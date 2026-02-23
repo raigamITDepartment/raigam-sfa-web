@@ -92,7 +92,8 @@ export type RangeDTO = {
 }
 
 export type RouteDTO = {
-  id: Id
+  id?: Id
+  routeId?: Id
   routeCode?: number | string
   routeName?: string
   territoryName?: string
@@ -100,7 +101,7 @@ export type RouteDTO = {
   areaId?: Id
   areaName?: string
   oldRouteId?: Id
-  oldRouteCode?: string
+  oldRouteCode?: string | number
   displayOrder?: number
   isActive?: boolean
   active?: boolean
@@ -133,6 +134,26 @@ export type AgencyDTO = {
   status?: string
 }
 
+export type AgencyDistributorDTO = {
+  id?: Id
+  agencyId?: Id | null
+  distributorId?: Id | null
+  userId?: Id | null
+  agencyName?: string
+  agencyCode?: number | string
+  distributorName?: string
+  channelId?: Id | null
+  channelName?: string
+  territoryId?: Id | null
+  territoryName?: string
+  rangeId?: Id | null
+  range?: string
+  rangeName?: string
+  isActive?: boolean
+  active?: boolean
+  status?: string
+}
+
 export type AgencyWarehouseDTO = {
   id: Id
   agencyId?: Id
@@ -140,6 +161,7 @@ export type AgencyWarehouseDTO = {
   warehouseId?: Id
   warehouseName?: string
   sapAgencyCode?: string
+  rangeId?: Id
   range?: string
   distributorId?: Id
   distributorName?: string
@@ -152,8 +174,12 @@ export type AgencyWarehouseDTO = {
 }
 
 export type CreateAgencyWarehouseRequest = {
-  agencyId: Id
-  warehouseId: Id
+  userId: Id
+  distributorId: Id
+  warehouseName: string
+  latitude: number
+  longitude: number
+  sapAgencyCode: string
   isActive: boolean
 }
 
@@ -175,6 +201,24 @@ export type UpdateAgencyRequest = CreateAgencyRequest & { id: Id }
 export type CreateAgencyMappingRequest = CreateAgencyRequest
 
 export type UpdateAgencyMappingRequest = UpdateAgencyRequest
+
+export type CreateAgencyDistributorMappingRequest = {
+  agencyDistributorDTOList: Array<{
+    userId: Id
+    agencyId: Id
+    distributorId: Id
+    isActive: boolean
+  }>
+}
+
+export type UpdateAgencyDistributorMappingRequest = {
+  id: Id
+  userId: Id
+  agencyId: Id
+  distributorId: Id
+  agencyCode?: number | string | null
+  isActive: boolean
+}
 
 export type DistributorDTO = {
   id: Id
@@ -348,7 +392,7 @@ export type CreateRouteRequest = {
   displayOrder: number
   isActive: boolean
   oldRouteId?: Id
-  oldRouteCode?: string
+  oldRouteCode?: string | number
 }
 
 export type UpdateRouteRequest = CreateRouteRequest & { id: Id }

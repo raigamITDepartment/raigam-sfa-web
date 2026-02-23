@@ -38,10 +38,41 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { formatPrice } from '@/lib/format-price'
+import { formatLocalDate } from '@/lib/local-date'
 import { cn } from '@/lib/utils'
 import type { ReportInvoiceTypeParam } from '@/types/invoice'
 
 const FILTER_STORAGE_KEY = 'sub-category-summary-report-filters'
+
+const SHORT_HEADER_MAP: Record<string, string> = {
+  subonecatid: 'Sub1 ID',
+  subonecategoryid: 'Sub1 ID',
+  sub1catid: 'Sub1 ID',
+  sub1categoryid: 'Sub1 ID',
+  subonecatname: 'Sub1 Cat',
+  subonecategoryname: 'Sub1 Cat',
+  sub1catname: 'Sub1 Cat',
+  sub1categoryname: 'Sub1 Cat',
+  maincatname: 'Main Cat',
+  maincategoryname: 'Main Cat',
+  totalbookingqty: 'Book Qty',
+  totalbookingvalue: 'Book Val',
+  soldqty: 'Sold Qty',
+  totalsoldvalue: 'Sold Val',
+  totalcancelqty: 'Cancel Qty',
+  totalcancelvalue: 'Cancel Val',
+  totalfreeqty: 'Free Qty',
+  totalfreevalue: 'Free Val',
+  totalgoodreturnqty: 'Good Ret Qty',
+  totalgoodreturnvalue: 'Good Ret Val',
+  totalgoodreturnfreeqty: 'Good Ret F.Qty',
+  totalgoodreturnfreevalue: 'Good Ret F.Val',
+  totalmarketreturnqty: 'Mkt Ret Qty',
+  totalmarketreturnvalue: 'Mkt Ret Val',
+  totalmarketreturnfreeqty: 'Mkt Ret F.Qty',
+  totalmarketreturnfreevalue: 'Mkt Ret F.Val',
+  totaldiscountvalue: 'Disc Val',
+}
 
 const formatHeader = (key: string) => {
   const withSpaces = key
@@ -49,6 +80,9 @@ const formatHeader = (key: string) => {
     .replace(/([a-z])([A-Z])/g, '$1 $2')
   return withSpaces.charAt(0).toUpperCase() + withSpaces.slice(1)
 }
+
+const formatTableHeader = (key: string) =>
+  SHORT_HEADER_MAP[normalizeKey(key)] ?? formatHeader(key)
 
 const normalizeKey = (key: string) =>
   key.toLowerCase().replace(/[^a-z0-9]/g, '')
@@ -73,12 +107,13 @@ const findColumnKey = (keys: string[], candidates: string[]) =>
 type ToolbarFilterOption = {
   columnId?: string
   title: string
+  showCountBadge?: boolean
   options: { label: string; value: string }[]
 }
 
-const hasColumnId = (
-  filter: ToolbarFilterOption
-): filter is Omit<ToolbarFilterOption, 'columnId'> & { columnId: string } =>
+const hasColumnId = <T extends ToolbarFilterOption>(
+  filter: T
+): filter is T & { columnId: string } =>
   Boolean(filter.columnId && filter.options.length > 0)
 
 const isFilterMatch = (rowValue: unknown, filterValue: unknown) => {
@@ -232,10 +267,7 @@ const SubCategorySummaryReport = () => {
   )
   const [globalFilter, setGlobalFilter] = useState('')
 
-  const todayIso = useMemo(
-    () => new Date().toISOString().slice(0, 10),
-    []
-  )
+  const todayIso = useMemo(() => formatLocalDate(new Date()), [])
   const queryParams = useMemo(() => {
     if (!filters?.subChannelId) return null
     const invoiceTypeParam: ReportInvoiceTypeParam =
@@ -332,21 +364,25 @@ const SubCategorySummaryReport = () => {
         columnId: filterColumnKeys.unitOfMeasure,
         title: 'Unit of Measure',
         options: buildOptions(filterColumnKeys.unitOfMeasure),
+        showCountBadge: true,
       },
       {
         columnId: filterColumnKeys.subTwoCategory,
         title: 'Sub Two Category',
         options: buildOptions(filterColumnKeys.subTwoCategory),
+        showCountBadge: true,
       },
       {
         columnId: filterColumnKeys.subOneCategory,
         title: 'Sub One Category',
         options: buildOptions(filterColumnKeys.subOneCategory),
+        showCountBadge: true,
       },
       {
         columnId: filterColumnKeys.mainCategory,
         title: 'Main Category',
         options: buildOptions(filterColumnKeys.mainCategory),
+        showCountBadge: true,
       },
     ].filter(hasColumnId)
   }, [
@@ -366,7 +402,8 @@ const SubCategorySummaryReport = () => {
       header: ({ column }) => (
         <DataTableColumnHeader
           column={column}
-          title={formatHeader(key)}
+          title={formatTableHeader(key)}
+          tooltip={formatHeader(key)}
           className={getHeaderAlignmentClassName(key)}
         />
       ),

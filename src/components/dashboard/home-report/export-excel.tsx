@@ -30,6 +30,7 @@ const buildExportCss = () => `
     .bg-slate-50 { background-color: #F8FAFC; }
     .bg-slate-100 { background-color: #E2E8F0; }
     .bg-slate-200 { background-color: #CBD5F5; }
+    .bg-slate-300 { background-color: #CBD5E1; }
     /* Tailwind 50 shades used for daily columns */
     .bg-blue-50 { background-color: #EFF6FF; }
     .bg-green-50 { background-color: #F0FDF4; }
@@ -87,13 +88,16 @@ type Props = {
   pastMonthsHeaders: string[]
   monthKey: string
   data: RowRecord[]
+  headerLabelMap?: Record<string, string>
+  pastMonthLabels?: string[]
   renderTable: (
     headers: string[],
     currentMonthHeaders: string[],
     pastMonthsHeaders: string[],
     monthKey: string,
     paginated: RowRecord[],
-    isFullScreen: boolean
+    isFullScreen: boolean,
+    pastMonthLabels?: string[]
   ) => ReactNode
 }
 
@@ -103,6 +107,8 @@ export default function HomeReportExport({
   pastMonthsHeaders,
   monthKey,
   data,
+  headerLabelMap,
+  pastMonthLabels,
   renderTable,
 }: Props) {
   const exportRef = useRef<HTMLDivElement | null>(null)
@@ -111,10 +117,10 @@ export default function HomeReportExport({
   const exportColumns = useMemo<ExcelExportColumn<RowRecord>[]>(() => {
     if (!headers.length) return []
     return headers.map((header) => ({
-      header,
+      header: headerLabelMap?.[header] ?? header,
       accessor: (row) => row[header] ?? '',
     }))
-  }, [headers])
+  }, [headers, headerLabelMap])
 
   const exportFileName = useMemo(
     () => `Home_Report_${monthKey || 'report'}`,
@@ -156,7 +162,8 @@ export default function HomeReportExport({
           pastMonthsHeaders,
           monthKey,
           data,
-          false
+          false,
+          pastMonthLabels
         )}
       </div>
     </>

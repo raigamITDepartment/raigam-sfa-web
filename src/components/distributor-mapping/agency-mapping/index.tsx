@@ -14,9 +14,9 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import {
-  getAllAgency,
-  toggleAgencyActive,
-  type AgencyDTO,
+  getAllAgencyDistributors,
+  updateActiveStatusAgencyDistributor,
+  type AgencyDistributorDTO,
   type ApiResponse,
   type Id,
 } from '@/services/userDemarcationApi'
@@ -45,19 +45,18 @@ import {
   DataTableColumnHeader,
   DataTablePagination,
   DataTableToolbar,
+  TableLoadingRows,
 } from '@/components/data-table'
 import {
   ExcelExportButton,
   type ExcelExportColumn,
 } from '@/components/excel-export-button'
 import { CommonDialog } from '@/components/common-dialog'
-import { AgencyForm } from '@/components/demarcation/agency/agency-form'
+import { CreateAgencyMappingForm } from './CreateAgencyMappingForm'
 
 type AgencyExportRow = {
-  agencyCode?: number | string
   agencyName?: string
-  channelName?: string
-  territoryName?: string
+  distributorName?: string
   range?: string
   status: string
 }
@@ -74,8 +73,8 @@ const exportStatusStyles = `
 `
 
 const buildFilterOptions = (
-  rows: AgencyDTO[],
-  accessor: (row: AgencyDTO) => string | number | undefined
+  rows: AgencyDistributorDTO[],
+  accessor: (row: AgencyDistributorDTO) => string | number | undefined
 ) => {
   const values = new Set<string>()
 
@@ -94,6 +93,15 @@ const buildFilterOptions = (
     .map((value) => ({ label: value, value }))
 }
 
+const resolveAgencyActive = (agency: AgencyDistributorDTO) => {
+  const rawStatus = agency.isActive ?? agency.active ?? agency.status
+  if (typeof rawStatus === 'string') {
+    return rawStatus.toLowerCase() === 'active'
+  }
+  if (typeof rawStatus === 'boolean') return rawStatus
+  return Boolean(rawStatus)
+}
+
 export default function AgencyMapping() {
   const queryClient = useQueryClient()
   const [sorting, setSorting] = useState<SortingState>([])
@@ -103,28 +111,39 @@ export default function AgencyMapping() {
     pageSize: 10,
   })
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [editingMapping, setEditingMapping] =
+    useState<AgencyDistributorDTO | null>(null)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [pendingToggle, setPendingToggle] = useState<PendingToggle | null>(null)
 
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ['agencies'],
+    queryKey: ['agency-distributor-mappings'],
     queryFn: async () => {
-      const res = await getAllAgency()
-      return res as ApiResponse<AgencyDTO[]>
+      const res = await getAllAgencyDistributors()
+      return res as ApiResponse<AgencyDistributorDTO[]>
     },
   })
 
-  const rows = useMemo(() => data?.payload ?? [], [data])
-  const channelFilterOptions = useMemo(
-    () => buildFilterOptions(rows, (agency) => agency.channelName),
-    [rows]
-  )
-  const territoryFilterOptions = useMemo(
-    () => buildFilterOptions(rows, (agency) => agency.territoryName),
+  const rows = useMemo(() => {
+    const list = data?.payload ?? []
+    if (!list.length) return []
+    return list
+      .map((item, index) => ({ item, index }))
+      .sort((a, b) => {
+        const aId = Number(a.item.id ?? a.item.agencyId ?? 0)
+        const bId = Number(b.item.id ?? b.item.agencyId ?? 0)
+        if (aId !== bId) return bId - aId
+        return b.index - a.index
+      })
+      .map(({ item }) => item)
+  }, [data])
+  const distributorFilterOptions = useMemo(
+    () => buildFilterOptions(rows, (agency) => agency.distributorName),
     [rows]
   )
   const rangeFilterOptions = useMemo(
-    () => buildFilterOptions(rows, (agency) => agency.range),
+    () => buildFilterOptions(rows, (agency) => agency.range ?? agency.rangeName),
     [rows]
   )
   const statusFilterOptions = useMemo(
@@ -137,12 +156,12 @@ export default function AgencyMapping() {
 
   const toggleStatusMutation = useMutation({
     mutationFn: async (vars: PendingToggle) => {
-      await toggleAgencyActive(vars.id)
+      await updateActiveStatusAgencyDistributor(vars.id)
       return vars
     },
     onSuccess: () => {
       toast.success('Agency status updated')
-      queryClient.invalidateQueries({ queryKey: ['agencies'] })
+      queryClient.invalidateQueries({ queryKey: ['agency-distributor-mappings'] })
       setPendingToggle(null)
     },
     onError: (err) => {
@@ -152,39 +171,25 @@ export default function AgencyMapping() {
 
   const exportRows = useMemo<AgencyExportRow[]>(() => {
     return rows.map((agency) => ({
-      agencyCode: agency.agencyCode,
       agencyName: agency.agencyName,
-      channelName: agency.channelName,
-      territoryName: agency.territoryName,
-      range: agency.range,
-      status: agency.isActive ? 'Active' : 'Inactive',
+      distributorName: agency.distributorName,
+      range: agency.range ?? agency.rangeName,
+      status: resolveAgencyActive(agency) ? 'Active' : 'Inactive',
     }))
   }, [rows])
 
   const exportColumns: ExcelExportColumn<AgencyExportRow>[] = useMemo(
     () => [
-      { header: 'Agency Code', accessor: 'agencyCode' },
       { header: 'Agency Name', accessor: 'agencyName' },
-      { header: 'Channel', accessor: 'channelName' },
-      { header: 'Territory', accessor: 'territoryName' },
+      { header: 'Distributor', accessor: 'distributorName' },
       { header: 'Range', accessor: 'range' },
       { header: 'Status', accessor: 'status' },
     ],
     []
   )
 
-  const columns = useMemo<ColumnDef<AgencyDTO>[]>(
+  const columns = useMemo<ColumnDef<AgencyDistributorDTO>[]>(
     () => [
-      {
-        accessorKey: 'agencyCode',
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title='Agency Code' />
-        ),
-        cell: ({ row }) => (
-          <span className='pl-4'>{row.getValue('agencyCode') ?? '-'}</span>
-        ),
-        meta: { thClassName: 'w-[120px]' },
-      },
       {
         accessorKey: 'agencyName',
         header: ({ column }) => (
@@ -196,27 +201,17 @@ export default function AgencyMapping() {
         meta: { thClassName: 'w-[200px]' },
       },
       {
-        accessorKey: 'channelName',
+        accessorKey: 'distributorName',
         header: ({ column }) => (
-          <DataTableColumnHeader column={column} title='Channel' />
+          <DataTableColumnHeader column={column} title='Distributor' />
         ),
         cell: ({ row }) => (
-          <span className='pl-4'>{row.getValue('channelName') ?? '-'}</span>
+          <span className='pl-4'>{row.getValue('distributorName') ?? '-'}</span>
         ),
-        meta: { thClassName: 'w-[150px]' },
+        meta: { thClassName: 'w-[200px]' },
       },
       {
-        accessorKey: 'territoryName',
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title='Territory' />
-        ),
-        cell: ({ row }) => (
-          <span className='pl-4'>{row.getValue('territoryName') ?? '-'}</span>
-        ),
-        meta: { thClassName: 'w-[180px]' },
-      },
-      {
-        accessorFn: (row) => row.range,
+        accessorFn: (row) => row.range ?? row.rangeName,
         id: 'range',
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title='Range' />
@@ -228,7 +223,7 @@ export default function AgencyMapping() {
         meta: { thClassName: 'w-[140px]' },
       },
       {
-        accessorFn: (row) => (row.isActive ? 'Active' : 'Inactive'),
+        accessorFn: (row) => (resolveAgencyActive(row) ? 'Active' : 'Inactive'),
         id: 'status',
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title='Status' />
@@ -260,7 +255,7 @@ export default function AgencyMapping() {
           const original = row.original
           const recordId =
             (original.id as Id | undefined) ?? (row.id as Id | undefined)
-          const isActive = Boolean(original.isActive)
+          const isActive = resolveAgencyActive(original)
 
           if (!recordId) return null
 
@@ -273,7 +268,10 @@ export default function AgencyMapping() {
                     size='icon'
                     className='size-8'
                     aria-label='Edit agency mapping'
-                    onClick={() => toast('Edit agency mapping coming soon')}
+                    onClick={() => {
+                      setEditingMapping(original)
+                      setEditDialogOpen(true)
+                    }}
                   >
                     <Pencil />
                   </Button>
@@ -330,6 +328,28 @@ export default function AgencyMapping() {
     toggleStatusMutation.mutate(pendingToggle)
   }
 
+  const editInitialValues = useMemo(() => {
+    if (!editingMapping) return undefined
+    return {
+      rangeId:
+        editingMapping.rangeId !== undefined &&
+        editingMapping.rangeId !== null
+          ? String(editingMapping.rangeId)
+          : '',
+      distributorId:
+        editingMapping.distributorId !== undefined &&
+        editingMapping.distributorId !== null
+          ? String(editingMapping.distributorId)
+          : '',
+      agencyIds:
+        editingMapping.agencyId !== undefined &&
+        editingMapping.agencyId !== null
+          ? [String(editingMapping.agencyId)]
+          : [],
+      isActive: resolveAgencyActive(editingMapping),
+    }
+  }, [editingMapping])
+
   return (
     <Card>
       <CardHeader className='space-y-1'>
@@ -368,14 +388,9 @@ export default function AgencyMapping() {
           searchPlaceholder='Search agencies...'
           filters={[
             {
-              columnId: 'channelName',
-              title: 'Channel',
-              options: channelFilterOptions,
-            },
-            {
-              columnId: 'territoryName',
-              title: 'Territory',
-              options: territoryFilterOptions,
+              columnId: 'distributorName',
+              title: 'Distributor',
+              options: distributorFilterOptions,
             },
             {
               columnId: 'range',
@@ -415,14 +430,7 @@ export default function AgencyMapping() {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={columns.length}
-                    className='h-20 text-center'
-                  >
-                    Loading agencies...
-                  </TableCell>
-                </TableRow>
+                <TableLoadingRows columns={columns.length || 1} />
               ) : isError ? (
                 <TableRow>
                   <TableCell
@@ -498,13 +506,41 @@ export default function AgencyMapping() {
         description='Create a new agency mapping.'
         hideFooter
       >
-        <AgencyForm
-          mode='create'
+        <CreateAgencyMappingForm
           onSubmit={async () => {
             setCreateDialogOpen(false)
           }}
-          onCancel={() => {
-            setCreateDialogOpen(false)
+          onCancel={() => setCreateDialogOpen(false)}
+        />
+      </CommonDialog>
+      <CommonDialog
+        open={editDialogOpen}
+        onOpenChange={(open) => {
+          setEditDialogOpen(open)
+          if (!open) setEditingMapping(null)
+        }}
+        title='Update Agency Mapping'
+        description='Update agency mapping details.'
+        hideFooter
+      >
+        <CreateAgencyMappingForm
+          mode='edit'
+          hideRange
+          initialValues={editInitialValues}
+          mappingId={
+            editingMapping?.id !== undefined && editingMapping?.id !== null
+              ? Number(editingMapping.id)
+              : undefined
+          }
+          mappingUserId={
+            editingMapping?.userId !== undefined && editingMapping?.userId !== null
+              ? Number(editingMapping.userId)
+              : undefined
+          }
+          mappingAgencyCode={editingMapping?.agencyCode ?? null}
+          onCancel={() => setEditDialogOpen(false)}
+          onSubmit={async () => {
+            setEditDialogOpen(false)
           }}
         />
       </CommonDialog>

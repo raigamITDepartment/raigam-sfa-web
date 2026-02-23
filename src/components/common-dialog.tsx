@@ -83,7 +83,13 @@ export function CommonDialog(props: CommonDialogProps) {
           </DialogHeader>
         )}
 
-        {children && <div className={bodyClassName}>{children}</div>}
+        {children && (
+          <div
+            className={`max-h-[70vh] overflow-y-auto px-4 pb-4 ${bodyClassName ?? ''}`.trim()}
+          >
+            {children}
+          </div>
+        )}
 
         {showFooter && (
           <DialogFooter className={footerClassName}>

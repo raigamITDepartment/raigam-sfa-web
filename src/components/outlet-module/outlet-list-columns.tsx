@@ -55,6 +55,39 @@ export const createOutletColumns = ({
     },
   },
   {
+    id: 'territoryName',
+    accessorFn: (row) => row.territoryName,
+    filterFn: (row, columnId, filterValue) =>
+      matchesMultiSelect(row.getValue(columnId), filterValue),
+    meta: { label: 'Territory' },
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title='Territory' />
+    ),
+    cell: ({ row }) => (
+      <span className='capitalize'>
+        {formatValue(row.original.territoryName)}
+      </span>
+    ),
+  },
+  {
+    id: 'areaName',
+    accessorFn: (row) =>
+      pickFirstValue(row, ['areaName', 'rangeName', 'range']),
+    filterFn: (row, columnId, filterValue) =>
+      matchesMultiSelect(row.getValue(columnId), filterValue),
+    meta: { label: 'Area' },
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title='Area' />
+    ),
+    cell: ({ row }) => (
+      <span className='capitalize'>
+        {formatValue(
+          pickFirstValue(row.original, ['areaName', 'rangeName', 'range'])
+        )}
+      </span>
+    ),
+  },
+  {
     id: 'name',
     accessorFn: (row) => pickFirstValue(row, ['outletName', 'name']),
     header: ({ column }) => (
@@ -78,6 +111,7 @@ export const createOutletColumns = ({
     id: 'uniqueCode',
     accessorFn: (row) =>
       pickFirstValue(row, ['uniqueCode', 'outletCode', 'outletId', 'id']),
+    meta: { label: 'Unique Code' },
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title='Unique Code' />
     ),
@@ -112,29 +146,13 @@ export const createOutletColumns = ({
   {
     id: 'channelName',
     accessorFn: (row) => row.channelName,
+    meta: { label: 'Channel' },
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title='Channel' />
     ),
     cell: ({ row }) => (
       <span className='capitalize'>
         {formatValue(row.original.channelName)}
-      </span>
-    ),
-  },
-  {
-    id: 'areaName',
-    accessorFn: (row) =>
-      pickFirstValue(row, ['areaName', 'rangeName', 'range']),
-    filterFn: (row, columnId, filterValue) =>
-      matchesMultiSelect(row.getValue(columnId), filterValue),
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title='Area' />
-    ),
-    cell: ({ row }) => (
-      <span className='capitalize'>
-        {formatValue(
-          pickFirstValue(row.original, ['areaName', 'rangeName', 'range'])
-        )}
       </span>
     ),
   },

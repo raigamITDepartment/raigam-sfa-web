@@ -22,9 +22,11 @@ import type {
 import { Eye } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatDate as formatDateTime } from '@/lib/format-date'
+import { formatLocalDate } from '@/lib/local-date'
 import { formatPrice } from '@/lib/format-price'
 import { cn } from '@/lib/utils'
 import { SubRoleId } from '@/lib/authz'
+import { isAgentLevelUserTypeId, isAreaLevelUserTypeId } from '@/lib/user-type'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -97,7 +99,7 @@ const LateDeliveryInvoice = () => {
   )
   const dispatch = useAppDispatch()
   const queryClient = useQueryClient()
-  const toIso = (d: Date) => d.toISOString().slice(0, 10)
+  const toIso = (d: Date) => formatLocalDate(d)
   const baseTerritoryId = Number(
     user?.territoryId ?? user?.agencyTerritoryId ?? 0
   )
@@ -105,6 +107,9 @@ const LateDeliveryInvoice = () => {
   const isAreaRole =
     roleId === SubRoleId.AreaSalesManager ||
     roleId === SubRoleId.AreaSalesExecutive
+  const isAgentLevel = isAgentLevelUserTypeId(user?.userTypeId)
+  const isAreaLevelUserType = isAreaLevelUserTypeId(user?.userTypeId)
+  const isReadOnly = isAgentLevel || isAreaLevelUserType
   const defaultDates = useMemo(() => {
     const today = new Date()
     const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
@@ -296,38 +301,8 @@ const LateDeliveryInvoice = () => {
     setIsStatusUpdating(false)
   }, [queryClient, refetch, selectedInvoices, user?.userId])
 
-  const columns = useMemo<ColumnDef<BookingInvoiceReportItem>[]>(
-    () => [
-      {
-        id: 'select',
-        header: ({ table }) => (
-          <div className='flex items-center justify-center pr-2 pl-1'>
-            <Checkbox
-              checked={
-                table.getIsAllPageRowsSelected() ||
-                (table.getIsSomePageRowsSelected() && 'indeterminate')
-              }
-              onCheckedChange={(value) =>
-                table.toggleAllPageRowsSelected(!!value)
-              }
-              aria-label='Select all'
-            />
-          </div>
-        ),
-        cell: ({ row }) => (
-          <div className='flex items-center justify-center pr-2 pl-1'>
-            <Checkbox
-              checked={row.getIsSelected()}
-              onCheckedChange={(value) => row.toggleSelected(!!value)}
-              aria-label='Select row'
-            />
-          </div>
-        ),
-        enableSorting: false,
-        enableHiding: false,
-        meta: { thClassName: 'w-12 text-center' },
-        size: 48,
-      },
+  const columns = useMemo<ColumnDef<BookingInvoiceReportItem>[]>(() => {
+    const baseColumns: ColumnDef<BookingInvoiceReportItem>[] = [
       {
         accessorKey: 'invoiceNo',
         header: ({ column }) => (
@@ -500,9 +475,43 @@ const LateDeliveryInvoice = () => {
         ),
         meta: { thClassName: 'text-center' },
       },
-    ],
-    [isDetailLoading, openInvoiceById]
-  )
+    ]
+
+    if (!isReadOnly) {
+      baseColumns.unshift({
+        id: 'select',
+        header: ({ table }) => (
+          <div className='flex items-center justify-center pr-2 pl-1'>
+            <Checkbox
+              checked={
+                table.getIsAllPageRowsSelected() ||
+                (table.getIsSomePageRowsSelected() && 'indeterminate')
+              }
+              onCheckedChange={(value) =>
+                table.toggleAllPageRowsSelected(!!value)
+              }
+              aria-label='Select all'
+            />
+          </div>
+        ),
+        cell: ({ row }) => (
+          <div className='flex items-center justify-center pr-2 pl-1'>
+            <Checkbox
+              checked={row.getIsSelected()}
+              onCheckedChange={(value) => row.toggleSelected(!!value)}
+              aria-label='Select row'
+            />
+          </div>
+        ),
+        enableSorting: false,
+        enableHiding: false,
+        meta: { thClassName: 'w-12 text-center' },
+        size: 48,
+      })
+    }
+
+    return baseColumns
+  }, [isReadOnly, isDetailLoading, openInvoiceById])
 
   const table = useReactTable({
     data: rows,
@@ -511,7 +520,7 @@ const LateDeliveryInvoice = () => {
       rowSelection,
     },
     onRowSelectionChange: setRowSelection,
-    enableRowSelection: true,
+    enableRowSelection: !isReadOnly,
     getRowId: (row) => String(row.id ?? row.invoiceNo),
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -528,7 +537,7 @@ const LateDeliveryInvoice = () => {
     },
   })
 
-  const toolbarRightContent = (
+  const toolbarRightContent = isReadOnly ? undefined : (
     <Select
       key={`late-status-${statusSelectResetCounter}`}
       disabled={isStatusUpdating}

@@ -14,6 +14,7 @@ import type {
   OutletCategoryDTO,
   OutletDTO,
   AgencyDTO,
+  AgencyDistributorDTO,
   AgencyWarehouseDTO,
   CreateAgencyWarehouseRequest,
   UpdateAgencyWarehouseRequest,
@@ -21,6 +22,8 @@ import type {
   UpdateAgencyRequest,
   CreateAgencyMappingRequest,
   UpdateAgencyMappingRequest,
+  CreateAgencyDistributorMappingRequest,
+  UpdateAgencyDistributorMappingRequest,
   DistributorDTO,
   CountryDTO,
   UserAgencyDTO,
@@ -347,6 +350,34 @@ export function createNewAgencyMapping(body: CreateAgencyMappingRequest) {
   return createAgency(body)
 }
 
+export function createAgencyDistributorMapping(
+  body: CreateAgencyDistributorMappingRequest
+) {
+  return post<unknown, CreateAgencyDistributorMappingRequest>(
+    `${USER_DEMARC_BASE}/agencyDistributor`,
+    body
+  )
+}
+
+export function getAllAgencyDistributors() {
+  return get<AgencyDistributorDTO[]>(`${USER_DEMARC_BASE}/agencyDistributor`)
+}
+
+export function updateActiveStatusAgencyDistributor(id: Id) {
+  return del<AgencyDistributorDTO>(
+    `${USER_DEMARC_BASE}/agencyDistributor/deactivateAgencyDistributor/${id}`
+  )
+}
+
+export function updateAgencyDistributorMapping(
+  body: UpdateAgencyDistributorMappingRequest
+) {
+  return put<AgencyDistributorDTO, UpdateAgencyDistributorMappingRequest>(
+    `${USER_DEMARC_BASE}/agencyDistributor`,
+    body
+  )
+}
+
 export function updateAgencyMapping(body: UpdateAgencyMappingRequest) {
   return updateAgency(body)
 }
@@ -357,6 +388,12 @@ export function deactivateAgencyMapping(id: Id) {
 
 export function getAllDistributors() {
   return get<DistributorDTO[]>(`${USER_DEMARC_BASE}/distributor`)
+}
+
+export function getAllDistributorsByRangeId(rangeId: Id) {
+  return get<DistributorDTO[]>(
+    `${USER_DEMARC_BASE}/distributor/findAllByRangeId/${rangeId}`
+  )
 }
 
 export function createNewDistributor(body: CreateDistributorRequest) {
@@ -390,6 +427,12 @@ export function createAgencyWarehouse(body: CreateAgencyWarehouseRequest) {
   )
 }
 
+export function createAgencyWarehouseMapping(
+  body: CreateAgencyWarehouseRequest
+) {
+  return createAgencyWarehouse(body)
+}
+
 export function updateAgencyWarehouse(body: UpdateAgencyWarehouseRequest) {
   return put<AgencyWarehouseDTO, UpdateAgencyWarehouseRequest>(
     `${USER_DEMARC_BASE}/agencyWarehouse`,
@@ -397,10 +440,20 @@ export function updateAgencyWarehouse(body: UpdateAgencyWarehouseRequest) {
   )
 }
 
+export function updateAgencyWarehouseMapping(
+  body: UpdateAgencyWarehouseRequest
+) {
+  return updateAgencyWarehouse(body)
+}
+
 export function deActivateAgencyWarehouse(id: Id) {
   return del<AgencyWarehouseDTO>(
     `${USER_DEMARC_BASE}/agencyWarehouse/deactivateAgencyWarehouse/${id}`
   )
+}
+
+export function changeStatusAgencyWareHouseMapping(id: Id) {
+  return deActivateAgencyWarehouse(id)
 }
 
 export function getAllCountrys() {

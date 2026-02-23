@@ -1,5 +1,10 @@
 import { redirect } from '@tanstack/react-router'
 import { store } from '@/store'
+import {
+  getStoredUserTypeId,
+  isAgentLevelUserTypeId,
+  isAreaLevelUserTypeId,
+} from '@/lib/user-type'
 
 // Business role IDs as provided by backend
 export const RoleId = {
@@ -182,6 +187,7 @@ export const RoleAccess: Record<string, RoleIdValue[]> = {
     RoleId.SystemAdmin,
     RoleId.TopManager,
     RoleId.ManagerSales,
+    RoleId.ExecutiveCompany,
   ],
   '/dashboard/home-report': [
     RoleId.SystemAdmin,
@@ -279,6 +285,8 @@ export const RoleAccess: Record<string, RoleIdValue[]> = {
     RoleId.SystemAdmin,
     RoleId.TopManager,
     RoleId.ManagerSales,
+    SubRoleId.RegionSalesManager,
+    SubRoleId.AreaSalesManager,
     SubRoleId.Representative,
   ],
 
@@ -632,22 +640,88 @@ export function isPathAllowedForUser(
   if (!pathname) return false
   const effectiveRoleId = roleId ?? getEffectiveRoleId()
   const effectiveSubRoleId = subRoleId ?? getEffectiveSubRoleId()
+  const normalized = normalizePathname(pathname)
+  const userTypeId =
+    store.getState().auth.user?.userTypeId ?? getStoredUserTypeId()
+  const isAgentLevel = isAgentLevelUserTypeId(userTypeId)
+  const isAreaLevel = isAreaLevelUserTypeId(userTypeId)
+
+  if (isAgentLevel) {
+    if (
+      normalized === '/agency-module/invoice/manual-invoice' ||
+      normalized.startsWith('/agency-module/invoice/manual-invoice/')
+    ) {
+      return false
+    }
+    if (
+      normalized === '/agency-module/invoice/view-invoice' ||
+      normalized.startsWith('/agency-module/invoice/view-invoice/')
+    ) {
+      return true
+    }
+  }
+  if (isAreaLevel) {
+    if (
+      normalized === '/agency-module/invoice/manual-invoice' ||
+      normalized.startsWith('/agency-module/invoice/manual-invoice/')
+    ) {
+      return false
+    }
+    if (
+      normalized === '/agency-module/invoice/invoices-summary' ||
+      normalized.startsWith('/agency-module/invoice/invoices-summary/')
+    ) {
+      return false
+    }
+    if (
+      normalized === '/agency-module/invoice/view-invoice' ||
+      normalized.startsWith('/agency-module/invoice/view-invoice/')
+    ) {
+      return true
+    }
+  }
   if (
     effectiveSubRoleId === SubRoleId.RegionSalesManager ||
     effectiveSubRoleId === SubRoleId.AreaSalesManager
   ) {
-    const normalized = normalizePathname(pathname)
     const allowedPrefixes = [
       '/dashboard/overview',
       '/hr-module/time-attendance',
       '/agency-module',
       '/reports',
+      '/outlet-module',
       '/errors',
     ]
     const allowed = allowedPrefixes.some(
       (prefix) => normalized === prefix || normalized.startsWith(prefix + '/')
     )
     if (!allowed) return false
+  }
+  if (
+    effectiveRoleId === RoleId.SeniorManagerSales ||
+    effectiveSubRoleId === SubRoleId.ChannelHead ||
+    effectiveSubRoleId === SubRoleId.SubChannelHead
+  ) {
+    const blockedPrefixes = [
+      '/master-settings',
+      '/sales',
+      '/admin-module',
+      '/agency-module',
+    ]
+    const blocked = blockedPrefixes.some(
+      (prefix) => normalized === prefix || normalized.startsWith(prefix + '/')
+    )
+    if (blocked) return false
+  }
+  if (
+    effectiveRoleId === RoleId.ExecutiveCompany &&
+    effectiveSubRoleId === SubRoleId.Brand
+  ) {
+    const blockedPrefixes = ['/sales', '/hr-module', '/agency-module']
+    const blocked = blockedPrefixes.some(
+      (prefix) => normalized === prefix || normalized.startsWith(prefix + '/')
+    )
+    if (blocked) return false
   }
   if (pathname.startsWith('/reports') && effectiveRoleId === RoleId.OperationSales) {
     return false
@@ -694,6 +768,47 @@ export async function ensureRoleAccess(
   pathname?: string
 ): Promise<void> {
   const effectivePath = pathname ?? getCurrentPathname()
+  const normalizedPath = normalizePathname(effectivePath ?? '')
+  const userTypeId =
+    store.getState().auth.user?.userTypeId ?? getStoredUserTypeId()
+  const isAgentLevel = isAgentLevelUserTypeId(userTypeId)
+  const isAreaLevel = isAreaLevelUserTypeId(userTypeId)
+
+  if (isAgentLevel) {
+    if (
+      normalizedPath === '/agency-module/invoice/manual-invoice' ||
+      normalizedPath.startsWith('/agency-module/invoice/manual-invoice/')
+    ) {
+      throw redirect({ to: '/errors/unauthorized', replace: true })
+    }
+    if (
+      normalizedPath === '/agency-module/invoice/view-invoice' ||
+      normalizedPath.startsWith('/agency-module/invoice/view-invoice/')
+    ) {
+      return
+    }
+  }
+  if (isAreaLevel) {
+    if (
+      normalizedPath === '/agency-module/invoice/manual-invoice' ||
+      normalizedPath.startsWith('/agency-module/invoice/manual-invoice/')
+    ) {
+      throw redirect({ to: '/errors/unauthorized', replace: true })
+    }
+    if (
+      normalizedPath === '/agency-module/invoice/invoices-summary' ||
+      normalizedPath.startsWith('/agency-module/invoice/invoices-summary/')
+    ) {
+      throw redirect({ to: '/errors/unauthorized', replace: true })
+    }
+    if (
+      normalizedPath === '/agency-module/invoice/view-invoice' ||
+      normalizedPath.startsWith('/agency-module/invoice/view-invoice/')
+    ) {
+      return
+    }
+  }
+
   const required = getRequiredPermissionsForPath(effectivePath)
   if (required) {
     const effective = getEffectivePermissions()

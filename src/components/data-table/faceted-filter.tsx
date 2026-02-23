@@ -23,6 +23,7 @@ import { Separator } from '@/components/ui/separator'
 type DataTableFacetedFilterProps<TData, TValue> = {
   column?: Column<TData, TValue>
   title?: string
+  showCountBadge?: boolean
   options: {
     label: string
     value: string
@@ -34,9 +35,46 @@ export function DataTableFacetedFilter<TData, TValue>({
   column,
   title,
   options,
+  showCountBadge = false,
 }: DataTableFacetedFilterProps<TData, TValue>) {
   const facets = column?.getFacetedUniqueValues()
-  const selectedValues = new Set(column?.getFilterValue() as string[])
+  const facetCounts = React.useMemo(() => {
+    const map = new Map<string, number>()
+    if (!facets) return map
+    facets.forEach((count, key) => {
+      const normalizedKey = String(key)
+      map.set(normalizedKey, (map.get(normalizedKey) ?? 0) + count)
+    })
+    return map
+  }, [facets])
+  const toArray = (value: unknown): string[] => {
+    if (Array.isArray(value)) return value.map((item) => String(item))
+    if (value === null || value === undefined || value === '') return []
+    return [String(value)]
+  }
+
+  const normalize = (value: unknown) =>
+    String(value ?? '')
+      .trim()
+      .toLowerCase()
+
+  const multiValueFilter = React.useCallback(
+    (row: any, columnId: string, filterValue: unknown) => {
+      const values = toArray(filterValue).map(normalize).filter(Boolean)
+      if (!values.length) return true
+      const rowValue = normalize(row.getValue(columnId))
+      return values.includes(rowValue)
+    },
+    []
+  )
+
+  React.useEffect(() => {
+    if (!column) return
+    if (column.columnDef.filterFn) return
+    column.columnDef.filterFn = multiValueFilter as any
+  }, [column, multiValueFilter])
+
+  const selectedValues = new Set(toArray(column?.getFilterValue()))
 
   return (
     <Popover>
@@ -63,7 +101,7 @@ export function DataTableFacetedFilter<TData, TValue>({
                   </Badge>
                 ) : (
                   options
-                    .filter((option) => selectedValues.has(option.value))
+                    .filter((option) => selectedValues.has(String(option.value)))
                     .map((option) => (
                       <Badge
                         variant='secondary'
@@ -86,15 +124,16 @@ export function DataTableFacetedFilter<TData, TValue>({
             <CommandEmpty>No results found.</CommandEmpty>
             <CommandGroup>
               {options.map((option) => {
-                const isSelected = selectedValues.has(option.value)
+                const isSelected = selectedValues.has(String(option.value))
+                const count = facetCounts.get(String(option.value)) ?? 0
                 return (
                   <CommandItem
                     key={option.value}
                     onSelect={() => {
                       if (isSelected) {
-                        selectedValues.delete(option.value)
+                        selectedValues.delete(String(option.value))
                       } else {
-                        selectedValues.add(option.value)
+                        selectedValues.add(String(option.value))
                       }
                       const filterValues = Array.from(selectedValues)
                       column?.setFilterValue(
@@ -116,11 +155,19 @@ export function DataTableFacetedFilter<TData, TValue>({
                       <option.icon className='text-muted-foreground size-4' />
                     )}
                     <span>{option.label}</span>
-                    {facets?.get(option.value) && (
-                      <span className='ms-auto flex h-4 w-4 items-center justify-center font-mono text-xs'>
-                        {facets.get(option.value)}
-                      </span>
-                    )}
+                    {facets &&
+                      (showCountBadge ? (
+                        <Badge
+                          variant='secondary'
+                          className='ms-auto h-5 min-w-[22px] justify-center px-1.5 text-[10px] font-semibold'
+                        >
+                          {count}
+                        </Badge>
+                      ) : (
+                        <span className='ms-auto flex h-4 w-4 items-center justify-center font-mono text-xs'>
+                          {count}
+                        </span>
+                      ))}
                   </CommandItem>
                 )
               })}

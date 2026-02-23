@@ -20,8 +20,8 @@ export type HomeReportItem = {
   areaName: string
   territoryId: number
   territoryName: string
-  monthName: string
-  monthNumber: number
+  monthName?: string
+  monthNumber?: number
   givenWorkingDays: number | null
   workingDays: number
   pcTarget: number
@@ -90,54 +90,94 @@ export type HomeReportItem = {
   day31Value: number
   totalCount: number
   totalValue: number
-  currentMonthName: string
-  currentMonthNumber: number
+  averageWithDirectValue?: number
+  totalNormalValue?: number
+  totalAgencyValue?: number
+  totalCompanyValue?: number
+  currentMonthName?: string
+  currentMonthNumber?: number
   past1MonthTotalPcCount: number
   past1MonthTotalValue: number
+  past1MonthTotalNormalValue?: number
+  past1MonthTotalAgencyValue?: number
+  past1MonthTotalCompanyValue?: number
   past1MonthName: string
   past1MonthNumber: number
   past2MonthTotalPcCount: number
   past2MonthTotalValue: number
+  past2MonthTotalNormalValue?: number
+  past2MonthTotalAgencyValue?: number
+  past2MonthTotalCompanyValue?: number
   past2MonthName: string
   past2MonthNumber: number
   past3MonthTotalPcCount: number
   past3MonthTotalValue: number
+  past3MonthTotalNormalValue?: number
+  past3MonthTotalAgencyValue?: number
+  past3MonthTotalCompanyValue?: number
   past3MonthName: string
   past3MonthNumber: number
   past4MonthTotalPcCount: number
   past4MonthTotalValue: number
+  past4MonthTotalNormalValue?: number
+  past4MonthTotalAgencyValue?: number
+  past4MonthTotalCompanyValue?: number
   past4MonthName: string
   past4MonthNumber: number
   past5MonthTotalPcCount: number
   past5MonthTotalValue: number
+  past5MonthTotalNormalValue?: number
+  past5MonthTotalAgencyValue?: number
+  past5MonthTotalCompanyValue?: number
   past5MonthName: string
   past5MonthNumber: number
   past6MonthTotalPcCount: number
   past6MonthTotalValue: number
+  past6MonthTotalNormalValue?: number
+  past6MonthTotalAgencyValue?: number
+  past6MonthTotalCompanyValue?: number
   past6MonthName: string
   past6MonthNumber: number
   past7MonthTotalPcCount?: number
   past7MonthTotalValue?: number
+  past7MonthTotalNormalValue?: number
+  past7MonthTotalAgencyValue?: number
+  past7MonthTotalCompanyValue?: number
   past7MonthName?: string
   past7MonthNumber?: number
   past8MonthTotalPcCount?: number
   past8MonthTotalValue?: number
+  past8MonthTotalNormalValue?: number
+  past8MonthTotalAgencyValue?: number
+  past8MonthTotalCompanyValue?: number
   past8MonthName?: string
   past8MonthNumber?: number
   past9MonthTotalPcCount?: number
   past9MonthTotalValue?: number
+  past9MonthTotalNormalValue?: number
+  past9MonthTotalAgencyValue?: number
+  past9MonthTotalCompanyValue?: number
   past9MonthName?: string
   past9MonthNumber?: number
   past10MonthTotalPcCount?: number
   past10MonthTotalValue?: number
+  past10MonthTotalNormalValue?: number
+  past10MonthTotalAgencyValue?: number
+  past10MonthTotalCompanyValue?: number
   past10MonthName?: string
   past10MonthNumber?: number
   past11MonthTotalPcCount?: number
   past11MonthTotalValue?: number
+  past11MonthTotalNormalValue?: number
+  past11MonthTotalAgencyValue?: number
+  past11MonthTotalCompanyValue?: number
   past11MonthName?: string
   past11MonthNumber?: number
   past12MonthTotalPcCount?: number
   past12MonthTotalValue?: number
+  past12MonthTotalNormalValue?: number
+  past12MonthTotalAgencyValue?: number
+  past12MonthTotalCompanyValue?: number
   past12MonthName?: string
   past12MonthNumber?: number
 }

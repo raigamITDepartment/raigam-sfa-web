@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   flexRender,
+  getFacetedRowModel,
+  getFacetedUniqueValues,
   getCoreRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
@@ -12,10 +14,12 @@ import {
 import { getInvoiceDetailsByStatus } from '@/services/reports/invoiceReports'
 import type { InvoiceTypeParam } from '@/types/invoice'
 import { formatDate } from '@/lib/format-date'
+import { formatLocalDate } from '@/lib/local-date'
 import { formatPrice } from '@/lib/format-price'
 import { cn } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { CountBadge } from '@/components/ui/count-badge'
+import { Badge } from '@/components/ui/badge'
 import {
   Table,
   TableBody,
@@ -40,10 +44,36 @@ import InvoiceReportFilter, {
   type InvoiceReportFilters,
 } from '@/components/reports/invoice-reports/TerritoryFilter'
 
+const SHORT_HEADER_MAP: Record<string, string> = {
+  invoiceno: 'Inv No',
+  invoicetype: 'Type',
+  status: 'Status',
+  datebook: 'Book Date',
+  dateactual: 'Actual Date',
+  totalbookfinalvalue: 'Book Final',
+  totalactualvalue: 'Actual Val',
+  totaldiscountvalue: 'Disc Val',
+  totalcancelvalue: 'Cancel Val',
+  routename: 'Route',
+  outletname: 'Outlet',
+  totalbookvalue: 'Book Val',
+  totalbooksellvalue: 'Book Sell',
+  totalmarketreturnvalue: 'Mkt Return',
+  totalgoodreturnvalue: 'Good Return',
+  totalfreevalue: 'Free Val',
+  discountpercentage: 'Disc %',
+  sourceapp: 'Source',
+  longitude: 'Long',
+  latitude: 'Lat',
+}
+
 const formatHeader = (key: string) => {
   const withSpaces = key.replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2')
   return withSpaces.charAt(0).toUpperCase() + withSpaces.slice(1)
 }
+
+const formatTableHeader = (key: string) =>
+  SHORT_HEADER_MAP[normalizeKey(key)] ?? formatHeader(key)
 
 const normalizeKey = (key: string) =>
   key.toLowerCase().replace(/[^a-z0-9]/g, '')
@@ -56,6 +86,7 @@ const isRightAlignedKey = (key: string) =>
   isValueKey(key) || isQuantityKey(key)
 const isCenterAlignedKey = (key: string) =>
   isDateKey(key) || isInvoiceTypeKey(key)
+const STATUS_COLUMN_ID = 'statusBadge'
 
 const parseNumberValue = (value: unknown) => {
   if (typeof value === 'number') return Number.isFinite(value) ? value : null
@@ -135,15 +166,29 @@ const orderColumnKeys = (keys: string[]) => {
 }
 
 const getHeaderAlignmentClassName = (key: string) => {
+  if (key === STATUS_COLUMN_ID) return 'justify-center text-center'
   if (isCenterAlignedKey(key)) return 'justify-center text-center'
   if (isRightAlignedKey(key)) return 'justify-end text-right'
   return ''
 }
 
 const getCellAlignmentClassName = (key: string) => {
+  if (key === STATUS_COLUMN_ID) return 'text-center'
   if (isCenterAlignedKey(key)) return 'text-center'
   if (isRightAlignedKey(key)) return 'text-right'
   return ''
+}
+
+const getColumnStripeClassName = (index: number, isHeader = false) => {
+  const isOdd = index % 2 === 0
+  if (isHeader) {
+    return isOdd
+      ? 'bg-slate-100 dark:bg-slate-900'
+      : 'bg-slate-50 dark:bg-slate-950/60'
+  }
+  return isOdd
+    ? 'bg-slate-50 dark:bg-slate-950/40'
+    : 'bg-white dark:bg-slate-950/20'
 }
 
 const isInvoiceNoKey = (key: string) => normalizeKey(key) === 'invoiceno'
@@ -151,12 +196,13 @@ const isInvoiceNoKey = (key: string) => normalizeKey(key) === 'invoiceno'
 type ToolbarFilterOption = {
   columnId?: string
   title: string
+  showCountBadge?: boolean
   options: { label: string; value: string }[]
 }
 
-const hasColumnId = (
-  filter: ToolbarFilterOption
-): filter is Omit<ToolbarFilterOption, 'columnId'> & { columnId: string } =>
+const hasColumnId = <T extends ToolbarFilterOption>(
+  filter: T
+): filter is T & { columnId: string } =>
   Boolean(filter.columnId && filter.options.length > 0)
 
 const buildFacetOptions = (values: unknown[]) => {
@@ -178,6 +224,17 @@ const buildFacetOptions = (values: unknown[]) => {
 const findColumnKey = (keys: string[], candidates: string[]) =>
   keys.find((key) => candidates.includes(normalizeKey(key)))
 
+const toBool = (value: unknown) => {
+  if (typeof value === 'boolean') return value
+  if (typeof value === 'number') return value === 1
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase()
+    if (!normalized) return false
+    return normalized === 'true' || normalized === '1' || normalized === 'yes'
+  }
+  return false
+}
+
 let cachedFilters: InvoiceReportFilters | null = null
 let cachedGlobalFilter = ''
 
@@ -186,7 +243,7 @@ const TerritoryWiseInvoiceSummaryReport = () => {
     () => cachedFilters
   )
   const [globalFilter, setGlobalFilter] = useState(() => cachedGlobalFilter)
-  const todayIso = useMemo(() => new Date().toISOString().slice(0, 10), [])
+  const todayIso = useMemo(() => formatLocalDate(new Date()), [])
 
   useEffect(() => {
     cachedFilters = filters
@@ -229,13 +286,49 @@ const TerritoryWiseInvoiceSummaryReport = () => {
     [rows]
   )
   const orderedKeys = useMemo(() => orderColumnKeys(columnKeys), [columnKeys])
+  const statusKeyMap = useMemo(
+    () => ({
+      isBook: findColumnKey(columnKeys, ['isbook']),
+      isActual: findColumnKey(columnKeys, ['isactual']),
+    }),
+    [columnKeys]
+  )
+  const hasStatusColumn = Boolean(statusKeyMap.isBook || statusKeyMap.isActual)
+  const displayKeys = useMemo(() => {
+    if (!hasStatusColumn) return orderedKeys
+    const next = [...orderedKeys]
+    const invoiceTypeIndex = next.findIndex(
+      (key) => normalizeKey(key) === 'invoicetype'
+    )
+    const insertAt = invoiceTypeIndex >= 0 ? invoiceTypeIndex + 1 : 1
+    next.splice(insertAt, 0, STATUS_COLUMN_ID)
+    return next
+  }, [orderedKeys, hasStatusColumn])
+  const getStatusLabel = (row: Record<string, unknown>) => {
+    const isBook = statusKeyMap.isBook
+      ? toBool(row[statusKeyMap.isBook])
+      : false
+    const isActual = statusKeyMap.isActual
+      ? toBool(row[statusKeyMap.isActual])
+      : false
+    if (isActual) return 'Actual'
+    if (isBook) return 'Booking'
+    return '-'
+  }
   const exportColumns = useMemo<ExcelExportColumn<Record<string, unknown>>[]>(
     () =>
-      orderedKeys.map((key) => ({
-        header: formatHeader(key),
-        accessor: (row) => formatValue(key, row[key]),
-      })),
-    [orderedKeys]
+      displayKeys.map((key) =>
+        key === STATUS_COLUMN_ID
+          ? {
+              header: 'Status',
+              accessor: (row) => getStatusLabel(row),
+            }
+          : {
+              header: formatHeader(key),
+              accessor: (row) => formatValue(key, row[key]),
+            }
+      ),
+    [displayKeys, statusKeyMap]
   )
   const filterColumnKeys = useMemo(
     () => ({
@@ -253,16 +346,19 @@ const TerritoryWiseInvoiceSummaryReport = () => {
         columnId: filterColumnKeys.routeName,
         title: 'Route Name',
         options: buildOptions(filterColumnKeys.routeName),
+        showCountBadge: true,
       },
       {
         columnId: filterColumnKeys.outletName,
         title: 'Outlet Name',
         options: buildOptions(filterColumnKeys.outletName),
+        showCountBadge: true,
       },
       {
         columnId: filterColumnKeys.invoiceType,
         title: 'Invoice Type',
         options: buildOptions(filterColumnKeys.invoiceType),
+        showCountBadge: true,
       },
     ].filter(hasColumnId)
   }, [
@@ -274,33 +370,69 @@ const TerritoryWiseInvoiceSummaryReport = () => {
 
   const columns = useMemo<ColumnDef<Record<string, unknown>>[]>(
     () =>
-      orderedKeys.map((key) => ({
-        accessorKey: key,
-        header: ({ column }) => (
-          <DataTableColumnHeader
-            column={column}
-            title={formatHeader(key)}
-            className={getHeaderAlignmentClassName(key)}
-          />
-        ),
-        cell: ({ row }) => {
-          const value = row.getValue(key)
-          if (isInvoiceNoKey(key)) {
-            return (
-              <InvoiceNumber
-                invoiceId={String(value ?? '')}
-                className='pl-2 font-medium text-slate-900 dark:text-slate-50'
-              />
-            )
-          }
-          return (
-            <span className='block truncate'>
-              {formatValue(key, value)}
-            </span>
-          )
-        },
-      })),
-    [orderedKeys]
+      displayKeys.map((key) =>
+        key === STATUS_COLUMN_ID
+          ? {
+              id: STATUS_COLUMN_ID,
+              header: ({ column }) => (
+                <DataTableColumnHeader
+                  column={column}
+                  title='Status'
+                  className='justify-center text-center'
+                />
+              ),
+              cell: ({ row }) => {
+                const label = getStatusLabel(row.original)
+                if (label === '-') {
+                  return <span className='text-muted-foreground'>-</span>
+                }
+                const isActual = label === 'Actual'
+                return (
+                  <div className='flex justify-center'>
+                    <Badge
+                      variant='secondary'
+                      className={
+                        isActual
+                          ? 'border-transparent bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-100'
+                          : 'border-transparent bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-100'
+                      }
+                    >
+                      {label}
+                    </Badge>
+                  </div>
+                )
+              },
+              enableSorting: false,
+            }
+          : {
+              accessorKey: key,
+              header: ({ column }) => (
+                <DataTableColumnHeader
+                  column={column}
+                  title={formatTableHeader(key)}
+                  tooltip={formatHeader(key)}
+                  className={getHeaderAlignmentClassName(key)}
+                />
+              ),
+              cell: ({ row }) => {
+                const value = row.getValue(key)
+                if (isInvoiceNoKey(key)) {
+                  return (
+                    <InvoiceNumber
+                      invoiceId={String(value ?? '')}
+                      className='pl-2 font-medium text-slate-900 dark:text-slate-50'
+                    />
+                  )
+                }
+                return (
+                  <span className='block truncate'>
+                    {formatValue(key, value)}
+                  </span>
+                )
+              },
+            }
+      ),
+    [displayKeys, statusKeyMap]
   )
 
   const searchKey = useMemo(
@@ -319,6 +451,8 @@ const TerritoryWiseInvoiceSummaryReport = () => {
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    getFacetedRowModel: getFacetedRowModel(),
+    getFacetedUniqueValues: getFacetedUniqueValues(),
     initialState: {
       pagination: {
         pageSize: 10,
@@ -403,14 +537,15 @@ const TerritoryWiseInvoiceSummaryReport = () => {
                   <TableHeader>
                     {table.getHeaderGroups().map((headerGroup) => (
                       <TableRow key={headerGroup.id}>
-                        {headerGroup.headers.map((header) => (
+                        {headerGroup.headers.map((header, headerIndex) => (
                           <TableHead
                             key={header.id}
                             className={cn(
-                              'text-muted-foreground bg-gray-100 px-3 text-xs font-semibold tracking-wide uppercase dark:bg-gray-900',
-                              getCellAlignmentClassName(
+                              'text-muted-foreground px-3 text-xs font-semibold tracking-wide uppercase',
+                              getHeaderAlignmentClassName(
                                 String(header.column.id)
                               ),
+                              getColumnStripeClassName(headerIndex, true),
                               isInvoiceNoKey(String(header.column.id)) && 'pl-3'
                             )}
                           >
@@ -440,14 +575,15 @@ const TerritoryWiseInvoiceSummaryReport = () => {
                     ) : (
                       table.getRowModel().rows.map((row) => (
                         <TableRow key={row.id}>
-                          {row.getVisibleCells().map((cell) => (
+                          {row.getVisibleCells().map((cell, cellIndex) => (
                             <TableCell
                               key={cell.id}
                               className={cn(
                                 'px-3 py-2',
                                 getCellAlignmentClassName(
                                   String(cell.column.id)
-                                )
+                                ),
+                                getColumnStripeClassName(cellIndex)
                               )}
                             >
                               {flexRender(

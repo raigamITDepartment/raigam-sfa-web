@@ -1,5 +1,6 @@
 import { type MouseEvent, useMemo } from 'react'
 import { Download } from 'lucide-react'
+import * as XLSX from 'xlsx'
 import { Button } from '@/components/ui/button'
 
 type ButtonProps = React.ComponentPropsWithoutRef<typeof Button>
@@ -111,34 +112,52 @@ export function ExcelExportButton<T extends Record<string, any>>(
 
     beforeExport?.()
 
-    let documentString: string | null = null
+    if (customStyles && import.meta.env.DEV) {
+      console.warn(
+        'ExcelExportButton: customStyles are ignored for .xlsx exports.'
+      )
+    }
+
     let effectiveWorksheetName = worksheetName
+    let worksheet: XLSX.WorkSheet | null = null
 
     if (typeof getHtmlContent === 'function') {
       const result = getHtmlContent()
       if (!result?.html) {
         return
       }
+      if (result.styles && import.meta.env.DEV) {
+        console.warn(
+          'ExcelExportButton: custom styles from getHtmlContent are ignored for .xlsx exports.'
+        )
+      }
       effectiveWorksheetName = result.worksheetName ?? worksheetName
-      documentString = buildHtmlDocument({
-        html: result.html,
-        styles: result.styles ?? customStyles,
-        worksheetName: effectiveWorksheetName,
-      })
+      const container = document.createElement('div')
+      container.innerHTML = result.html
+      const table = container.querySelector('table')
+      if (table) {
+        worksheet = XLSX.utils.table_to_sheet(table, { raw: true })
+      } else if (hasRows) {
+        worksheet = buildWorksheetFromData(normalizedColumns, data)
+      } else {
+        worksheet = XLSX.utils.aoa_to_sheet([])
+      }
     } else {
-      const doc = buildExcelDocument({
-        columns: normalizedColumns,
-        data,
-        worksheetName,
-        customStyles,
-      })
-      documentString = doc
+      worksheet = buildWorksheetFromData(normalizedColumns, data)
     }
 
-    if (!documentString) return
+    if (!worksheet) return
+
+    const safeWorksheetName = sanitizeWorksheetName(effectiveWorksheetName)
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, safeWorksheetName)
+    const workbookArray = XLSX.write(workbook, {
+      bookType: 'xlsx',
+      type: 'array',
+    })
 
     const finalFileName = ensureExcelExtension(fileName)
-    const blob = new Blob([documentString], {
+    const blob = new Blob([workbookArray], {
       type:
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     })
@@ -171,76 +190,18 @@ export function ExcelExportButton<T extends Record<string, any>>(
   )
 }
 
-type BuildDocumentArgs<T extends Record<string, any>> = {
-  columns: ExcelExportColumn<T>[]
+function buildWorksheetFromData<T extends Record<string, any>>(
+  columns: ExcelExportColumn<T>[],
   data: T[]
-  worksheetName: string
-  customStyles?: string
-}
-
-function buildExcelDocument<T extends Record<string, any>>(
-  args: BuildDocumentArgs<T>
 ) {
-  const { columns, data, worksheetName, customStyles } = args
-  const headerRow = `<tr>${columns
-    .map((column) => `<th>${escapeHtml(column.header)}</th>`)
-    .join('')}</tr>`
-  const bodyRows = data
-    .map((row, rowIndex) => {
-      const cells = columns
-        .map((column) => {
-          const cell = getCellData(row, column, rowIndex)
-          const className = cell.className
-            ? ` class="${escapeHtml(cell.className)}"`
-            : ''
-          return `<td${className}>${escapeHtml(cell.value)}</td>`
-        })
-        .join('')
-      return `<tr>${cells}</tr>`
-    })
-    .join('')
-
-  const tableMarkup = `<table role="table"><thead>${headerRow}</thead><tbody>${bodyRows}</tbody></table>`
-  const styles = `
-table { border-collapse: collapse; width: 100%; font-family: Arial, sans-serif; font-size: 12px; }
-th, td { border: 1px solid #d4d4d8; padding: 6px 8px; text-align: left; }
-th { background-color: #f4f4f5; font-weight: 600; }
-tbody tr:nth-child(even) { background-color: #fafafa; }
-${customStyles ?? ''}
-`
-
-  return `<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>${escapeHtml(worksheetName || 'Worksheet')}</title>
-    <style>${styles}</style>
-  </head>
-  <body>${tableMarkup}</body>
-</html>`
+  const headerRow = columns.map((column) => column.header)
+  const rows = data.map((row, rowIndex) =>
+    columns.map((column) => resolveCellValue(row, column, rowIndex))
+  )
+  return XLSX.utils.aoa_to_sheet([headerRow, ...rows])
 }
 
-type BuildHtmlDocumentArgs = {
-  html: string
-  styles?: string
-  worksheetName: string
-}
-
-function buildHtmlDocument(args: BuildHtmlDocumentArgs) {
-  const { html, styles, worksheetName } = args
-  const styleBlock = styles ?? ''
-  return `<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>${escapeHtml(worksheetName || 'Worksheet')}</title>
-    <style>${styleBlock}</style>
-  </head>
-  <body>${html}</body>
-</html>`
-}
-
-function getCellData<T extends Record<string, any>>(
+function resolveCellValue<T extends Record<string, any>>(
   row: T,
   column: ExcelExportColumn<T>,
   rowIndex: number
@@ -260,24 +221,13 @@ function getCellData<T extends Record<string, any>>(
       ? column.formatter(value, row, rowIndex)
       : value
 
-  const stringValue = toCellString(formatted)
-  const className =
-    typeof column.cellClassName === 'function'
-      ? column.cellClassName(stringValue, row, rowIndex) || undefined
-      : column.cellClassName
-
-  return {
-    value: stringValue,
-    className: className || undefined,
-  }
+  return toExcelValue(formatted)
 }
 
-function toCellString(value: unknown) {
+function toExcelValue(value: unknown) {
   if (value == null) return ''
-  if (value instanceof Date) return value.toISOString()
-  if (typeof value === 'number' || typeof value === 'boolean') {
-    return String(value)
-  }
+  if (value instanceof Date) return value
+  if (typeof value === 'number' || typeof value === 'boolean') return value
   if (typeof value === 'object') {
     try {
       return JSON.stringify(value)
@@ -288,20 +238,19 @@ function toCellString(value: unknown) {
   return String(value)
 }
 
-function escapeHtml(value: string) {
-  return (value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
-}
-
 function ensureExcelExtension(name: string) {
   const lower = name.toLowerCase()
   return lower.endsWith('.xls') || lower.endsWith('.xlsx')
     ? name
     : `${name}.xlsx`
+}
+
+function sanitizeWorksheetName(name: string) {
+  const cleaned = (name || 'Sheet1')
+    .replace(/[\[\]\*\/\\\?\:]/g, ' ')
+    .trim()
+  const truncated = cleaned.length ? cleaned.slice(0, 31) : 'Sheet1'
+  return truncated
 }
 
 function toHeaderCase(value: string) {

@@ -163,6 +163,7 @@ export function AreaForm(props: AreaFormProps) {
     createMutation.isPending ||
     updateMutation.isPending
   const submitLabel = mode === 'create' ? 'Create' : 'Update'
+  const submitVariant = 'default'
 
   return (
     <Form {...form}>
@@ -250,6 +251,7 @@ export function AreaForm(props: AreaFormProps) {
           </Button>
           <Button
             type='submit'
+            variant={submitVariant}
             className='w-full sm:flex-1'
             disabled={isSubmitting}
           >

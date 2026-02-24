@@ -151,6 +151,12 @@ const ItemMaster = () => {
   const toggleStatusMutation = useMutation({
     onMutate: (payload) => {
       setPendingId(payload.itemId)
+      let previousActive: boolean | undefined
+      setActiveMap((prev) => {
+        previousActive = prev[payload.itemId]
+        return { ...prev, [payload.itemId]: payload.nextActive }
+      })
+      return { previousActive }
     },
     mutationFn: async (payload: { itemId: number; nextActive: boolean }) => {
       const response = await changeStatusItem(payload.itemId)
@@ -168,7 +174,15 @@ const ItemMaster = () => {
       setActiveMap((prev) => ({ ...prev, [payload.itemId]: nextActive }))
       queryClient.invalidateQueries({ queryKey: ['item-master'] })
     },
-    onError: (err: unknown) => {
+    onError: (
+      err: unknown,
+      payload: { itemId: number; nextActive: boolean },
+      context?: { previousActive?: boolean }
+    ) => {
+      if (typeof context?.previousActive === 'boolean') {
+        const previousActive = context.previousActive
+        setActiveMap((prev) => ({ ...prev, [payload.itemId]: previousActive }))
+      }
       const message = err instanceof Error ? err.message : 'Failed to update status'
       toast.error(message)
     },
@@ -273,18 +287,6 @@ const ItemMaster = () => {
           </span>
         ),
         meta: { thClassName: 'text-center' },
-      },
-      {
-        accessorKey: 'innerCount',
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title='Inner Count' />
-        ),
-        cell: ({ row }) => (
-          <span className='block text-center tabular-nums'>
-            {formatValue(row.getValue('innerCount'))}
-          </span>
-        ),
-        meta: { thClassName: 'w-[120px] text-center' },
       },
       {
         accessorKey: 'size',
@@ -449,22 +451,32 @@ const ItemMaster = () => {
               : activeMap[itemId] ?? resolveItemActive(row as ItemMasterRecord) ?? true
           return isActive ? 'Active' : 'Inactive'
         },
-        filterFn: (row, columnId, filterValue) => {
+        filterFn: (row, _columnId, filterValue) => {
           const values = Array.isArray(filterValue)
             ? filterValue
             : filterValue
               ? [String(filterValue)]
               : []
           if (!values.length) return true
-          const cellValue = row.getValue(columnId) as string
-          return values.includes(String(cellValue))
+          const item = row.original as ItemMasterRecord
+          const itemId = resolveItemId(item)
+          const isActive =
+            itemId == null
+              ? resolveItemActive(item) ?? true
+              : activeMap[itemId] ?? resolveItemActive(item) ?? true
+          return values.includes(isActive ? 'Active' : 'Inactive')
         },
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title='Status' />
         ),
         cell: ({ row }) => {
-          const status = row.getValue('status') as string
-          const isActive = status === 'Active'
+          const item = row.original as ItemMasterRecord
+          const itemId = resolveItemId(item)
+          const isActive =
+            itemId == null
+              ? resolveItemActive(item) ?? true
+              : activeMap[itemId] ?? resolveItemActive(item) ?? true
+          const status = isActive ? 'Active' : 'Inactive'
           return (
             <div className='flex justify-center'>
               <Badge
@@ -491,7 +503,7 @@ const ItemMaster = () => {
             return <div className='text-center'>-</div>
           }
           const isActive = activeMap[itemId] ?? resolveItemActive(row.original) ?? true
-          const isPendingRow = pendingId === itemId || toggleStatusMutation.isPending
+          const isPendingRow = pendingId === itemId
           return (
             <div className='flex justify-center'>
               <Switch
@@ -514,7 +526,7 @@ const ItemMaster = () => {
         meta: { thClassName: 'w-[120px] text-center' },
       },
     ],
-    []
+    [activeMap, pendingId, toggleStatusMutation.isPending]
   )
 
   type ItemMasterExportRow = {

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { updateBookingInvoiceWithDetails } from '@/services/sales/invoice/invoiceApi'
-import { findItemPriceById } from '@/services/sales/itemApi'
+import { getItemPricesByItemId } from '@/services/sales/itemApi'
 import type {
   BookingInvoice,
   BookingInvoiceDetailDTO,
@@ -346,30 +346,36 @@ export function BookingInvoiceItemsTable({
     })
     return Array.from(ids)
   }, [localItems])
+  const itemIds = useMemo(() => {
+    const ids = new Set<number>()
+    localItems.forEach((item) => {
+      if (typeof item.itemId === 'number') ids.add(item.itemId)
+    })
+    return Array.from(ids)
+  }, [localItems])
 
   useEffect(() => {
-    if (!priceIds.length) return
+    if (!priceIds.length || !itemIds.length) return
     let cancelled = false
     const load = async () => {
       try {
-        const entries = await Promise.all(
-          priceIds.map(async (id) => {
+        const priceIdSet = new Set(priceIds)
+        const responses = await Promise.all(
+          itemIds.map(async (itemId) => {
             try {
-              const res = await findItemPriceById(id)
-              const price = res.payload?.itemPrice
-              return typeof price === 'number' ? ([id, price] as const) : null
+              const res = await getItemPricesByItemId(itemId)
+              return res.payload ?? []
             } catch {
-              return null
+              return []
             }
           })
         )
         if (cancelled) return
         const next: Record<number, number> = {}
-        entries.forEach((entry) => {
-          if (entry) {
-            const [id, price] = entry
-            next[id] = price
-          }
+        responses.flat().forEach((priceRow) => {
+          if (!priceIdSet.has(priceRow.id)) return
+          if (typeof priceRow.itemPrice !== 'number') return
+          next[priceRow.id] = priceRow.itemPrice
         })
         setPriceMap(next)
       } catch {
@@ -380,7 +386,7 @@ export function BookingInvoiceItemsTable({
     return () => {
       cancelled = true
     }
-  }, [priceIds])
+  }, [itemIds, priceIds])
 
   const handleAddItem = (next: ItemFormValues) => {
     try {

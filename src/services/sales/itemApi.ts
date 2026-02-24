@@ -229,6 +229,7 @@ export type ItemMaster = {
 }
 
 export type GetAllItemMasterResponse = ApiResponse<ItemMaster[]>
+export type GetItemDetailsByIdResponse = ApiResponse<ItemMaster>
 export type ChangeItemStatusResponse = ApiResponse<ItemMaster>
 export type AddItemSequencePayload = {
   subChannelId: number
@@ -264,15 +265,6 @@ export type AddItemPayload = {
 }
 export type AddItemResponse = ApiResponse<ItemMaster>
 
-export async function findItemPriceById(
-  priceId: Id
-): Promise<FindItemPriceResponse> {
-  const res = await http.get<FindItemPriceResponse>(
-    `${ITEM_PRICE_BASE}/findById/${priceId}`
-  )
-  return res.data
-}
-
 export async function findItemPriceByItemId(
   itemId: Id
 ): Promise<FindItemPriceByItemResponse> {
@@ -280,6 +272,18 @@ export async function findItemPriceByItemId(
     `${ITEM_PRICE_BASE}/findByItemId/${itemId}`
   )
   return res.data
+}
+
+export async function getItemPricesByItemId(
+  itemId: Id
+): Promise<FindItemPriceByItemResponse> {
+  return findItemPriceByItemId(itemId)
+}
+
+export async function getPriceListByItemId(
+  itemId: Id
+): Promise<FindItemPriceByItemResponse> {
+  return findItemPriceByItemId(itemId)
 }
 
 export async function getPriceByTerritoryAndItemId(
@@ -477,6 +481,15 @@ export async function getAllItemsSequence(): Promise<ItemSequenceResponse> {
   return res.data
 }
 
+export async function getItemSequenceByItemId(
+  itemId: Id
+): Promise<ItemSequenceResponse> {
+  const res = await http.get<ItemSequenceResponse>(
+    `${ITEM_SEQUENCE_BASE}/findByItemId/${itemId}`
+  )
+  return res.data
+}
+
 export async function getAllCategoryType(): Promise<CategoryTypeResponse> {
   const res = await http.get<CategoryTypeResponse>(CATEGORY_TYPE_BASE)
   return res.data
@@ -489,6 +502,15 @@ export async function getItemBrands(): Promise<GetItemBrandsResponse> {
 
 export async function getAllItemMaster(): Promise<GetAllItemMasterResponse> {
   const res = await http.get<GetAllItemMasterResponse>(ITEM_MASTER_BASE)
+  return res.data
+}
+
+export async function getItemDetailsById(
+  itemId: Id
+): Promise<GetItemDetailsByIdResponse> {
+  const res = await http.get<GetItemDetailsByIdResponse>(
+    `${ITEM_GROUPED_BASE}/findById/${itemId}`
+  )
   return res.data
 }
 

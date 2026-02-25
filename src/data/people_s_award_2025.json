@@ -1,0 +1,283 @@
+{
+  "schemaVersion": 1,
+  "formId": "21",
+  "viewRoutePath": "/test-form",
+  "title": "People's Award 2025",
+  "heading": "Survey Questionnaire - People's Award 2025",
+  "subHeading": "(සමීක්ෂණ ප්‍රශ්නාවලිය - ජනගත සම්මාන 2025)",
+  "description": "Survey Questionnaire - People's Award 2025\n(සමීක්ෂණ ප්‍රශ්නාවලිය - ජනගත සම්මාන 2025)\nI would appreciate if you could take few minutes and support to success this survey by respond to this questionnaire. Kindly note that, your response will be treated as strictly confidential\nඔබට විනාඩි කිහිපයක් ගත කර මෙම ප්‍රශ්නාවලියට ප්‍රතිචාර දැක්වීමෙන් මෙම සමීක්ෂණය සාර්ථක කර ගැනීමට සහය දිය හැකි නම් මම අගය කරමි. ඔබගේ ප්‍රතිචාරය දැඩි ලෙස රහසිගත ලෙස සලකනු ලබන බව කරුණාවෙන් සලකන්න.",
+  "fields": [
+    {
+      "id": "c39f2de0-b2e9-4412-a4d1-7993e704ea6f",
+      "type": "section-heading",
+      "fieldNumber": "",
+      "sectionPadding": "",
+      "sectionMargin": "",
+      "key": "section_a",
+      "label": "Section A",
+      "placeholder": "",
+      "required": false,
+      "disabled": false,
+      "options": []
+    },
+    {
+      "id": "d772ee62-75de-4245-addd-19e946e4e2af",
+      "type": "text",
+      "fieldNumber": "01",
+      "sectionPadding": "",
+      "sectionMargin": "",
+      "key": "select_route",
+      "label": "Select Route",
+      "placeholder": "Enter text",
+      "required": true,
+      "disabled": true,
+      "options": []
+    },
+    {
+      "id": "18679993-3927-4606-95b5-ed96ac07efbe",
+      "type": "text",
+      "fieldNumber": "02",
+      "sectionPadding": "",
+      "sectionMargin": "",
+      "key": "select_outlet",
+      "label": "Select Outlet",
+      "placeholder": "Enter text 2",
+      "required": true,
+      "disabled": true,
+      "options": []
+    },
+    {
+      "id": "08327d31-e90f-4cc0-95c7-7feb7dd20589",
+      "type": "select",
+      "fieldNumber": "03",
+      "sectionPadding": "",
+      "sectionMargin": "",
+      "key": "age_group",
+      "label": "Age Group (වයස් කාණ්ඩය)",
+      "placeholder": "Select One",
+      "required": true,
+      "disabled": false,
+      "options": [
+        {
+          "value": "below-25",
+          "label": "Below 25"
+        },
+        {
+          "value": "25-50",
+          "label": "25-50"
+        },
+        {
+          "value": "50-70",
+          "label": "50-70"
+        },
+        {
+          "value": "above-70",
+          "label": "Above 70"
+        }
+      ]
+    },
+    {
+      "id": "186f36bf-b29c-4e01-96d6-6dc1dccb8f8c",
+      "type": "select",
+      "fieldNumber": "04",
+      "sectionPadding": "",
+      "sectionMargin": "",
+      "key": "gender",
+      "label": "Gender (ස්ත්‍රී පුරුෂ භාවය)",
+      "placeholder": "Select One",
+      "required": true,
+      "disabled": false,
+      "options": [
+        {
+          "value": "male",
+          "label": "Male"
+        },
+        {
+          "value": "female",
+          "label": "Female"
+        }
+      ]
+    },
+    {
+      "id": "1dfe1d1f-dc48-4fe9-9662-746be541005c",
+      "type": "select",
+      "fieldNumber": "05",
+      "sectionPadding": "",
+      "sectionMargin": "",
+      "key": "what_is_the_most_preferred_method_to_watch_teledramas_tv_programs_news",
+      "label": "What is the most preferred method to watch Teledramas/ TV Programs/ News? (බොහෝ දුරට ටෙලි නාට්‍ය/ රූපවාහිනී වැඩසටහන්/ ප්‍රවෘත්ති නැරඹීමට භාවිත කරන ක්‍රමය)",
+      "placeholder": "Select One",
+      "required": true,
+      "disabled": false,
+      "options": [
+        {
+          "value": "tv",
+          "label": "TV"
+        },
+        {
+          "value": "facebook",
+          "label": "Facebook"
+        },
+        {
+          "value": "youtube",
+          "label": "You Tube"
+        }
+      ]
+    },
+    {
+      "id": "fafa1fee-718a-4e0a-98c2-50d80407e5c5",
+      "type": "section-heading",
+      "fieldNumber": "",
+      "sectionPadding": "",
+      "sectionMargin": "0",
+      "key": "section_b_survey",
+      "label": "Section B - Survey",
+      "placeholder": "",
+      "required": false,
+      "disabled": false,
+      "options": []
+    },
+    {
+      "id": "3a8772d7-a850-4bea-9aae-71ee199a72da",
+      "type": "small-text",
+      "fieldNumber": "",
+      "sectionPadding": "",
+      "sectionMargin": "",
+      "key": "raigam_tele_es_2025_people_s_awards",
+      "label": "Raigam Tele'es 2025 - People's Awards",
+      "placeholder": "",
+      "required": false,
+      "disabled": false,
+      "options": []
+    },
+    {
+      "id": "df2e520d-97f6-4ede-9e47-f97f968e6f27",
+      "type": "select",
+      "fieldNumber": "01",
+      "sectionPadding": "",
+      "sectionMargin": "",
+      "key": "what_is_your_favorite_teledrama",
+      "label": "What is your favorite Teledrama? (ඔබ කැමතිම ටෙලිනාට්‍යය කුමක්ද?)",
+      "placeholder": "Select One",
+      "required": true,
+      "disabled": false,
+      "options": [
+        {
+          "value": "option_1",
+          "label": "Option 1"
+        }
+      ]
+    },
+    {
+      "id": "89e096b1-b4d4-4f02-8918-16e121e0ee1f",
+      "type": "select",
+      "fieldNumber": "02",
+      "sectionPadding": "",
+      "sectionMargin": "",
+      "key": "what_is_your_favorite_media_program",
+      "label": "What is your favorite media program? (ඔබේ ප්‍රියතම මාධ්‍ය වැඩසටහන කුමක්ද?)",
+      "placeholder": "Select One",
+      "required": true,
+      "disabled": false,
+      "options": [
+        {
+          "value": "option_1",
+          "label": "Option 1"
+        },
+        {
+          "value": "option_2",
+          "label": "Option 2"
+        }
+      ]
+    },
+    {
+      "id": "4b912dac-8afa-4d24-9f49-5a429e2b5a8e",
+      "type": "select",
+      "fieldNumber": "03",
+      "sectionPadding": "",
+      "sectionMargin": "",
+      "key": "what_is_your_favorite_news_bulletin",
+      "label": "What is your favorite news bulletin? (ඔබේ ප්‍රියතම ප්‍රවෘත්ති නාලිකාව කුමක්ද)",
+      "placeholder": "Select One",
+      "required": true,
+      "disabled": false,
+      "options": [
+        {
+          "value": "option_1",
+          "label": "Option 1"
+        },
+        {
+          "value": "option_2",
+          "label": "Option 2"
+        }
+      ]
+    },
+    {
+      "id": "f6ed8fa4-0264-4757-bbd2-430fcc488f16",
+      "type": "select",
+      "fieldNumber": "04",
+      "sectionPadding": "",
+      "sectionMargin": "",
+      "key": "what_is_your_favorite_tv_channel_tv",
+      "label": "What is your favorite TV channel? (ඔබේ ප්‍රියතම TV නාලිකාව කුමක්ද)",
+      "placeholder": "Select One",
+      "required": true,
+      "disabled": false,
+      "options": [
+        {
+          "value": "option_1",
+          "label": "Option 1"
+        },
+        {
+          "value": "option_2",
+          "label": "Option 2"
+        }
+      ]
+    },
+    {
+      "id": "04c48dc0-9ce9-4ded-826e-0e7a2889db07",
+      "type": "select",
+      "fieldNumber": "05",
+      "sectionPadding": "",
+      "sectionMargin": "",
+      "key": "what_is_your_favorite_actor",
+      "label": "What is your favorite Actor? (ඔබේ ප්‍රියතම නළුවා කවුරුද?)",
+      "placeholder": "Select One",
+      "required": true,
+      "disabled": false,
+      "options": [
+        {
+          "value": "option_1",
+          "label": "Option 1"
+        },
+        {
+          "value": "option_2",
+          "label": "Option 2"
+        }
+      ]
+    },
+    {
+      "id": "788250ab-7121-4396-bcf9-4f5e9009a7aa",
+      "type": "select",
+      "fieldNumber": "06",
+      "sectionPadding": "",
+      "sectionMargin": "",
+      "key": "what_is_your_favorite_actress",
+      "label": "What is your favorite Actress? (ඔබේ ප්‍රියතම නිළිය කවුරුද?)",
+      "placeholder": "Select One",
+      "required": true,
+      "disabled": false,
+      "options": [
+        {
+          "value": "option_1",
+          "label": "Option 1"
+        },
+        {
+          "value": "option_2",
+          "label": "Option 2"
+        }
+      ]
+    }
+  ],
+  "updatedAt": "2026-02-25T10:33:13.901Z"
+}

@@ -492,10 +492,12 @@ export function PeoplesAwardSurvey({
       }
     >
       <Card className={embedded ? 'mx-auto w-full max-w-3xl' : 'w-full max-w-3xl'}>
-        <CardHeader className='space-y-4'>
-          <CardTitle className='text-2xl leading-tight md:text-3xl'>
-            Survey Questionnaire - People's Award 2025 <br />
-            (සමීක්ෂණ ප්‍රශ්නාවලිය - ජනගත සම්මාන 2025)
+        <CardHeader className='space-y-4 text-left'>
+          <CardTitle className='text-xl leading-snug sm:text-2xl md:text-3xl lg:text-4xl'>
+            <span className='block'>Survey Questionnaire - People&apos;s Award 2025</span>
+            <span className='mt-1 block text-base sm:text-xl md:text-2xl'>
+              (සමීක්ෂණ ප්‍රශ්නාවලිය - ජනගත සම්මාන 2025)
+            </span>
           </CardTitle>
           <CardDescription className='text-sm leading-relaxed md:text-base'>
             I would appreciate if you could take few minutes and support to
@@ -508,7 +510,10 @@ export function PeoplesAwardSurvey({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form className='space-y-8' onSubmit={handleSubmit}>
+          <form
+            className='space-y-8 [&_label]:leading-[18px]'
+            onSubmit={handleSubmit}
+          >
             <section className='space-y-5'>
               {(repUserName || dealerCode || outletName) && (
                 <div className='bg-muted/40 rounded-lg border p-4'>

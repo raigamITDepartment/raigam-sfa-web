@@ -306,33 +306,30 @@ export function PeopleAward() {
   const locationSearch = useLocation({ select: (location) => location.search })
   const locationHref = useLocation({ select: (location) => location.href })
 
-  const queryParams = useMemo(
-    () => {
-      const fromWindowSearch =
-        typeof window !== 'undefined'
-          ? normalizeQueryParams(window.location.search)
-          : {}
-      if (Object.keys(fromWindowSearch).length > 0) {
-        return fromWindowSearch
-      }
+  const queryParams = useMemo(() => {
+    const fromWindowSearch =
+      typeof window !== 'undefined'
+        ? normalizeQueryParams(window.location.search)
+        : {}
+    if (Object.keys(fromWindowSearch).length > 0) {
+      return fromWindowSearch
+    }
 
-      const fromRouterSearch = normalizeQueryParamsFromUnknown(locationSearch)
-      if (Object.keys(fromRouterSearch).length > 0) return fromRouterSearch
+    const fromRouterSearch = normalizeQueryParamsFromUnknown(locationSearch)
+    if (Object.keys(fromRouterSearch).length > 0) return fromRouterSearch
 
-      const hrefSource =
-        typeof window !== 'undefined' && window.location.href
-          ? window.location.href
-          : locationHref
-      const queryIndex = hrefSource.indexOf('?')
-      if (queryIndex >= 0) {
-        const fromHref = normalizeQueryParams(hrefSource.slice(queryIndex))
-        if (Object.keys(fromHref).length > 0) return fromHref
-      }
+    const hrefSource =
+      typeof window !== 'undefined' && window.location.href
+        ? window.location.href
+        : locationHref
+    const queryIndex = hrefSource.indexOf('?')
+    if (queryIndex >= 0) {
+      const fromHref = normalizeQueryParams(hrefSource.slice(queryIndex))
+      if (Object.keys(fromHref).length > 0) return fromHref
+    }
 
-      return {}
-    },
-    [locationSearch, locationHref]
-  )
+    return {}
+  }, [locationSearch, locationHref])
 
   const repUserName = useMemo(
     () => getFirstQueryValue(queryParams, ['repUserName', 'RepUserName']),
@@ -393,7 +390,11 @@ export function PeopleAward() {
       base,
       'route'
     )
-    return withPrefilledOption(base, resolved, routeName || `Route: ${resolved}`)
+    return withPrefilledOption(
+      base,
+      resolved,
+      routeName || `Route: ${resolved}`
+    )
   }, [config?.routeOptions, queryParams, routeName])
 
   const outletOptions = useMemo(() => {
@@ -476,7 +477,8 @@ export function PeopleAward() {
   }, [config, initialValues, selectedRouteValue, selectedOutletValue])
 
   const allFields = useMemo(
-    () => config?.formConfig.sections.flatMap((section) => section.fields) ?? [],
+    () =>
+      config?.formConfig.sections.flatMap((section) => section.fields) ?? [],
     [config]
   )
 
@@ -592,7 +594,9 @@ export function PeopleAward() {
     return (
       <Card className='mx-auto w-full max-w-3xl'>
         <CardContent className='py-6'>
-          <p className='text-muted-foreground text-sm'>Loading survey form...</p>
+          <p className='text-muted-foreground text-sm'>
+            Loading survey form...
+          </p>
         </CardContent>
       </Card>
     )
@@ -600,9 +604,12 @@ export function PeopleAward() {
 
   return (
     <Card className='mx-auto w-full max-w-3xl'>
-      <CardHeader className='space-y-4'>
-        <CardTitle className='text-2xl leading-tight md:text-3xl'>
-          {config.formConfig.title} <br />({config.formConfig.titleSi})
+      <CardHeader className='space-y-4 text-left'>
+        <CardTitle className='text-xl leading-snug sm:text-2xl md:text-3xl lg:text-4xl'>
+          <span className='block text-center'>{config.formConfig.title}</span>
+          <span className='mt-1 block text-center text-base sm:text-xl md:text-2xl'>
+            ({config.formConfig.titleSi})
+          </span>
         </CardTitle>
         <CardDescription className='text-sm leading-relaxed md:text-base'>
           {config.formConfig.introEn}
@@ -612,7 +619,10 @@ export function PeopleAward() {
       </CardHeader>
 
       <CardContent>
-        <form className='space-y-8' onSubmit={handleSubmit}>
+        <form
+          className='space-y-8 [&_label]:leading-[18px]'
+          onSubmit={handleSubmit}
+        >
           {(repUserName || dealerCode || outletName) && (
             <section className='bg-muted/40 rounded-lg border p-4'>
               <div className='grid gap-3 md:grid-cols-3'>
@@ -620,19 +630,25 @@ export function PeopleAward() {
                   <p className='text-muted-foreground text-xs font-medium tracking-wide uppercase'>
                     Rep User Name
                   </p>
-                  <p className='mt-1 text-sm font-semibold'>{repUserName || '-'}</p>
+                  <p className='mt-1 text-sm font-semibold'>
+                    {repUserName || '-'}
+                  </p>
                 </div>
                 <div className='bg-background rounded-md border p-3'>
                   <p className='text-muted-foreground text-xs font-medium tracking-wide uppercase'>
                     Dealer Code
                   </p>
-                  <p className='mt-1 text-sm font-semibold'>{dealerCode || '-'}</p>
+                  <p className='mt-1 text-sm font-semibold'>
+                    {dealerCode || '-'}
+                  </p>
                 </div>
                 <div className='bg-background rounded-md border p-3'>
                   <p className='text-muted-foreground text-xs font-medium tracking-wide uppercase'>
                     Outlet Name
                   </p>
-                  <p className='mt-1 text-sm font-semibold'>{outletName || '-'}</p>
+                  <p className='mt-1 text-sm font-semibold'>
+                    {outletName || '-'}
+                  </p>
                 </div>
               </div>
             </section>
@@ -654,7 +670,8 @@ export function PeopleAward() {
                 const isGrouped =
                   field.optionsSource === 'teleDramas' ||
                   field.optionsSource === 'mediaPrograms'
-                const isTextField = field.key === 'route' || field.key === 'outlet'
+                const isTextField =
+                  field.key === 'route' || field.key === 'outlet'
                 const textFieldValue =
                   field.key === 'route' ? routeInputValue : outletInputValue
 
@@ -695,11 +712,16 @@ export function PeopleAward() {
                         <SelectContent>
                           {isGrouped && options && !Array.isArray(options)
                             ? renderGroupedOptions(options as GroupedOptions)
-                            : (options as SelectOption[] | null)?.map((option) => (
-                                <SelectItem key={option.value} value={option.value}>
-                                  {option.label}
-                                </SelectItem>
-                              ))}
+                            : (options as SelectOption[] | null)?.map(
+                                (option) => (
+                                  <SelectItem
+                                    key={option.value}
+                                    value={option.value}
+                                  >
+                                    {option.label}
+                                  </SelectItem>
+                                )
+                              )}
                         </SelectContent>
                       </Select>
                     )}

@@ -44,6 +44,8 @@ type FieldName =
 
 type SurveyValues = Record<FieldName, string>
 type SurveyErrors = Partial<Record<FieldName, string>>
+type SurveySearch = Record<string, string | undefined>
+type Option = { value: string; label: string }
 
 const INITIAL_VALUES: SurveyValues = {
   route: '',
@@ -73,7 +75,134 @@ const REQUIRED_FIELDS: FieldName[] = [
   'favoriteActress',
 ]
 
+const DEFAULT_ROUTE_OPTIONS: Option[] = [
+  { value: 'route-1', label: 'Route 1' },
+  { value: 'route-2', label: 'Route 2' },
+  { value: 'route-3', label: 'Route 3' },
+]
+
+const DEFAULT_OUTLET_OPTIONS: Option[] = [
+  { value: 'outlet-1', label: 'Outlet 1' },
+  { value: 'outlet-2', label: 'Outlet 2' },
+  { value: 'outlet-3', label: 'Outlet 3' },
+]
+
 const surveyDataUrl = new URL('../data/survey.json', import.meta.url).href
+
+function normalizeSearchParams(search: SurveySearch): Record<string, string> {
+  return Object.entries(search).reduce<Record<string, string>>(
+    (accumulator, [key, value]) => {
+      if (typeof value === 'string' && value.length > 0) {
+        accumulator[key] = value
+      }
+      return accumulator
+    },
+    {}
+  )
+}
+
+function getFirstQueryValue(
+  query: Record<string, string>,
+  keys: readonly string[]
+): string {
+  for (const key of keys) {
+    const value = query[key]
+    if (value) return value
+  }
+  return ''
+}
+
+function deriveRouteFromQuery(query: Record<string, string>): string {
+  const direct = getFirstQueryValue(query, [
+    'routeId',
+    'RouteId',
+    'route',
+    'Route',
+    'routeCode',
+    'RouteCode',
+  ])
+  if (direct) return direct
+
+  const dealerCode = query.DealerCode ?? query.dealerCode
+  if (!dealerCode) return ''
+
+  const [routeSegment] = dealerCode.split('/').filter(Boolean)
+  return routeSegment ?? ''
+}
+
+function deriveOutletFromQuery(query: Record<string, string>): string {
+  const direct = getFirstQueryValue(query, [
+    'outletId',
+    'OutletId',
+    'outlet',
+    'Outlet',
+    'outletCode',
+    'OutletCode',
+  ])
+  if (direct) return direct
+
+  const dealerCode = query.DealerCode ?? query.dealerCode
+  if (dealerCode) {
+    const [, outletSegment] = dealerCode.split('/').filter(Boolean)
+    if (outletSegment) return outletSegment
+  }
+
+  return query.unique_id ?? ''
+}
+
+function deriveRouteLabelFromQuery(query: Record<string, string>): string {
+  return getFirstQueryValue(query, ['routeName', 'RouteName'])
+}
+
+function deriveOutletLabelFromQuery(query: Record<string, string>): string {
+  return getFirstQueryValue(query, ['outletName', 'OutletName'])
+}
+
+function deriveRepUserNameFromQuery(query: Record<string, string>): string {
+  return getFirstQueryValue(query, ['repUserName', 'RepUserName'])
+}
+
+function deriveDealerCodeFromQuery(query: Record<string, string>): string {
+  return getFirstQueryValue(query, ['DealerCode', 'dealerCode'])
+}
+
+function resolvePrefilledSelection(
+  value: string,
+  options: Option[],
+  prefix: string
+): string {
+  if (!value) return ''
+  if (options.some((option) => option.value === value)) return value
+
+  const prefixedValue = `${prefix}-${value}`
+  if (options.some((option) => option.value === prefixedValue)) {
+    return prefixedValue
+  }
+
+  return value
+}
+
+function createInitialFormValues(
+  prefilledRoute: string,
+  prefilledOutlet: string
+): SurveyValues {
+  return {
+    ...INITIAL_VALUES,
+    route: prefilledRoute,
+    outlet: prefilledOutlet,
+  }
+}
+
+function withPrefilledOption(
+  options: Option[],
+  value: string,
+  label: string
+): Option[] {
+  if (!value || options.some((option) => option.value === value)) {
+    return options
+  }
+  return [{ value, label }, ...options]
+}
 
 function shuffleArray<T>(items: T[]): T[] {
   const shuffled = [...items]
@@ -124,10 +253,98 @@ function renderGroupedOptions(data: Record<string, Record<string, string>>) {
 }
 
 function SurveyPage() {
+  const search = Route.useSearch()
+  const queryParams = useMemo(
+    () => normalizeSearchParams(search as SurveySearch),
+    [search]
+  )
+  const prefilledRoute = useMemo(
+    () =>
+      resolvePrefilledSelection(
+        deriveRouteFromQuery(queryParams),
+        DEFAULT_ROUTE_OPTIONS,
+        'route'
+      ),
+    [queryParams]
+  )
+  const prefilledRouteLabel = useMemo(
+    () => deriveRouteLabelFromQuery(queryParams),
+    [queryParams]
+  )
+  const prefilledOutlet = useMemo(
+    () =>
+      resolvePrefilledSelection(
+        deriveOutletFromQuery(queryParams),
+        DEFAULT_OUTLET_OPTIONS,
+        'outlet'
+      ),
+    [queryParams]
+  )
+  const prefilledOutletLabel = useMemo(
+    () => deriveOutletLabelFromQuery(queryParams),
+    [queryParams]
+  )
+  const repUserName = useMemo(
+    () => deriveRepUserNameFromQuery(queryParams),
+    [queryParams]
+  )
+  const dealerCode = useMemo(
+    () => deriveDealerCodeFromQuery(queryParams),
+    [queryParams]
+  )
+  const outletName = useMemo(
+    () => deriveOutletLabelFromQuery(queryParams),
+    [queryParams]
+  )
+  const initialFormValues = useMemo(
+    () => createInitialFormValues(prefilledRoute, prefilledOutlet),
+    [prefilledRoute, prefilledOutlet]
+  )
+  const routeOptions = useMemo(
+    () =>
+      withPrefilledOption(
+        DEFAULT_ROUTE_OPTIONS,
+        prefilledRoute,
+        prefilledRouteLabel || `Route: ${prefilledRoute}`
+      ),
+    [prefilledRoute, prefilledRouteLabel]
+  )
+  const outletOptions = useMemo(
+    () =>
+      withPrefilledOption(
+        DEFAULT_OUTLET_OPTIONS,
+        prefilledOutlet,
+        prefilledOutletLabel || `Outlet: ${prefilledOutlet}`
+      ),
+    [prefilledOutlet, prefilledOutletLabel]
+  )
+
   const [surveyData, setSurveyData] = useState<SurveyData | null>(null)
   const [dataError, setDataError] = useState<string | null>(null)
-  const [formValues, setFormValues] = useState<SurveyValues>(INITIAL_VALUES)
+  const [formValues, setFormValues] = useState<SurveyValues>(initialFormValues)
   const [fieldErrors, setFieldErrors] = useState<SurveyErrors>({})
+
+  useEffect(() => {
+    setFormValues((current) => {
+      const nextRoute = initialFormValues.route
+      const nextOutlet = initialFormValues.outlet
+      if (current.route === nextRoute && current.outlet === nextOutlet) {
+        return current
+      }
+      return {
+        ...current,
+        route: nextRoute,
+        outlet: nextOutlet,
+      }
+    })
+
+    setFieldErrors((current) => {
+      const next = { ...current }
+      if (initialFormValues.route) delete next.route
+      if (initialFormValues.outlet) delete next.outlet
+      return next
+    })
+  }, [initialFormValues.route, initialFormValues.outlet])
 
   useEffect(() => {
     let active = true
@@ -174,9 +391,16 @@ function SurveyPage() {
       return
     }
 
+    const finalDataObject = {
+      ...queryParams,
+      ...formValues,
+    }
+    // eslint-disable-next-line no-console
+    console.log('Final Survey Data Object:', finalDataObject)
+
     event.currentTarget.reset()
     setFieldErrors({})
-    setFormValues(INITIAL_VALUES)
+    setFormValues(initialFormValues)
     toast.success('Survey response captured successfully.')
   }
 
@@ -192,7 +416,7 @@ function SurveyPage() {
 
   const handleReset = () => {
     setFieldErrors({})
-    setFormValues(INITIAL_VALUES)
+    setFormValues(initialFormValues)
   }
 
   const dataLoading = !surveyData && !dataError
@@ -227,6 +451,37 @@ function SurveyPage() {
         <CardContent>
           <form className='space-y-8' onSubmit={handleSubmit}>
             <section className='space-y-5'>
+              {(repUserName || dealerCode || outletName) && (
+                <div className='bg-muted/40 rounded-lg border p-4'>
+                  <div className='grid gap-3 md:grid-cols-3'>
+                    <div className='bg-background rounded-md border p-3'>
+                      <p className='text-muted-foreground text-xs font-medium tracking-wide uppercase'>
+                        Rep User Name
+                      </p>
+                      <p className='mt-1 text-sm font-semibold'>
+                        {repUserName || '-'}
+                      </p>
+                    </div>
+                    <div className='bg-background rounded-md border p-3'>
+                      <p className='text-muted-foreground text-xs font-medium tracking-wide uppercase'>
+                        Dealer Code
+                      </p>
+                      <p className='mt-1 text-sm font-semibold'>
+                        {dealerCode || '-'}
+                      </p>
+                    </div>
+                    <div className='bg-background rounded-md border p-3'>
+                      <p className='text-muted-foreground text-xs font-medium tracking-wide uppercase'>
+                        Outlet Name
+                      </p>
+                      <p className='mt-1 text-sm font-semibold'>
+                        {outletName || '-'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div>
                 <h2 className='text-lg font-semibold'>Section A</h2>
               </div>
@@ -240,14 +495,17 @@ function SurveyPage() {
                   required
                   value={formValues.route}
                   onValueChange={(value) => handleValueChange('route', value)}
+                  disabled
                 >
                   <SelectTrigger id='route' className='w-full'>
                     <SelectValue placeholder='Select Route' />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value='route-1'>Route 1</SelectItem>
-                    <SelectItem value='route-2'>Route 2</SelectItem>
-                    <SelectItem value='route-3'>Route 3</SelectItem>
+                    {routeOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 {fieldErrors.route && (
@@ -264,14 +522,17 @@ function SurveyPage() {
                   required
                   value={formValues.outlet}
                   onValueChange={(value) => handleValueChange('outlet', value)}
+                  disabled
                 >
                   <SelectTrigger id='outlet' className='w-full'>
                     <SelectValue placeholder='Select Outlet' />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value='outlet-1'>Outlet 1</SelectItem>
-                    <SelectItem value='outlet-2'>Outlet 2</SelectItem>
-                    <SelectItem value='outlet-3'>Outlet 3</SelectItem>
+                    {outletOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 {fieldErrors.outlet && (
@@ -582,5 +843,22 @@ function SurveyPage() {
 }
 
 export const Route = createFileRoute('/survey')({
+  validateSearch: (search: Record<string, unknown>) => {
+    const normalized: SurveySearch = {}
+    Object.entries(search).forEach(([key, value]) => {
+      if (typeof value === 'string') {
+        normalized[key] = value
+        return
+      }
+      if (typeof value === 'number' || typeof value === 'boolean') {
+        normalized[key] = String(value)
+        return
+      }
+      if (Array.isArray(value) && value.length > 0) {
+        normalized[key] = String(value[0])
+      }
+    })
+    return normalized
+  },
   component: SurveyPage,
 })

@@ -6,6 +6,7 @@ export const ITEM_MAIN_CATEGORY_BASE = '/api/v1/sales/itemMainCategory'
 export const ITEM_GROUPED_BASE = '/api/v1/sales/item'
 export const ITEM_SEQUENCE_BASE = '/api/v1/sales/itemSequence'
 export const CATEGORY_TYPE_BASE = '/api/v1/sales/categoryType'
+export const ITEM_TYPE_BASE = '/api/v1/sales/itemType'
 export const ITEM_SUB_CATEGORY_ONE_BASE = '/api/v1/sales/itemSubCategoryOne'
 export const ITEM_SUB_CATEGORY_TWO_BASE = '/api/v1/sales/itemSubCategoryTwo'
 export const ITEM_SUB_CATEGORY_THREE_BASE = '/api/v1/sales/itemSubCategoryThree'
@@ -188,6 +189,14 @@ export type UpdateCategoryTypePayload = {
 export type UpdateCategoryTypeResponse = ApiResponse<CategoryType>
 export type ChangeCategoryTypeStatusResponse = ApiResponse<CategoryType>
 export type FindCategoryTypeByIdResponse = ApiResponse<CategoryType>
+export type ItemBrand = {
+  id: number
+  userId: number | null
+  itemTypeName: string | null
+  itemType?: string | null
+  isActive: boolean
+}
+export type GetItemBrandsResponse = ApiResponse<ItemBrand[]>
 
 export type ItemMaster = {
   imagePath: string | null
@@ -220,16 +229,41 @@ export type ItemMaster = {
 }
 
 export type GetAllItemMasterResponse = ApiResponse<ItemMaster[]>
+export type GetItemDetailsByIdResponse = ApiResponse<ItemMaster>
 export type ChangeItemStatusResponse = ApiResponse<ItemMaster>
-
-export async function findItemPriceById(
-  priceId: Id
-): Promise<FindItemPriceResponse> {
-  const res = await http.get<FindItemPriceResponse>(
-    `${ITEM_PRICE_BASE}/findById/${priceId}`
-  )
-  return res.data
+export type AddItemSequencePayload = {
+  subChannelId: number
+  itemId: number
+  isActive: boolean
 }
+export type AddItemPricePayload = {
+  itemId: number
+  subChannelId: number
+  itemPrice: number
+  startDate: string
+  validTill: string
+  isActive: boolean
+}
+export type AddItemPayload = {
+  userId: number
+  itemTypeId: number
+  subTwoCatId: number
+  subThreeCatId: number
+  itemName: string
+  ln: number
+  unitOfMeasure: string
+  innerCount: number
+  size: string
+  volume: number
+  weight: number
+  measurement: string
+  sapCode: string
+  imagePath: string
+  isActive: boolean
+  itemSequenceDTOList: AddItemSequencePayload[]
+  itemPriceDTOList: AddItemPricePayload[]
+}
+export type AddItemResponse = ApiResponse<ItemMaster>
 
 export async function findItemPriceByItemId(
   itemId: Id
@@ -238,6 +272,18 @@ export async function findItemPriceByItemId(
     `${ITEM_PRICE_BASE}/findByItemId/${itemId}`
   )
   return res.data
+}
+
+export async function getItemPricesByItemId(
+  itemId: Id
+): Promise<FindItemPriceByItemResponse> {
+  return findItemPriceByItemId(itemId)
+}
+
+export async function getPriceListByItemId(
+  itemId: Id
+): Promise<FindItemPriceByItemResponse> {
+  return findItemPriceByItemId(itemId)
 }
 
 export async function getPriceByTerritoryAndItemId(
@@ -376,6 +422,15 @@ export async function getAllSubSubCategory(): Promise<GetAllSubSubCategoryRespon
   return res.data
 }
 
+export async function getSubSubCategorybySubCatId(
+  subCatId: number
+): Promise<GetAllSubSubCategoryResponse> {
+  const res = await http.get<GetAllSubSubCategoryResponse>(
+    `${ITEM_SUB_CATEGORY_TWO_BASE}/getAllItemSubCatTwosBySubCatOneId/${subCatId}`
+  )
+  return res.data
+}
+
 export async function getAllFlavour(): Promise<GetAllFlavourResponse> {
   const res = await http.get<GetAllFlavourResponse>(
     ITEM_SUB_CATEGORY_THREE_BASE
@@ -426,13 +481,41 @@ export async function getAllItemsSequence(): Promise<ItemSequenceResponse> {
   return res.data
 }
 
+export async function getItemSequenceByItemId(
+  itemId: Id
+): Promise<ItemSequenceResponse> {
+  const res = await http.get<ItemSequenceResponse>(
+    `${ITEM_SEQUENCE_BASE}/findByItemId/${itemId}`
+  )
+  return res.data
+}
+
 export async function getAllCategoryType(): Promise<CategoryTypeResponse> {
   const res = await http.get<CategoryTypeResponse>(CATEGORY_TYPE_BASE)
   return res.data
 }
 
+export async function getItemBrands(): Promise<GetItemBrandsResponse> {
+  const res = await http.get<GetItemBrandsResponse>(ITEM_TYPE_BASE)
+  return res.data
+}
+
 export async function getAllItemMaster(): Promise<GetAllItemMasterResponse> {
   const res = await http.get<GetAllItemMasterResponse>(ITEM_MASTER_BASE)
+  return res.data
+}
+
+export async function getItemDetailsById(
+  itemId: Id
+): Promise<GetItemDetailsByIdResponse> {
+  const res = await http.get<GetItemDetailsByIdResponse>(
+    `${ITEM_GROUPED_BASE}/findById/${itemId}`
+  )
+  return res.data
+}
+
+export async function addItem(payload: AddItemPayload): Promise<AddItemResponse> {
+  const res = await http.post<AddItemResponse>(ITEM_GROUPED_BASE, payload)
   return res.data
 }
 
@@ -443,6 +526,12 @@ export async function changeStatusItem(
     `${ITEM_GROUPED_BASE}/deactivateItem/${itemId}`
   )
   return res.data
+}
+
+export async function chageStatusItem(
+  itemId: number
+): Promise<ChangeItemStatusResponse> {
+  return changeStatusItem(itemId)
 }
 
 export async function addCategoryType(

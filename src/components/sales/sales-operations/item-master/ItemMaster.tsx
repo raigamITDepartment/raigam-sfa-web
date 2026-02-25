@@ -18,6 +18,11 @@ import {
 import {
   changeStatusItem,
   getAllItemMaster,
+  getItemDetailsById,
+  getItemSequenceByItemId,
+  getPriceListByItemId,
+  type ItemPrice,
+  type ItemSequence,
   type ItemMaster as ItemMasterRecord,
 } from '@/services/sales/itemApi'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -45,13 +50,40 @@ import {
   ExcelExportButton,
   type ExcelExportColumn,
 } from '@/components/excel-export-button'
-import { Plus } from 'lucide-react'
+import FullWidthDialog from '@/components/FullWidthDialog'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import {
+  CircleDollarSign,
+  Eye,
+  ListOrdered,
+  Pencil,
+  Plus,
+} from 'lucide-react'
 
 const formatValue = (value?: string | number | null) => {
   if (value === null || value === undefined || `${value}`.trim() === '') {
     return '-'
   }
   return `${value}`
+}
+
+const formatDateValue = (value?: string | null) => {
+  if (!value || value.trim() === '') return '-'
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return value
+  return parsed.toLocaleDateString('en-GB', {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+  })
+}
+
+const formatCurrencyValue = (value?: number | null) => {
+  if (value === null || value === undefined || Number.isNaN(value)) return '-'
+  return new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value)
 }
 
 const buildFacetOptions = (values: (string | undefined | null)[]) => {
@@ -108,6 +140,54 @@ const ItemMaster = () => {
     nextActive: boolean
     itemName?: string | null
   } | null>(null)
+  const [viewItem, setViewItem] = useState<ItemMasterRecord | null>(null)
+  const isViewDialogOpen = Boolean(viewItem)
+  const viewItemId = useMemo(() => (viewItem ? resolveItemId(viewItem) : null), [viewItem])
+
+  const {
+    data: viewItemDetails,
+    isLoading: isViewItemDetailsLoading,
+    isError: isViewItemDetailsError,
+    error: viewItemDetailsError,
+  } = useQuery({
+    queryKey: ['item-master', 'view', 'details', viewItemId],
+    enabled: isViewDialogOpen && viewItemId !== null,
+    queryFn: async () => {
+      if (viewItemId === null) return null
+      const res = await getItemDetailsById(viewItemId)
+      return (res.payload ?? null) as ItemMasterRecord | null
+    },
+  })
+
+  const {
+    data: viewItemPrices = [],
+    isLoading: isViewItemPricesLoading,
+    isError: isViewItemPricesError,
+    error: viewItemPricesError,
+  } = useQuery({
+    queryKey: ['item-master', 'view', 'prices', viewItemId],
+    enabled: isViewDialogOpen && viewItemId !== null,
+    queryFn: async () => {
+      if (viewItemId === null) return []
+      const res = await getPriceListByItemId(viewItemId)
+      return (res.payload ?? []) as ItemPrice[]
+    },
+  })
+
+  const {
+    data: viewItemSequences = [],
+    isLoading: isViewItemSequencesLoading,
+    isError: isViewItemSequencesError,
+    error: viewItemSequencesError,
+  } = useQuery({
+    queryKey: ['item-master', 'view', 'sequences', viewItemId],
+    enabled: isViewDialogOpen && viewItemId !== null,
+    queryFn: async () => {
+      if (viewItemId === null) return []
+      const res = await getItemSequenceByItemId(viewItemId)
+      return (res.payload ?? []) as ItemSequence[]
+    },
+  })
 
   const companyFilterOptions = useMemo(
     () => buildFacetOptions(rows.map((row) => row.itemTypeName)),
@@ -151,6 +231,12 @@ const ItemMaster = () => {
   const toggleStatusMutation = useMutation({
     onMutate: (payload) => {
       setPendingId(payload.itemId)
+      let previousActive: boolean | undefined
+      setActiveMap((prev) => {
+        previousActive = prev[payload.itemId]
+        return { ...prev, [payload.itemId]: payload.nextActive }
+      })
+      return { previousActive }
     },
     mutationFn: async (payload: { itemId: number; nextActive: boolean }) => {
       const response = await changeStatusItem(payload.itemId)
@@ -168,7 +254,15 @@ const ItemMaster = () => {
       setActiveMap((prev) => ({ ...prev, [payload.itemId]: nextActive }))
       queryClient.invalidateQueries({ queryKey: ['item-master'] })
     },
-    onError: (err: unknown) => {
+    onError: (
+      err: unknown,
+      payload: { itemId: number; nextActive: boolean },
+      context?: { previousActive?: boolean }
+    ) => {
+      if (typeof context?.previousActive === 'boolean') {
+        const previousActive = context.previousActive
+        setActiveMap((prev) => ({ ...prev, [payload.itemId]: previousActive }))
+      }
       const message = err instanceof Error ? err.message : 'Failed to update status'
       toast.error(message)
     },
@@ -273,18 +367,6 @@ const ItemMaster = () => {
           </span>
         ),
         meta: { thClassName: 'text-center' },
-      },
-      {
-        accessorKey: 'innerCount',
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title='Inner Count' />
-        ),
-        cell: ({ row }) => (
-          <span className='block text-center tabular-nums'>
-            {formatValue(row.getValue('innerCount'))}
-          </span>
-        ),
-        meta: { thClassName: 'w-[120px] text-center' },
       },
       {
         accessorKey: 'size',
@@ -449,22 +531,32 @@ const ItemMaster = () => {
               : activeMap[itemId] ?? resolveItemActive(row as ItemMasterRecord) ?? true
           return isActive ? 'Active' : 'Inactive'
         },
-        filterFn: (row, columnId, filterValue) => {
+        filterFn: (row, _columnId, filterValue) => {
           const values = Array.isArray(filterValue)
             ? filterValue
             : filterValue
               ? [String(filterValue)]
               : []
           if (!values.length) return true
-          const cellValue = row.getValue(columnId) as string
-          return values.includes(String(cellValue))
+          const item = row.original as ItemMasterRecord
+          const itemId = resolveItemId(item)
+          const isActive =
+            itemId == null
+              ? resolveItemActive(item) ?? true
+              : activeMap[itemId] ?? resolveItemActive(item) ?? true
+          return values.includes(isActive ? 'Active' : 'Inactive')
         },
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title='Status' />
         ),
         cell: ({ row }) => {
-          const status = row.getValue('status') as string
-          const isActive = status === 'Active'
+          const item = row.original as ItemMasterRecord
+          const itemId = resolveItemId(item)
+          const isActive =
+            itemId == null
+              ? resolveItemActive(item) ?? true
+              : activeMap[itemId] ?? resolveItemActive(item) ?? true
+          const status = isActive ? 'Active' : 'Inactive'
           return (
             <div className='flex justify-center'>
               <Badge
@@ -486,21 +578,87 @@ const ItemMaster = () => {
         id: 'action',
         header: () => <div className='text-center'>Action</div>,
         cell: ({ row }) => {
-          const itemId = resolveItemId(row.original as ItemMasterRecord)
+          const item = row.original as ItemMasterRecord
+          const itemId = resolveItemId(item)
           if (itemId == null) {
             return <div className='text-center'>-</div>
           }
-          const isActive = activeMap[itemId] ?? resolveItemActive(row.original) ?? true
-          const isPendingRow = pendingId === itemId || toggleStatusMutation.isPending
+          const itemName = item.itemName ?? `Item ${itemId}`
+          const isActive = activeMap[itemId] ?? resolveItemActive(item) ?? true
+          const isPendingRow = pendingId === itemId
           return (
-            <div className='flex justify-center'>
+            <div className='flex items-center justify-center gap-1'>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type='button'
+                    variant='ghost'
+                    size='icon'
+                    className='h-8 w-8'
+                    aria-label='View item'
+                    disabled={isPendingRow}
+                    onClick={() => setViewItem(item)}
+                  >
+                    <Eye className='h-4 w-4' />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side='top'>View</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type='button'
+                    variant='ghost'
+                    size='icon'
+                    className='h-8 w-8'
+                    aria-label='Edit item'
+                    disabled={isPendingRow}
+                    onClick={() => toast.info(`Edit item: ${itemName}`)}
+                  >
+                    <Pencil className='h-4 w-4' />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side='top'>Edit</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type='button'
+                    variant='ghost'
+                    size='icon'
+                    className='h-8 w-8'
+                    aria-label='Add price'
+                    disabled={isPendingRow}
+                    onClick={() => toast.info(`Add price for: ${itemName}`)}
+                  >
+                    <CircleDollarSign className='h-4 w-4' />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side='top'>Add Price</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type='button'
+                    variant='ghost'
+                    size='icon'
+                    className='h-8 w-8'
+                    aria-label='Add sequence'
+                    disabled={isPendingRow}
+                    onClick={() => toast.info(`Add sequence for: ${itemName}`)}
+                  >
+                    <ListOrdered className='h-4 w-4' />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side='top'>Add Sequence</TooltipContent>
+              </Tooltip>
               <Switch
                 checked={isActive}
                 onCheckedChange={(value) => {
                   setPendingToggle({
                     itemId,
                     nextActive: value,
-                    itemName: (row.original as ItemMasterRecord).itemName ?? '',
+                    itemName: item.itemName ?? '',
                   })
                 }}
                 disabled={isPendingRow}
@@ -511,10 +669,10 @@ const ItemMaster = () => {
         },
         enableSorting: false,
         enableHiding: false,
-        meta: { thClassName: 'w-[120px] text-center' },
+        meta: { thClassName: 'w-[280px] text-center' },
       },
     ],
-    []
+    [activeMap, pendingId, toggleStatusMutation.isPending]
   )
 
   type ItemMasterExportRow = {
@@ -606,6 +764,15 @@ const ItemMaster = () => {
       }
     })
   }, [table, activeMap])
+
+  const selectedViewItem = viewItemDetails ?? viewItem
+  const selectedViewItemId =
+    selectedViewItem != null ? resolveItemId(selectedViewItem) : viewItemId
+  const selectedViewItemActive = selectedViewItem
+    ? selectedViewItemId == null
+      ? resolveItemActive(selectedViewItem) ?? true
+      : activeMap[selectedViewItemId] ?? resolveItemActive(selectedViewItem) ?? true
+    : true
 
   return (
     <Card>
@@ -755,6 +922,280 @@ const ItemMaster = () => {
           setPendingToggle(null)
         }}
       />
+      <FullWidthDialog
+        open={Boolean(viewItem)}
+        onOpenChange={(open) => {
+          if (!open) setViewItem(null)
+        }}
+        width='full'
+        title={viewItem?.itemName ? `Item View - ${viewItem.itemName}` : 'Item View'}
+        description='Detailed item information'
+      >
+        {viewItem
+          ? (() => {
+              const item = selectedViewItem ?? viewItem
+              const isActive = selectedViewItemActive
+              return (
+                <div className='grid gap-6 xl:grid-cols-[320px_1fr]'>
+                  <aside className='space-y-4 xl:sticky xl:top-0 xl:self-start'>
+                    <div className='overflow-hidden rounded-xl border shadow-sm'>
+                      <div className='bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 p-4 text-white'>
+                        <p className='text-[11px] uppercase tracking-[0.14em] text-slate-300'>
+                          Item Profile
+                        </p>
+                        <h3 className='mt-1 text-lg font-semibold leading-tight'>
+                          {formatValue(item.itemName)}
+                        </h3>
+                        <div className='mt-3 flex flex-wrap items-center gap-2'>
+                          <Badge
+                            variant={isActive ? 'secondary' : 'destructive'}
+                            className={
+                              isActive
+                                ? 'border-transparent bg-emerald-500/20 text-emerald-200'
+                                : undefined
+                            }
+                          >
+                            {isActive ? 'Active' : 'Inactive'}
+                          </Badge>
+                          <Badge
+                            variant='outline'
+                            className='border-white/30 bg-white/10 text-white'
+                          >
+                            ID: {formatValue(selectedViewItemId)}
+                          </Badge>
+                        </div>
+                      </div>
+                      <div className='bg-white p-4'>
+                        {item.imagePath && item.imagePath.trim() !== '' ? (
+                          <img
+                            src={item.imagePath}
+                            alt={item.itemName ?? 'Item'}
+                            className='h-52 w-full rounded-lg border object-cover'
+                            loading='lazy'
+                          />
+                        ) : (
+                          <div className='text-muted-foreground flex h-52 w-full items-center justify-center rounded-lg border bg-slate-50 text-sm'>
+                            No image available
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className='rounded-xl border bg-white p-4 shadow-sm'>
+                      <h4 className='text-sm font-semibold'>Core Identity</h4>
+                      <div className='mt-3 space-y-2 text-sm'>
+                        {[
+                          ['SAP Code', item.sapCode],
+                          ['LN', item.ln],
+                          ['Company', item.itemTypeName],
+                          ['Category', item.categoryType],
+                        ].map(([label, value]) => (
+                          <div key={label} className='flex items-center justify-between gap-3'>
+                            <span className='text-muted-foreground text-xs'>{label}</span>
+                            <span className='max-w-[170px] truncate text-right font-medium'>
+                              {formatValue(value as string | number | null)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className='grid grid-cols-2 gap-2'>
+                      {[
+                        { label: 'UOM', value: item.unitOfMeasure },
+                        { label: 'Size', value: item.size },
+                        { label: 'Volume', value: item.volume },
+                        { label: 'Weight', value: item.weight },
+                      ].map((meta) => (
+                        <div key={meta.label} className='rounded-lg border bg-white p-3 shadow-sm'>
+                          <p className='text-muted-foreground text-[11px]'>{meta.label}</p>
+                          <p className='text-sm font-semibold'>{formatValue(meta.value)}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </aside>
+
+                  <div className='space-y-5'>
+                    <section className='rounded-xl border bg-white p-4 shadow-sm'>
+                      <div className='mb-3 flex items-center justify-between'>
+                        <h4 className='text-base font-semibold'>Classification Details</h4>
+                        {isViewItemDetailsLoading && (
+                          <span className='text-muted-foreground text-xs'>
+                            Syncing API data...
+                          </span>
+                        )}
+                      </div>
+                      {isViewItemDetailsError ? (
+                        <div className='text-destructive rounded-lg border border-red-200 bg-red-50 p-4 text-sm'>
+                          {(viewItemDetailsError as Error)?.message ??
+                            'Failed to load item details'}
+                        </div>
+                      ) : (
+                        <div className='grid gap-3 md:grid-cols-2 xl:grid-cols-3'>
+                          {[
+                            { label: 'Main Category', value: item.mainCatName },
+                            { label: 'Sub Category', value: item.subCatOneName },
+                            { label: 'Sub-Sub Category', value: item.subCatTwoName },
+                            { label: 'Flavor', value: item.subCatThreeName },
+                            { label: 'Measurement', value: item.measurement },
+                            { label: 'Inner Count', value: item.innerCount },
+                          ].map((field) => (
+                            <div key={field.label} className='rounded-lg border bg-slate-50 p-3'>
+                              <p className='text-muted-foreground text-xs'>{field.label}</p>
+                              <p className='mt-1 text-sm font-medium'>
+                                {formatValue(field.value)}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </section>
+
+                    <section className='overflow-hidden rounded-xl border bg-white shadow-sm'>
+                      <div className='flex items-center justify-between border-b bg-slate-50/80 px-4 py-3'>
+                        <h4 className='text-base font-semibold'>Price Matrix</h4>
+                        <Badge variant='outline'>{viewItemPrices.length} Records</Badge>
+                      </div>
+                      <div className='p-4'>
+                        {isViewItemPricesLoading ? (
+                          <div className='grid gap-3 sm:grid-cols-3'>
+                            {Array.from({ length: 3 }).map((_, index) => (
+                              <div
+                                key={index}
+                                className='h-14 animate-pulse rounded-lg border bg-slate-100'
+                              />
+                            ))}
+                          </div>
+                        ) : isViewItemPricesError ? (
+                          <div className='text-destructive rounded-lg border border-red-200 bg-red-50 p-4 text-sm'>
+                            {(viewItemPricesError as Error)?.message ??
+                              'Failed to load item prices'}
+                          </div>
+                        ) : viewItemPrices.length ? (
+                          <div className='rounded-lg border'>
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Sub Channel</TableHead>
+                                  <TableHead className='text-right'>Price</TableHead>
+                                  <TableHead>Start</TableHead>
+                                  <TableHead>Valid Till</TableHead>
+                                  <TableHead className='text-center'>Status</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {viewItemPrices.map((price) => (
+                                  <TableRow key={price.id}>
+                                    <TableCell>
+                                      {formatValue(price.shortName ?? price.subChannelId)}
+                                    </TableCell>
+                                    <TableCell className='text-right tabular-nums'>
+                                      {formatCurrencyValue(price.itemPrice)}
+                                    </TableCell>
+                                    <TableCell>{formatDateValue(price.startDate)}</TableCell>
+                                    <TableCell>{formatDateValue(price.validTill)}</TableCell>
+                                    <TableCell className='text-center'>
+                                      <Badge
+                                        variant={
+                                          price.isActive ? 'secondary' : 'destructive'
+                                        }
+                                        className={
+                                          price.isActive
+                                            ? 'border-transparent bg-emerald-100 text-emerald-700'
+                                            : undefined
+                                        }
+                                      >
+                                        {price.isActive ? 'Active' : 'Inactive'}
+                                      </Badge>
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </div>
+                        ) : (
+                          <div className='text-muted-foreground rounded-lg border border-dashed p-4 text-sm'>
+                            No price records found for this item.
+                          </div>
+                        )}
+                      </div>
+                    </section>
+
+                    <section className='overflow-hidden rounded-xl border bg-white shadow-sm'>
+                      <div className='flex items-center justify-between border-b bg-slate-50/80 px-4 py-3'>
+                        <h4 className='text-base font-semibold'>Channel Sequence Map</h4>
+                        <Badge variant='outline'>{viewItemSequences.length} Records</Badge>
+                      </div>
+                      <div className='p-4'>
+                        {isViewItemSequencesLoading ? (
+                          <div className='grid gap-3 sm:grid-cols-3'>
+                            {Array.from({ length: 3 }).map((_, index) => (
+                              <div
+                                key={index}
+                                className='h-14 animate-pulse rounded-lg border bg-slate-100'
+                              />
+                            ))}
+                          </div>
+                        ) : isViewItemSequencesError ? (
+                          <div className='text-destructive rounded-lg border border-red-200 bg-red-50 p-4 text-sm'>
+                            {(viewItemSequencesError as Error)?.message ??
+                              'Failed to load item sequences'}
+                          </div>
+                        ) : viewItemSequences.length ? (
+                          <div className='rounded-lg border'>
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Channel</TableHead>
+                                  <TableHead>Sub Channel</TableHead>
+                                  <TableHead className='text-right'>Sequence</TableHead>
+                                  <TableHead>Short Name</TableHead>
+                                  <TableHead className='text-center'>Status</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {viewItemSequences.map((sequence) => (
+                                  <TableRow key={sequence.id}>
+                                    <TableCell>{formatValue(sequence.channelName)}</TableCell>
+                                    <TableCell>
+                                      {formatValue(sequence.subChannelName)}
+                                    </TableCell>
+                                    <TableCell className='text-right tabular-nums'>
+                                      {formatValue(sequence.itemSequence)}
+                                    </TableCell>
+                                    <TableCell>{formatValue(sequence.shortName)}</TableCell>
+                                    <TableCell className='text-center'>
+                                      <Badge
+                                        variant={
+                                          sequence.isActive ? 'secondary' : 'destructive'
+                                        }
+                                        className={
+                                          sequence.isActive
+                                            ? 'border-transparent bg-emerald-100 text-emerald-700'
+                                            : undefined
+                                        }
+                                      >
+                                        {sequence.isActive ? 'Active' : 'Inactive'}
+                                      </Badge>
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </div>
+                        ) : (
+                          <div className='text-muted-foreground rounded-lg border border-dashed p-4 text-sm'>
+                            No sequence records found for this item.
+                          </div>
+                        )}
+                      </div>
+                    </section>
+                  </div>
+                </div>
+              )
+            })()
+          : null}
+      </FullWidthDialog>
     </Card>
   )
 }

@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { toast } from 'sonner'
+import { findOutletById } from '@/services/userDemarcation/endpoints'
 
 type SurveyData = {
   teleDramas: Record<string, Record<string, string>>
@@ -46,6 +47,11 @@ type FieldName =
 type SurveyValues = Record<FieldName, string>
 type SurveyErrors = Partial<Record<FieldName, string>>
 type Option = { value: string; label: string }
+export type PeoplesAwardSurveySubmission = {
+  queryParams: Record<string, string>
+  formValues: SurveyValues
+  outletByIdData: Record<string, unknown> | null
+}
 
 const INITIAL_VALUES: SurveyValues = {
   route: '',
@@ -128,6 +134,16 @@ function getFirstQueryValue(
     if (value) return value
   }
   return ''
+}
+
+function toPositiveNumber(rawValue: string): number {
+  if (!rawValue) return 0
+  const direct = Number(rawValue)
+  if (Number.isFinite(direct) && direct > 0) return direct
+
+  const digits = rawValue.match(/\d+/g)?.join('') ?? ''
+  const parsed = Number(digits)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0
 }
 
 function deriveRouteFromQuery(query: Record<string, string>): string {
@@ -283,10 +299,12 @@ function renderGroupedOptions(data: Record<string, Record<string, string>>) {
 
 type PeoplesAwardSurveyProps = {
   embedded?: boolean
+  onSaveSurvey?: (submission: PeoplesAwardSurveySubmission) => Promise<void>
 }
 
 export function PeoplesAwardSurvey({
   embedded = false,
+  onSaveSurvey,
 }: PeoplesAwardSurveyProps) {
   const locationHref = useLocation({ select: (location) => location.href })
   const queryString = useMemo(() => {
@@ -364,6 +382,7 @@ export function PeoplesAwardSurvey({
   const [dataError, setDataError] = useState<string | null>(null)
   const [formValues, setFormValues] = useState<SurveyValues>(initialFormValues)
   const [fieldErrors, setFieldErrors] = useState<SurveyErrors>({})
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
     setFormValues((current) => {
@@ -416,8 +435,9 @@ export function PeoplesAwardSurvey({
     }
   }, [])
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    const formElement = event.currentTarget
     const validationErrors: SurveyErrors = {}
 
     REQUIRED_FIELDS.forEach((field) => {
@@ -436,13 +456,56 @@ export function PeoplesAwardSurvey({
       ...queryParams,
       ...formValues,
     }
-    // eslint-disable-next-line no-console
-    console.log('Final Survey Data Object:', finalDataObject)
+    try {
+      setIsSubmitting(true)
 
-    event.currentTarget.reset()
-    setFieldErrors({})
-    setFormValues(initialFormValues)
-    toast.success('Survey response captured successfully.')
+      if (onSaveSurvey) {
+        const outletIdFromQuery = getFirstQueryValue(queryParams, [
+          'outletId',
+          'OutletId',
+          'shopCode',
+          'ShopCode',
+        ])
+        const outletLookupId = toPositiveNumber(
+          outletIdFromQuery || formValues.outlet || prefilledOutlet
+        )
+
+        let outletByIdData: Record<string, unknown> | null = null
+        if (outletLookupId > 0) {
+          try {
+            const outletResponse = await findOutletById(outletLookupId)
+            outletByIdData =
+              outletResponse?.payload &&
+              typeof outletResponse.payload === 'object'
+                ? (outletResponse.payload as Record<string, unknown>)
+                : null
+          } catch (outletError) {
+            // eslint-disable-next-line no-console
+            console.warn('findOutletById failed:', outletError)
+          }
+        }
+
+        await onSaveSurvey({
+          queryParams,
+          formValues,
+          outletByIdData,
+        })
+      } else {
+        // eslint-disable-next-line no-console
+        console.log('Final Survey Data Object:', finalDataObject)
+      }
+
+      formElement.reset()
+      setFieldErrors({})
+      setFormValues(initialFormValues)
+      toast.success('Survey response captured successfully.')
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to save survey response.'
+      toast.error(message)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleValueChange = (field: FieldName, value: string) => {
@@ -879,7 +942,9 @@ export function PeoplesAwardSurvey({
               <Button type='button' variant='outline' onClick={handleReset}>
                 Reset
               </Button>
-              <Button type='submit'>Save Survey</Button>
+              <Button type='submit' disabled={isSubmitting}>
+                {isSubmitting ? 'Saving...' : 'Save Survey'}
+              </Button>
             </div>
           </form>
         </CardContent>

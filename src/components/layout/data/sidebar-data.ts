@@ -19,6 +19,7 @@ import {
   AudioWaveform,
   Command,
   GalleryVerticalEnd,
+  ClipboardList,
 } from 'lucide-react'
 import { type SidebarData } from '../types'
 
@@ -130,6 +131,16 @@ export const sidebarData: SidebarData = {
     {
       title: 'Outlet Module',
       items: [{ title: 'Outlets', url: '/outlet-module/outlets', icon: Store }],
+    },
+    {
+      title: 'Survey Module',
+      items: [
+        {
+          title: "People's Award",
+          url: '/survey-module/peoples-award',
+          icon: ClipboardList,
+        },
+      ],
     },
 
     {

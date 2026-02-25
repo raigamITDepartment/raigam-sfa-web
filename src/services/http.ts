@@ -68,6 +68,17 @@ export const http = axios.create({
  * Request interceptor — attaches Bearer token
  */
 http.interceptors.request.use(async (config) => {
+  const headers = AxiosHeaders.from(config.headers)
+  const skipAuth = headers.get('X-Skip-Auth') === 'true'
+
+  if (skipAuth) {
+    // Internal marker only; do not send it to backend.
+    headers.delete('X-Skip-Auth')
+    headers.delete('Authorization')
+    config.headers = headers
+    return config
+  }
+
   let token = getAccessToken()
   const isAuthEndpoint = config?.url?.includes('/api/v1/auth/')
   const method = (config.method ?? 'get').toLowerCase()
@@ -108,7 +119,6 @@ http.interceptors.request.use(async (config) => {
   }
 
   if (token) {
-    const headers = AxiosHeaders.from(config.headers)
     headers.set('Authorization', `Bearer ${token}`)
     config.headers = headers
 

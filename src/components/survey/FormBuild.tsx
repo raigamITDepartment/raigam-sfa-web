@@ -86,6 +86,7 @@ type BuilderPersistedState = {
   heading: string
   subHeading: string
   description: string
+  submissionConfig: BuilderSubmissionConfig
   fields: BuilderField[]
 }
 
@@ -117,7 +118,12 @@ type BuilderApiPayload = {
   data?: unknown
 }
 
+type BuilderSubmissionConfig = {
+  enabled: boolean
+}
+
 const STORAGE_KEY = 'survey-form-builder-v1'
+const BLOB_FILE_INDEX_STORAGE_KEY = 'survey-form-builder-blob-files-v1'
 const BUNDLED_FORM_SCHEMAS = import.meta.glob('/src/data/*.json', {
   eager: true,
   import: 'default',
@@ -349,6 +355,12 @@ function createNextOption(options: BuilderFieldOption[]): BuilderFieldOption {
   }
 }
 
+function createDefaultSubmissionConfig(): BuilderSubmissionConfig {
+  return {
+    enabled: true,
+  }
+}
+
 function parseBuilderState(rawValue: string): BuilderPersistedState | null {
   try {
     const parsed = JSON.parse(rawValue) as Partial<BuilderSchema>
@@ -369,6 +381,17 @@ function parseBuilderState(rawValue: string): BuilderPersistedState | null {
     const subHeading = typeof parsed.subHeading === 'string' ? parsed.subHeading : ''
     const description =
       typeof parsed.description === 'string' ? parsed.description : ''
+    const defaultSubmissionConfig = createDefaultSubmissionConfig()
+    const rawSubmissionConfig =
+      parsed.submissionConfig && typeof parsed.submissionConfig === 'object'
+        ? (parsed.submissionConfig as Partial<BuilderSubmissionConfig>)
+        : null
+    const submissionConfig: BuilderSubmissionConfig = {
+      enabled:
+        typeof rawSubmissionConfig?.enabled === 'boolean'
+          ? rawSubmissionConfig.enabled
+          : defaultSubmissionConfig.enabled,
+    }
     const sourceFields = Array.isArray(parsed.fields) ? parsed.fields : []
 
     const fields: BuilderField[] = []
@@ -377,7 +400,16 @@ function parseBuilderState(rawValue: string): BuilderPersistedState | null {
       if (cleaned) fields.push(cleaned)
     })
 
-    return { formId, viewRoutePath, title, heading, subHeading, description, fields }
+    return {
+      formId,
+      viewRoutePath,
+      title,
+      heading,
+      subHeading,
+      description,
+      submissionConfig,
+      fields,
+    }
   } catch {
     return null
   }
@@ -582,6 +614,76 @@ function listBundledSavedForms(): SavedFormListItem[] {
   return forms
 }
 
+function normalizeJsonFileName(fileName: string): string {
+  return fileName.trim()
+}
+
+function readBlobFileNameIndex(): string[] {
+  if (typeof window === 'undefined') return []
+
+  try {
+    const raw = window.localStorage.getItem(BLOB_FILE_INDEX_STORAGE_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+
+    const fileNames = parsed
+      .map((item) => (typeof item === 'string' ? normalizeJsonFileName(item) : ''))
+      .filter((item) => item.toLowerCase().endsWith('.json') && item.length > 0)
+
+    return Array.from(new Set(fileNames))
+  } catch {
+    return []
+  }
+}
+
+function writeBlobFileNameIndex(fileNames: string[]): void {
+  if (typeof window === 'undefined') return
+
+  const cleaned = Array.from(
+    new Set(
+      fileNames
+        .map((item) => normalizeJsonFileName(item))
+        .filter((item) => item.toLowerCase().endsWith('.json') && item.length > 0)
+    )
+  )
+  window.localStorage.setItem(BLOB_FILE_INDEX_STORAGE_KEY, JSON.stringify(cleaned))
+}
+
+function upsertBlobFileNameIndex(fileName: string): void {
+  const normalized = normalizeJsonFileName(fileName)
+  if (!normalized) return
+
+  const existing = readBlobFileNameIndex()
+  if (existing.includes(normalized)) return
+  writeBlobFileNameIndex([normalized, ...existing])
+}
+
+function removeBlobFileNameIndex(fileName: string): void {
+  const normalized = normalizeJsonFileName(fileName)
+  if (!normalized) return
+
+  const existing = readBlobFileNameIndex()
+  writeBlobFileNameIndex(existing.filter((item) => item !== normalized))
+}
+
+async function listIndexedBlobForms(fileNames: string[]): Promise<SavedFormListItem[]> {
+  return (
+    await Promise.all(
+      fileNames.map(async (fileName) => {
+        try {
+          const data = await getFormSchemaFromBlob(fileName)
+          return buildSavedFormListItemFromData(fileName, data, 'blob')
+        } catch {
+          return null
+        }
+      })
+    )
+  )
+    .filter((item): item is SavedFormListItem => Boolean(item))
+    .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
+}
+
 export function FormBuild() {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [formId, setFormId] = useState('survey_form')
@@ -590,6 +692,9 @@ export function FormBuild() {
   const [heading, setHeading] = useState('')
   const [subHeading, setSubHeading] = useState('')
   const [description, setDescription] = useState('')
+  const [submissionConfig, setSubmissionConfig] = useState<BuilderSubmissionConfig>(
+    createDefaultSubmissionConfig()
+  )
   const [fields, setFields] = useState<BuilderField[]>([])
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null)
   const [dragPayload, setDragPayload] = useState<DragPayload | null>(null)
@@ -614,6 +719,7 @@ export function FormBuild() {
     setHeading(parsedState.heading)
     setSubHeading(parsedState.subHeading)
     setDescription(parsedState.description)
+    setSubmissionConfig(parsedState.submissionConfig)
     setFields(parsedState.fields)
     setSelectedFieldId(parsedState.fields[0]?.id ?? null)
   }, [])
@@ -651,11 +757,22 @@ export function FormBuild() {
             .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
 
           if (blobForms.length > 0) {
+            writeBlobFileNameIndex(blobForms.map((form) => form.fileName))
             setSavedForms(blobForms)
             return
           }
         } catch {
           // Continue to API/bundled fallback when blob listing fails.
+        }
+
+        const indexedBlobFileNames = readBlobFileNameIndex()
+        if (indexedBlobFileNames.length > 0) {
+          const indexedBlobForms = await listIndexedBlobForms(indexedBlobFileNames)
+          if (indexedBlobForms.length > 0) {
+            writeBlobFileNameIndex(indexedBlobForms.map((form) => form.fileName))
+            setSavedForms(indexedBlobForms)
+            return
+          }
         }
       }
 
@@ -713,10 +830,20 @@ export function FormBuild() {
       heading,
       subHeading,
       description,
+      submissionConfig,
       fields,
       updatedAt: new Date().toISOString(),
     }),
-    [formId, viewRoutePath, title, heading, subHeading, description, fields]
+    [
+      formId,
+      viewRoutePath,
+      title,
+      heading,
+      subHeading,
+      description,
+      submissionConfig,
+      fields,
+    ]
   )
 
   const schemaJson = useMemo(() => JSON.stringify(schema, null, 2), [schema])
@@ -801,6 +928,7 @@ export function FormBuild() {
       heading,
       subHeading,
       description,
+      submissionConfig,
       fields,
     }
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(draft))
@@ -812,6 +940,7 @@ export function FormBuild() {
       const fileName = `${toFieldKey(title) || 'survey-form'}.json`
       if (isBlobStorageConfigured()) {
         await saveFormSchemaToBlob(fileName, schema)
+        upsertBlobFileNameIndex(fileName)
         toast.success(`Saved to Azure Blob (form-builder): ${fileName}`)
         void loadSavedForms()
         return
@@ -891,6 +1020,7 @@ export function FormBuild() {
       setHeading(parsed.heading)
       setSubHeading(parsed.subHeading)
       setDescription(parsed.description)
+      setSubmissionConfig(parsed.submissionConfig)
       setFields(parsed.fields)
       setSelectedFieldId(parsed.fields[0]?.id ?? null)
       toast.success(`Loaded ${fileName}`)
@@ -911,6 +1041,7 @@ export function FormBuild() {
     try {
       if (formToDelete.source === 'blob') {
         await deleteFormSchemaFromBlob(formToDelete.fileName)
+        removeBlobFileNameIndex(formToDelete.fileName)
         toast.success(`Deleted ${formToDelete.fileName} from Azure Blob`)
         setDeleteDialogOpen(false)
         setFormToDelete(null)
@@ -990,6 +1121,7 @@ export function FormBuild() {
       setHeading(parsed.heading)
       setSubHeading(parsed.subHeading)
       setDescription(parsed.description)
+      setSubmissionConfig(parsed.submissionConfig)
       setFields(parsed.fields)
       setSelectedFieldId(parsed.fields[0]?.id ?? null)
       toast.success('Form schema imported.')
@@ -1219,6 +1351,25 @@ export function FormBuild() {
               placeholder='Write a short description'
               className='min-h-24'
             />
+          </div>
+          <div className='space-y-3 rounded-md border p-3'>
+            <p className='text-sm font-medium'>Submission Settings</p>
+            <div className='flex items-center justify-between rounded-md border p-3'>
+              <Label htmlFor='submission-enabled'>Enable Save Survey API</Label>
+              <Switch
+                id='submission-enabled'
+                checked={submissionConfig.enabled}
+                onCheckedChange={(checked) =>
+                  setSubmissionConfig((current) => ({
+                    ...current,
+                    enabled: checked,
+                  }))
+                }
+              />
+            </div>
+            <p className='text-muted-foreground text-xs'>
+              Survey meta values are read from mobile URL query params and outlet API.
+            </p>
           </div>
           <div className='flex flex-wrap gap-2'>
             <Button type='button' onClick={handleSaveDraft}>

@@ -1,4 +1,5 @@
 import { type CSSProperties, type FormEvent, useEffect, useMemo, useState } from 'react'
+import { useLocation } from '@tanstack/react-router'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
@@ -21,6 +22,8 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { getFormSchemaFromBlob, isBlobStorageConfigured } from '@/lib/form-builder-blob'
+import { saveSurveyData } from '@/services/survey/surveyAPI'
+import { findOutletById } from '@/services/userDemarcation/endpoints'
 
 type GeneratedFieldType =
   | 'section-heading'
@@ -53,6 +56,10 @@ type GeneratedField = {
   options: GeneratedFieldOption[]
 }
 
+type GeneratedSubmissionConfig = {
+  enabled: boolean
+}
+
 type GeneratedSchema = {
   schemaVersion: number
   formId: string
@@ -60,6 +67,7 @@ type GeneratedSchema = {
   heading: string
   subHeading: string
   description: string
+  submissionConfig: GeneratedSubmissionConfig
   fields: GeneratedField[]
   updatedAt: string
 }
@@ -93,6 +101,185 @@ const BUNDLED_FORM_SCHEMAS = import.meta.glob('/src/data/*.json', {
   eager: true,
   import: 'default',
 }) as Record<string, unknown>
+
+function createDefaultSubmissionConfig(): GeneratedSubmissionConfig {
+  return {
+    enabled: true,
+  }
+}
+
+function toNumber(value: string | undefined, fallback = 0): number {
+  if (!value) return fallback
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : fallback
+}
+
+function toLooseNumber(value: string | undefined, fallback = 0): number {
+  if (!value) return fallback
+  const normalized = value.replace(/%/g, '').trim()
+  const direct = Number(normalized)
+  if (Number.isFinite(direct)) return direct
+
+  const matched = normalized.match(/-?\d+(\.\d+)?/)
+  if (!matched) return fallback
+  const parsed = Number(matched[0])
+  return Number.isFinite(parsed) ? parsed : fallback
+}
+
+function toNumberFromUnknown(value: unknown, fallback = 0): number {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value === 'string') {
+    const parsed = Number(value)
+    if (Number.isFinite(parsed)) return parsed
+  }
+  return fallback
+}
+
+function normalizeQueryValue(rawValue: string): string {
+  const withSpaces = rawValue.replace(/\+/g, ' ')
+  let decoded = withSpaces
+  try {
+    decoded = decodeURIComponent(withSpaces)
+  } catch {
+    decoded = withSpaces
+  }
+
+  const trimmed = decoded.trim()
+  const quoted =
+    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"))
+  const unwrapped = quoted ? trimmed.slice(1, -1).trim() : trimmed
+  return unwrapped.replace(/\s+/g, ' ')
+}
+
+function normalizeSearchParams(search: string): Record<string, string> {
+  const params = new URLSearchParams(search)
+  const query: Record<string, string> = {}
+  params.forEach((value, key) => {
+    const normalized = normalizeQueryValue(value)
+    if (normalized) {
+      query[key] = normalized
+    }
+  })
+  return query
+}
+
+function firstValue(query: Record<string, string>, keys: string[]): string {
+  for (const key of keys) {
+    const value = query[key]
+    if (value) return value
+
+    const matchedEntry = Object.entries(query).find(
+      ([queryKey]) => queryKey.toLowerCase() === key.toLowerCase()
+    )
+    if (matchedEntry?.[1]) return matchedEntry[1]
+  }
+  return ''
+}
+
+function deriveRouteValueFromQuery(query: Record<string, string>): string {
+  const routeName = firstValue(query, ['routeName', 'RouteName'])
+  if (routeName) return routeName
+
+  const routeId = firstValue(query, ['routeId', 'RouteId'])
+  if (routeId) return routeId
+
+  const dealerCode = firstValue(query, ['DealerCode', 'dealerCode'])
+  if (dealerCode) {
+    const [routeSegment] = dealerCode.split('/').filter(Boolean)
+    if (routeSegment) return routeSegment
+  }
+
+  return ''
+}
+
+function deriveOutletValueFromQuery(query: Record<string, string>): string {
+  const outletName = firstValue(query, ['outletName', 'OutletName'])
+  if (outletName) return outletName
+
+  const outletId = firstValue(query, ['outletId', 'OutletId'])
+  if (outletId) return outletId
+
+  const dealerCode = firstValue(query, ['DealerCode', 'dealerCode'])
+  if (dealerCode) {
+    const [, outletSegment] = dealerCode.split('/').filter(Boolean)
+    if (outletSegment) return outletSegment
+  }
+
+  return ''
+}
+
+function isRouteField(field: Pick<GeneratedField, 'key' | 'label'>): boolean {
+  const key = field.key.trim().toLowerCase()
+  const label = field.label.trim().toLowerCase()
+
+  if (key === 'route' || key === 'route_id' || key === 'routeid') return true
+  if (key.includes('route_code') || key === 'routecode') return false
+  if (label.includes('route code')) return false
+
+  return label.includes('select route') || label === 'route'
+}
+
+function isOutletField(field: Pick<GeneratedField, 'key' | 'label'>): boolean {
+  const key = field.key.trim().toLowerCase()
+  const label = field.label.trim().toLowerCase()
+
+  if (key === 'outlet' || key === 'outlet_id' || key === 'outletid') return true
+  if (key.includes('outlet_code') || key === 'outletcode') return false
+  if (label.includes('outlet code')) return false
+
+  return label.includes('select outlet') || label === 'outlet'
+}
+
+function matchChoiceOptionValue(
+  options: GeneratedFieldOption[],
+  rawValue: string
+): string {
+  const normalized = rawValue.trim().toLowerCase()
+  if (!normalized) return ''
+
+  const byValue = options.find(
+    (option) => option.value.trim().toLowerCase() === normalized
+  )
+  if (byValue) return byValue.value
+
+  const byLabel = options.find(
+    (option) => option.label.trim().toLowerCase() === normalized
+  )
+  return byLabel?.value ?? ''
+}
+
+function firstRecordValue(
+  record: Record<string, unknown> | null,
+  keys: string[]
+): unknown {
+  if (!record) return undefined
+
+  for (const key of keys) {
+    if (key in record) return record[key]
+
+    const matchedEntry = Object.entries(record).find(
+      ([recordKey]) => recordKey.toLowerCase() === key.toLowerCase()
+    )
+    if (matchedEntry) return matchedEntry[1]
+  }
+
+  return undefined
+}
+
+function toDateTimeParts(now = new Date()) {
+  const year = now.getFullYear()
+  const month = `${now.getMonth() + 1}`.padStart(2, '0')
+  const day = `${now.getDate()}`.padStart(2, '0')
+  const hour = `${now.getHours()}`.padStart(2, '0')
+  const minute = `${now.getMinutes()}`.padStart(2, '0')
+  const second = `${now.getSeconds()}`.padStart(2, '0')
+
+  return {
+    surveyDate: `${year}-${month}-${day}`,
+    surveyTime: `${hour}:${minute}:${second}`,
+  }
+}
 
 function toFieldKey(rawValue: string) {
   const cleaned = rawValue
@@ -136,6 +323,17 @@ function sanitizeSchema(rawValue: unknown): GeneratedSchema | null {
   if (!rawValue || typeof rawValue !== 'object') return null
 
   const source = rawValue as Partial<GeneratedSchema>
+  const defaultSubmissionConfig = createDefaultSubmissionConfig()
+  const rawSubmissionConfig =
+    source.submissionConfig && typeof source.submissionConfig === 'object'
+      ? (source.submissionConfig as Partial<GeneratedSubmissionConfig>)
+      : null
+  const submissionConfig: GeneratedSubmissionConfig = {
+    enabled:
+      typeof rawSubmissionConfig?.enabled === 'boolean'
+        ? rawSubmissionConfig.enabled
+        : defaultSubmissionConfig.enabled,
+  }
   const sourceFields = Array.isArray(source.fields) ? source.fields : []
   const usedKeys = new Set<string>()
 
@@ -243,6 +441,7 @@ function sanitizeSchema(rawValue: unknown): GeneratedSchema | null {
     subHeading: typeof source.subHeading === 'string' ? source.subHeading : '',
     description:
       typeof source.description === 'string' ? source.description : '',
+    submissionConfig,
     fields,
     updatedAt:
       typeof source.updatedAt === 'string'
@@ -251,11 +450,38 @@ function sanitizeSchema(rawValue: unknown): GeneratedSchema | null {
   }
 }
 
-function createInitialValues(fields: GeneratedField[]): FormValues {
+function createInitialValues(
+  fields: GeneratedField[],
+  queryParams: Record<string, string>
+): FormValues {
   const values: FormValues = {}
+  const prefilledRoute = deriveRouteValueFromQuery(queryParams)
+  const prefilledOutlet = deriveOutletValueFromQuery(queryParams)
 
   fields.forEach((field) => {
-    values[field.key] = field.type === 'checkbox' ? [] : ''
+    if (field.type === 'checkbox') {
+      values[field.key] = []
+      return
+    }
+
+    let prefilledValue = ''
+    if (isRouteField(field)) {
+      prefilledValue = prefilledRoute
+    } else if (isOutletField(field)) {
+      prefilledValue = prefilledOutlet
+    }
+
+    if (!prefilledValue) {
+      values[field.key] = ''
+      return
+    }
+
+    if (field.type === 'select' || field.type === 'radio') {
+      values[field.key] = matchChoiceOptionValue(field.options, prefilledValue)
+      return
+    }
+
+    values[field.key] = prefilledValue
   })
 
   return values
@@ -266,6 +492,16 @@ function hasRequiredValue(field: GeneratedField, value: FormValue): boolean {
     return Array.isArray(value) && value.length > 0
   }
   return typeof value === 'string' && value.trim().length > 0
+}
+
+function formValueToString(value: FormValue | undefined): string {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .join(', ')
+  }
+  return typeof value === 'string' ? value.trim() : ''
 }
 
 function errorMessage(error: unknown): string {
@@ -343,11 +579,21 @@ async function loadSchemaFromPublicData(fileName: string): Promise<unknown> {
 }
 
 export function GeneratedSurveyForm({ fileName }: GeneratedSurveyFormProps) {
+  const locationHref = useLocation({ select: (location) => location.href })
+  const queryString = useMemo(() => {
+    const queryIndex = locationHref.indexOf('?')
+    return queryIndex >= 0 ? locationHref.slice(queryIndex) : ''
+  }, [locationHref])
+  const queryParams = useMemo(
+    () => normalizeSearchParams(queryString),
+    [queryString]
+  )
   const [schema, setSchema] = useState<GeneratedSchema | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [formValues, setFormValues] = useState<FormValues>({})
   const [fieldErrors, setFieldErrors] = useState<FormErrors>({})
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
     const loadForm = async () => {
@@ -398,7 +644,7 @@ export function GeneratedSurveyForm({ fileName }: GeneratedSurveyFormProps) {
         }
 
         setSchema(parsed)
-        setFormValues(createInitialValues(parsed.fields))
+        setFormValues(createInitialValues(parsed.fields, queryParams))
         setFieldErrors({})
       } catch (loadError) {
         const message =
@@ -413,7 +659,7 @@ export function GeneratedSurveyForm({ fileName }: GeneratedSurveyFormProps) {
     }
 
     void loadForm()
-  }, [fileName])
+  }, [fileName, queryParams])
 
   const canSubmit = useMemo(() => schema && schema.fields.length > 0, [schema])
 
@@ -427,8 +673,9 @@ export function GeneratedSurveyForm({ fileName }: GeneratedSurveyFormProps) {
     })
   }
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    const formElement = event.currentTarget
     if (!schema) return
 
     const nextErrors: FormErrors = {}
@@ -445,18 +692,194 @@ export function GeneratedSurveyForm({ fileName }: GeneratedSurveyFormProps) {
       return
     }
 
-    // eslint-disable-next-line no-console
-    console.log('Generated Form Submission:', {
-      fileName,
-      formId: schema.formId,
-      values: formValues,
-    })
-    toast.success('Form submitted successfully.')
+    try {
+      setIsSubmitting(true)
+
+      if (!schema.submissionConfig.enabled) {
+        // eslint-disable-next-line no-console
+        console.log('Generated Form Submission (API disabled):', {
+          fileName,
+          formId: schema.formId,
+          values: formValues,
+        })
+        toast.success('Survey captured locally (API submit disabled).')
+        formElement.reset()
+        setFormValues(createInitialValues(schema.fields, queryParams))
+        setFieldErrors({})
+        return
+      }
+
+      const { surveyDate, surveyTime } = toDateTimeParts()
+      const routeFromForm = formValueToString(formValues.route)
+      const outletFromForm = formValueToString(formValues.outlet)
+
+      const outletLookupId = toNumber(
+        firstValue(queryParams, ['outletId', 'OutletId', 'shopCode', 'ShopCode']),
+        toNumber(outletFromForm.replace(/\D+/g, ''), 0)
+      )
+
+      let outletByIdData: Record<string, unknown> | null = null
+      if (outletLookupId > 0) {
+        try {
+          const outletResponse = await findOutletById(outletLookupId)
+          outletByIdData =
+            outletResponse?.payload && typeof outletResponse.payload === 'object'
+              ? (outletResponse.payload as Record<string, unknown>)
+              : null
+        } catch (outletError) {
+          // eslint-disable-next-line no-console
+          console.warn('findOutletById failed:', outletError)
+        }
+      }
+
+      const outletRouteId = toNumberFromUnknown(
+        firstRecordValue(outletByIdData, ['routeId', 'route_id', 'routeCode']),
+        0
+      )
+      const outletAgencyCode = toNumberFromUnknown(
+        firstRecordValue(outletByIdData, ['agencyCode', 'agency_id', 'agencyId']),
+        0
+      )
+      const outletShopCode = toNumberFromUnknown(
+        firstRecordValue(outletByIdData, ['shopCode', 'shop_id', 'id', 'outletCode']),
+        0
+      )
+      const outletRouteCode = toNumberFromUnknown(
+        firstRecordValue(outletByIdData, ['routeCode', 'route_id', 'routeId']),
+        0
+      )
+      const outletDealerCode = firstRecordValue(outletByIdData, [
+        'dealerCode',
+        'dealer_code',
+      ])
+      const outletLatitude = toNumberFromUnknown(
+        firstRecordValue(outletByIdData, ['latitude', 'lat']),
+        0
+      )
+      const outletLongitude = toNumberFromUnknown(
+        firstRecordValue(outletByIdData, ['longitude', 'lng']),
+        0
+      )
+
+      const routeId = toNumber(
+        firstValue(queryParams, ['routeId', 'RouteId', 'routeCode', 'RouteCode']),
+        toNumber(routeFromForm.replace(/\D+/g, ''), 0) || outletRouteId
+      )
+      const outletId = toNumber(
+        firstValue(queryParams, ['outletId', 'OutletId', 'shopCode', 'ShopCode']),
+        outletLookupId || outletShopCode
+      )
+
+      const directQuestionValues: string[] = []
+      for (let i = 1; i <= 10; i += 1) {
+        const key = `question${i}`
+        directQuestionValues.push(formValueToString(formValues[key]))
+      }
+
+      const sequentialAnswerValues = schema.fields
+        .filter(
+          (field) =>
+            field.type !== 'section-heading' &&
+            field.type !== 'small-text' &&
+            !field.disabled &&
+            !/^question\d+$/i.test(field.key) &&
+            field.key.toLowerCase() !== 'route' &&
+            field.key.toLowerCase() !== 'outlet'
+        )
+        .map((field) => formValueToString(formValues[field.key]))
+        .filter(Boolean)
+
+      let sequentialIndex = 0
+      const questionValues = directQuestionValues.map((value) => {
+        if (value) return value
+        const fallback = sequentialAnswerValues[sequentialIndex] ?? ''
+        sequentialIndex += 1
+        return fallback
+      })
+
+      const payload = {
+        userId: toNumber(
+          firstValue(queryParams, ['userId', 'UserId', 'userid', 'USERID', 'repId'])
+        ),
+        surveyId: toNumber(firstValue(queryParams, ['surveyId', 'SurveyId']), 21),
+        uniqueId:
+          firstValue(queryParams, ['uniqueId', 'unique_id']) ||
+          `SURV-${surveyDate.replace(/-/g, '')}-${Date.now().toString().slice(-4)}`,
+        auditUser:
+          firstValue(queryParams, ['auditUser', 'repUserName', 'RepUserName']) ||
+          'testCRep',
+        latitude: toNumber(
+          firstValue(queryParams, ['latitude', 'Latitude', 'lat', 'Lat']),
+          outletLatitude || 6.9271
+        ),
+        longitude: toNumber(
+          firstValue(queryParams, ['longitude', 'Longitude', 'lng', 'Lng']),
+          outletLongitude || 79.8612
+        ),
+        battery: toLooseNumber(
+          firstValue(queryParams, [
+            'battery_level',
+            'batteryLevel',
+            'BatteryLevel',
+            'battery',
+            'Battery',
+          ]),
+          0
+        ),
+        surveyDate,
+        surveyTime,
+        routeId,
+        outletId,
+        dealerCode:
+          firstValue(queryParams, ['dealerCode', 'DealerCode']) ||
+          (typeof outletDealerCode === 'string' ? outletDealerCode : ''),
+        agencyCode: toNumber(
+          firstValue(queryParams, ['agencyCode', 'AgencyCode']),
+          outletAgencyCode || 0
+        ),
+        routeCode: toNumber(
+          firstValue(queryParams, ['routeCode', 'RouteCode']),
+          outletRouteCode || routeId || 0
+        ),
+        shopCode: toNumber(
+          firstValue(queryParams, ['shopCode', 'ShopCode']),
+          outletShopCode || outletId || 0
+        ),
+        question1: questionValues[0] || '',
+        question2: questionValues[1] || '',
+        question3: questionValues[2] || '',
+        question4: questionValues[3] || '',
+        question5: questionValues[4] || '',
+        question6: questionValues[5] || '',
+        question7: questionValues[6] || '',
+        question8: questionValues[7] || '',
+        question9: questionValues[8] || '',
+        question10:
+          questionValues[9] ||
+          firstValue(queryParams, ['outletName', 'OutletName']) ||
+          '',
+        isActive: true,
+      }
+
+      await saveSurveyData(payload)
+      toast.success('Survey saved successfully.')
+      formElement.reset()
+      setFormValues(createInitialValues(schema.fields, queryParams))
+      setFieldErrors({})
+    } catch (submitError) {
+      const message =
+        submitError instanceof Error
+          ? submitError.message
+          : 'Failed to save survey response.'
+      toast.error(message)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleReset = () => {
     if (!schema) return
-    setFormValues(createInitialValues(schema.fields))
+    setFormValues(createInitialValues(schema.fields, queryParams))
     setFieldErrors({})
     toast.success('Form reset successfully.')
   }
@@ -668,8 +1091,8 @@ export function GeneratedSurveyForm({ fileName }: GeneratedSurveyFormProps) {
             <Button type='button' variant='outline' onClick={handleReset}>
               Reset
             </Button>
-            <Button type='submit' disabled={!canSubmit}>
-              Save Survey
+            <Button type='submit' disabled={!canSubmit || isSubmitting}>
+              {isSubmitting ? 'Saving...' : 'Save Survey'}
             </Button>
           </div>
         </form>

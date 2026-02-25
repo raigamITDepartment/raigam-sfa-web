@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { getFormSchemaFromBlob, isBlobStorageConfigured } from '@/lib/form-builder-blob'
 
 type GeneratedFieldType =
   | 'section-heading'
@@ -316,6 +317,13 @@ async function loadSchemaFromApi(fileName: string): Promise<unknown> {
   return payload.data
 }
 
+async function loadSchemaFromBlob(fileName: string): Promise<unknown> {
+  if (!isBlobStorageConfigured()) {
+    throw new Error('Azure Blob storage not configured.')
+  }
+  return getFormSchemaFromBlob(fileName)
+}
+
 async function loadSchemaFromPublicData(fileName: string): Promise<unknown> {
   const response = await fetch(`/data/${encodeURIComponent(fileName)}`)
   if (!response.ok) {
@@ -350,7 +358,15 @@ export function GeneratedSurveyForm({ fileName }: GeneratedSurveyFormProps) {
         let rawSchema: unknown | null = null
 
         try {
-          rawSchema = await loadSchemaFromApi(fileName)
+          rawSchema = await loadSchemaFromBlob(fileName)
+        } catch (blobError) {
+          loadErrors.push(`Blob: ${errorMessage(blobError)}`)
+        }
+
+        try {
+          if (!rawSchema) {
+            rawSchema = await loadSchemaFromApi(fileName)
+          }
         } catch (apiError) {
           loadErrors.push(`API: ${errorMessage(apiError)}`)
         }
@@ -367,7 +383,7 @@ export function GeneratedSurveyForm({ fileName }: GeneratedSurveyFormProps) {
           rawSchema = getBundledSchemaByFileName(fileName)
           if (!rawSchema) {
             loadErrors.push(
-              `Bundled file: "${fileName}" is not available in src/data at build time.`
+              `Bundled file: "${fileName}" is not available at build time.`
             )
           }
         }

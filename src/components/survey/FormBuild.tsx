@@ -35,6 +35,13 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  deleteFormSchemaFromBlob,
+  getFormSchemaFromBlob,
+  isBlobStorageConfigured,
+  listFormSchemasFromBlob,
+  saveFormSchemaToBlob,
+} from '@/lib/form-builder-blob'
 import { cn } from '@/lib/utils'
 
 type BuilderFieldType =
@@ -101,6 +108,7 @@ type SavedFormListItem = {
   updatedAt: string
   size: number
   viewRoutePath: string
+  source: 'api' | 'blob' | 'bundled'
 }
 
 type BuilderApiPayload = {
@@ -110,6 +118,10 @@ type BuilderApiPayload = {
 }
 
 const STORAGE_KEY = 'survey-form-builder-v1'
+const BUNDLED_FORM_SCHEMAS = import.meta.glob('/src/data/*.json', {
+  eager: true,
+  import: 'default',
+}) as Record<string, unknown>
 
 const FIELD_TEMPLATES: FieldTemplate[] = [
   {
@@ -517,6 +529,59 @@ async function readJsonPayload(response: Response): Promise<BuilderApiPayload | 
   }
 }
 
+function getFileNameFromPath(path: string): string {
+  const segments = path.split('/')
+  return segments[segments.length - 1] || path
+}
+
+function buildSavedFormListItemFromData(
+  fileName: string,
+  rawData: unknown,
+  source: 'api' | 'blob' | 'bundled'
+): SavedFormListItem | null {
+  const parsedState = parseBuilderState(JSON.stringify(rawData))
+  if (!parsedState) return null
+
+  const rawSchema = rawData as Partial<BuilderSchema>
+  const updatedAt =
+    typeof rawSchema.updatedAt === 'string' && rawSchema.updatedAt.trim().length > 0
+      ? rawSchema.updatedAt
+      : new Date().toISOString()
+
+  return {
+    fileName,
+    title: parsedState.title,
+    fieldCount: parsedState.fields.length,
+    updatedAt,
+    size: JSON.stringify(rawData).length,
+    viewRoutePath: normalizeViewRoutePath(parsedState.viewRoutePath),
+    source,
+  }
+}
+
+function getBundledFormSchemaByFileName(fileName: string): unknown | null {
+  const normalized = fileName.trim().toLowerCase()
+  if (!normalized) return null
+
+  for (const [path, schema] of Object.entries(BUNDLED_FORM_SCHEMAS)) {
+    if (getFileNameFromPath(path).toLowerCase() === normalized) {
+      return schema
+    }
+  }
+  return null
+}
+
+function listBundledSavedForms(): SavedFormListItem[] {
+  const forms = Object.entries(BUNDLED_FORM_SCHEMAS)
+    .map(([path, schema]) =>
+      buildSavedFormListItemFromData(getFileNameFromPath(path), schema, 'bundled')
+    )
+    .filter((item): item is SavedFormListItem => Boolean(item))
+    .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
+
+  return forms
+}
+
 export function FormBuild() {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [formId, setFormId] = useState('survey_form')
@@ -557,26 +622,69 @@ export function FormBuild() {
     setSavedFormsLoading(true)
     setSavedFormsError(null)
     try {
+      if (isBlobStorageConfigured()) {
+        try {
+          const blobFiles = await listFormSchemasFromBlob()
+          const blobForms = (
+            await Promise.all(
+              blobFiles.map(async (blobFile) => {
+                try {
+                  const data = await getFormSchemaFromBlob(blobFile.fileName)
+                  const parsed = buildSavedFormListItemFromData(
+                    blobFile.fileName,
+                    data,
+                    'blob'
+                  )
+                  if (!parsed) return null
+                  return {
+                    ...parsed,
+                    updatedAt: blobFile.updatedAt || parsed.updatedAt,
+                    size: blobFile.size || parsed.size,
+                  }
+                } catch {
+                  return null
+                }
+              })
+            )
+          )
+            .filter((item): item is SavedFormListItem => Boolean(item))
+            .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
+
+          if (blobForms.length > 0) {
+            setSavedForms(blobForms)
+            return
+          }
+        } catch {
+          // Continue to API/bundled fallback when blob listing fails.
+        }
+      }
+
       const response = await fetch('/api/form-builder/list-json')
       const payload = await readJsonPayload(response)
+
+      if (response.ok && payload) {
+        const forms = Array.isArray(payload.forms) ? payload.forms : []
+        setSavedForms(
+          forms.map((form) => ({
+            ...form,
+            viewRoutePath: normalizeViewRoutePath(form.viewRoutePath),
+            source: 'api',
+          }))
+        )
+        return
+      }
+
+      const bundledForms = listBundledSavedForms()
+      if (bundledForms.length > 0) {
+        setSavedForms(bundledForms)
+        return
+      }
 
       if (!response.ok) {
         throw new Error(payload?.message || 'Failed to load saved forms.')
       }
 
-      if (!payload) {
-        throw new Error(
-          'Form builder API is not available here. Configure a backend API for production.'
-        )
-      }
-
-      const forms = Array.isArray(payload.forms) ? payload.forms : []
-      setSavedForms(
-        forms.map((form) => ({
-          ...form,
-          viewRoutePath: normalizeViewRoutePath(form.viewRoutePath),
-        }))
-      )
+      throw new Error('No saved forms found.')
     } catch (error) {
       const message =
         error instanceof Error ? error.message : 'Failed to load saved forms.'
@@ -701,11 +809,19 @@ export function FormBuild() {
 
   const handleSaveToSrcData = async () => {
     try {
+      const fileName = `${toFieldKey(title) || 'survey-form'}.json`
+      if (isBlobStorageConfigured()) {
+        await saveFormSchemaToBlob(fileName, schema)
+        toast.success(`Saved to Azure Blob (form-builder): ${fileName}`)
+        void loadSavedForms()
+        return
+      }
+
       const response = await fetch('/api/form-builder/save-json', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          fileName: `${toFieldKey(title) || 'survey-form'}.json`,
+          fileName,
           data: schema,
         }),
       })
@@ -722,7 +838,7 @@ export function FormBuild() {
         )
       }
 
-      toast.success(payload.message || 'Saved to src/data.')
+      toast.success(payload.message || 'Saved JSON file.')
       void loadSavedForms()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to save JSON file.')
@@ -731,16 +847,40 @@ export function FormBuild() {
 
   const handleLoadSavedForm = async (fileName: string) => {
     try {
-      const response = await fetch(
-        `/api/form-builder/read-json?fileName=${encodeURIComponent(fileName)}`
-      )
-      const payload = await readJsonPayload(response)
+      let formData: unknown | null = null
 
-      if (!response.ok || !payload?.data) {
-        throw new Error(payload?.message || 'Unable to load saved form.')
+      if (isBlobStorageConfigured()) {
+        try {
+          formData = await getFormSchemaFromBlob(fileName)
+        } catch {
+          formData = null
+        }
       }
 
-      const parsed = parseBuilderState(JSON.stringify(payload.data))
+      if (!formData) {
+        try {
+          const response = await fetch(
+            `/api/form-builder/read-json?fileName=${encodeURIComponent(fileName)}`
+          )
+          const payload = await readJsonPayload(response)
+
+          if (response.ok && payload?.data) {
+            formData = payload.data
+          }
+        } catch {
+          formData = null
+        }
+      }
+
+      if (!formData) {
+        formData = getBundledFormSchemaByFileName(fileName)
+      }
+
+      if (!formData) {
+        throw new Error('Unable to load saved form.')
+      }
+
+      const parsed = parseBuilderState(JSON.stringify(formData))
       if (!parsed) {
         throw new Error('Invalid builder JSON format in selected file.')
       }
@@ -769,6 +909,22 @@ export function FormBuild() {
 
     setDeleteLoading(true)
     try {
+      if (formToDelete.source === 'blob') {
+        await deleteFormSchemaFromBlob(formToDelete.fileName)
+        toast.success(`Deleted ${formToDelete.fileName} from Azure Blob`)
+        setDeleteDialogOpen(false)
+        setFormToDelete(null)
+        void loadSavedForms()
+        return
+      }
+
+      if (formToDelete.source !== 'api') {
+        toast.error('Delete is available only when backend API is configured.')
+        setDeleteDialogOpen(false)
+        setFormToDelete(null)
+        return
+      }
+
       const response = await fetch(
         `/api/form-builder/delete-json?fileName=${encodeURIComponent(formToDelete.fileName)}`,
         { method: 'DELETE' }
@@ -899,9 +1055,9 @@ export function FormBuild() {
         <CardHeader>
           <div className='flex items-center justify-between gap-3'>
             <div>
-              <CardTitle className='text-base'>Saved Forms (`src/data`)</CardTitle>
+              <CardTitle className='text-base'>Saved Forms</CardTitle>
               <CardDescription>
-                Forms saved from this builder. Click load to open a schema.
+                Forms from Azure Blob (`form-builder`) or local fallback storage.
               </CardDescription>
             </div>
             <Button
@@ -922,7 +1078,7 @@ export function FormBuild() {
           )}
           {!savedFormsError && savedForms.length === 0 && (
             <p className='text-muted-foreground text-sm'>
-              No saved form schemas found in `src/data`.
+              No saved form schemas found.
             </p>
           )}
           {savedForms.map((form) => (
@@ -934,7 +1090,7 @@ export function FormBuild() {
                 <p className='truncate text-sm font-medium'>{form.title}</p>
                 <p className='text-muted-foreground truncate text-xs'>
                   {form.fileName} | fields: {form.fieldCount} | updated:{' '}
-                  {formatDateTime(form.updatedAt)}
+                  {formatDateTime(form.updatedAt)} | source: {form.source}
                 </p>
               </div>
               <div className='flex items-center gap-2'>
@@ -961,6 +1117,12 @@ export function FormBuild() {
                   type='button'
                   variant='destructive'
                   size='sm'
+                  disabled={form.source === 'bundled'}
+                  title={
+                    form.source !== 'bundled'
+                      ? 'Delete'
+                      : 'Delete requires writable storage (Azure Blob or backend API)'
+                  }
                   onClick={() => handleOpenDeleteDialog(form)}
                 >
                   <Trash2 className='size-4' />
@@ -983,7 +1145,7 @@ export function FormBuild() {
         title='Delete Saved Form'
         desc={
           formToDelete
-            ? `Are you sure you want to delete "${formToDelete.fileName}" from src/data?`
+            ? `Are you sure you want to delete "${formToDelete.fileName}"?`
             : 'Are you sure you want to delete this form file?'
         }
         destructive
@@ -1065,7 +1227,7 @@ export function FormBuild() {
             </Button>
             <Button type='button' onClick={handleSaveToSrcData}>
               <Save />
-              Save to src/data
+              Save JSON
             </Button>
             <Button type='button' variant='outline' onClick={handleDownload}>
               <Download />

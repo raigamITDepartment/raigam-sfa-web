@@ -1,0 +1,130 @@
+{
+  "teleDramas": {
+    "Sirasa TV": {
+      "Mayavi": "Mayavi - මායාවී",
+      "Alawanthi": "Alawanthi - ආලවන්ති",
+      "Kiya Denna Adare Tharam": "Kiya Denna Adare Tharam - කියා දෙන්න ආදරේ තරම්",
+      "Rocky": "Rocky - රොකී",
+      "Rasa Rahasak": "Rasa Rahasak - රස රහසක්"
+    },
+    "ITN": {
+      "Wisekari": "Wisekari - විසේකාරී",
+      "Paradeese": "Paradeese - පාරාදීසේ",
+      "Raaga": "Raaga - රාග",
+      "Sasankara": "Sasankara - සසංකාර",
+      "The R.A.T": "The R.A.T"
+    },
+    "Hiru TV": {
+      "Pata Kurullo": "Pata Kurullo - පාට කුරුල්ලෝ",
+      "Master Sir": "Master Sir - මාස්ටර් සර්",
+      "Ron Soya": "Ron Soya - රොන් සොයා",
+      "Sihina Genena Kumariye": "Sihina Genena Kumariye - සිහින ගෙනෙන කුමාරියේ",
+      "Akurata Yana Welawe": "Akurata Yana Welawe - අකුරට යන වෙලාවේ"
+    },
+    "Swarnawahini": {
+      "Lalai Lilai Lai": "Lalai Lilai Lai - ලලයි ලිලයි ලයි",
+      "Salli Pokuru": "Salli Pokuru - සල්ලි පොකුරු",
+      "Hiripoda Wassa": "Hiripoda Wassa - හිරිපොද වැස්ස",
+      "Pirimi Lamai": "Pirimi Lamai - පිරිමි ළමයි",
+      "Sinto": "Sinto - සින්ටෝ"
+    },
+    "Siyatha TV": {
+      "Sindhu": "Sindhu - සින්ධු"
+    },
+    "TV Derana": {
+      "Iskole": "Iskole - ඉස්කෝලේ",
+      "Sangeethe": "Sangeethe - සංගීතේ",
+      "Deweni Inima": "Deweni Inima - දෙවැනි ඉනිම",
+      "Salena Nuwan": "Salena Nuwan - සැලෙන නුවන්",
+      "Nikini Kusum": "Nikini Kusum - නිකිණි කුසුම්"
+    },
+    "Rupavahini": {
+      "Wiyali": "Wiyali - වියලි",
+      "Amuthu Dosthara": "Amuthu Dosthara - අමුතු දොස්තර",
+      "Situwara Puwatha": "Situwara Puwatha - සිටුවර පුවත",
+      "Iragini Maddahana": "Iragini Maddahana - ඉරගිනි මද්දහන"
+    }
+  },
+  "mediaPrograms": {
+    "Sirasa TV": {
+      "Sirasa Lakshapathi": "Sirasa Lakshapathi - සිරස ලක්ෂපති",
+      "The Voice": "The Voice",
+      "Five Million Money Drop": "Five Million Money Drop",
+      "Sajjayana": "Sajjayana - සඡ්ඡායනා",
+      "Sri Lanka's Got Talent": "Sri Lanka's Got Talent"
+    },
+    "ITN": {
+      "Chat N Music": "Chat N Music",
+      "Doramandalawa": "Doramandalawa - දොරමඩලාව",
+      "Atapattama": "Atapattama - අටපට්ටම",
+      "HOPE": "HOPE",
+      "Thulawa": "Thulawa - තුලාව"
+    },
+    "Hiru TV": {
+      "Hiru Star": "Hiru Star - හිරු ස්ටාර්",
+      "Hiru Mega Star": "Hiru Mega Star - හිරු මෙගා ස්ටාර්",
+      "Hiru Kids Star": "Hiru Kids Star - හිරු කිඩ්ස් ස්ටාර්",
+      "Copy Chat": "Copy Chat - කොපි චැට්",
+      "Podi Weddo": "Podi Weddo - පොඩි වැඩ්ඩෝ"
+    },
+    "Swarnawahini": {
+      "Club Friday": "Club Friday",
+      "Rasasaraniya": "Rasasaraniya - රසසරණිය",
+      "Punchi Pahe Miliyanapathi": "Punchi Pahe Miliyanapathi - පුංචි පහේ මිලියනපති",
+      "Hitha Illana Tharu": "Hitha Illana Tharu - හිත ඉල්ලන තරු",
+      "Wild Cook Journey": "Wild Cook Journey",
+      "Nadiya": "Nadiya - නාඩිය"
+    },
+    "Siyatha": {
+      "Siyatha Paththare": "Rangana Samaga Tharu Piri Reya - රංගන සමග තරුපිරි රැය"
+    },
+    "TV Derana": {
+      "Dream Star": "Dream Star - ඩ්‍රීම් ස්ටාර්",
+      "Dishum Dishum": "Dishum Dishum",
+      "60 Plus": "60 Plus",
+      "Champion Star": "Champion Stars - චැම්පියන් ස්ටාර්",
+      "Ma Nowana Mama": "Ma Nowana Mama - මා නොවන මම"
+    },
+    "Rupavahini": {
+      "Piyum Neela Wila": "Piyum Neela Wila - පියුම් නීල විල",
+      "Nena Mihira": "Nena Mihira - නැණ මිහිර",
+      "Sandaru Suyamaya": "Sandaru Suyamaya - සඳරු සුයාමය",
+      "Muthuhara": "Muthuhara - මුතුහර",
+      "Nuga Sewana": "Nuga Sewana - නුග සෙවන"
+    }
+  },
+  "newsBulletins": [
+    "Sirasa Tv",
+    "ITN",
+    "Hiru TV",
+    "Swarnawahini",
+    "Siyatha Tv",
+    "Ada Derana",
+    "රූපවාහිනී News"
+  ],
+  "tvChannels": [
+    "Sirasa Tv",
+    "ITN",
+    "Hiru Tv",
+    "Swarnawahini",
+    "Siyatha Tv",
+    "Tv Derana",
+    "Rupavahini"
+  ],
+  "actors": {
+    "Akila Danuddara": "Akila Danuddara - අකිල ධනුද්ධර",
+    "Bimal Jayakodi": "Bimal Jayakodi - බිමල් ජයකොඩි",
+    "Chanuka Prabuddha": "Chanuka Prabuddha - චානුක ප්‍රබුද්ධ",
+    "Dhananjaya Siriwardhana": "Dhananjaya Siriwardhana - ධනංජය සිරිවර්ධන",
+    "Kalana Gunasekara": "Kalana Gunasekara - කළණ ගුණසේකර",
+    "Kusal Madhuranga": "Kusal Madhuranga - කුසල් මධුරංග",
+    "Lawan Abhishek": "Lawan Abhishek - ලවන් අභිෂේක්"
+  },
+  "actresses": {
+    "Dasuni Senethma": "Dasuni Senethma - දසුනි සෙනෙත්මා",
+    "Dinakshi Priyasad": "Dinakshi Priyasad - දිනක්ෂි ප්‍රියසාද්",
+    "Dusheni Miyurangi": "Dusheni Miyurangi - දුශේනි මියුරංගි",
+    "Geethma Bandara": "Geethma Bandara - ගීත්මා බණ්ඩාර",
+    "Kalani Dodanthenna": "Kalani Dodanthenna - කලනි දොඩංතැන්න"
+  }
+}

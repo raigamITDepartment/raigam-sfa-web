@@ -20,6 +20,7 @@ import { Route as errors404RouteImport } from './routes/(errors)/404'
 import { Route as errors403RouteImport } from './routes/(errors)/403'
 import { Route as errors401RouteImport } from './routes/(errors)/401'
 import { Route as authSignInRouteImport } from './routes/(auth)/sign-in'
+import { Route as AuthenticatedSurveyModulePeoplesAwardRouteImport } from './routes/_authenticated/survey-module/peoples-award'
 import { Route as AuthenticatedReportsTerritoryWiseSalesReportRouteImport } from './routes/_authenticated/reports/territory-wise-sales-report'
 import { Route as AuthenticatedReportsTerritoryWiseItemsReportRouteImport } from './routes/_authenticated/reports/territory-wise-items-report'
 import { Route as AuthenticatedReportsAreaWiseSalesReportRouteImport } from './routes/_authenticated/reports/area-wise-sales-report'
@@ -121,6 +122,12 @@ const authSignInRoute = authSignInRouteImport.update({
   path: '/sign-in',
   getParentRoute: () => authRouteRoute,
 } as any)
+const AuthenticatedSurveyModulePeoplesAwardRoute =
+  AuthenticatedSurveyModulePeoplesAwardRouteImport.update({
+    id: '/survey-module/peoples-award',
+    path: '/survey-module/peoples-award',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedReportsTerritoryWiseSalesReportRoute =
   AuthenticatedReportsTerritoryWiseSalesReportRouteImport.update({
     id: '/reports/territory-wise-sales-report',
@@ -434,6 +441,7 @@ export interface FileRoutesByFullPath {
   '/reports/area-wise-sales-report': typeof AuthenticatedReportsAreaWiseSalesReportRoute
   '/reports/territory-wise-items-report': typeof AuthenticatedReportsTerritoryWiseItemsReportRoute
   '/reports/territory-wise-sales-report': typeof AuthenticatedReportsTerritoryWiseSalesReportRoute
+  '/survey-module/peoples-award': typeof AuthenticatedSurveyModulePeoplesAwardRoute
   '/admin-module/operation/manual-bill-quota': typeof AuthenticatedAdminModuleOperationManualBillQuotaRoute
   '/admin-module/user-module/add-modify-user': typeof AuthenticatedAdminModuleUserModuleAddModifyUserRoute
   '/admin-module/user-module/manage-permission': typeof AuthenticatedAdminModuleUserModuleManagePermissionRoute
@@ -492,6 +500,7 @@ export interface FileRoutesByTo {
   '/reports/area-wise-sales-report': typeof AuthenticatedReportsAreaWiseSalesReportRoute
   '/reports/territory-wise-items-report': typeof AuthenticatedReportsTerritoryWiseItemsReportRoute
   '/reports/territory-wise-sales-report': typeof AuthenticatedReportsTerritoryWiseSalesReportRoute
+  '/survey-module/peoples-award': typeof AuthenticatedSurveyModulePeoplesAwardRoute
   '/admin-module/operation/manual-bill-quota': typeof AuthenticatedAdminModuleOperationManualBillQuotaRoute
   '/admin-module/user-module/add-modify-user': typeof AuthenticatedAdminModuleUserModuleAddModifyUserRoute
   '/admin-module/user-module/manage-permission': typeof AuthenticatedAdminModuleUserModuleManagePermissionRoute
@@ -553,6 +562,7 @@ export interface FileRoutesById {
   '/_authenticated/reports/area-wise-sales-report': typeof AuthenticatedReportsAreaWiseSalesReportRoute
   '/_authenticated/reports/territory-wise-items-report': typeof AuthenticatedReportsTerritoryWiseItemsReportRoute
   '/_authenticated/reports/territory-wise-sales-report': typeof AuthenticatedReportsTerritoryWiseSalesReportRoute
+  '/_authenticated/survey-module/peoples-award': typeof AuthenticatedSurveyModulePeoplesAwardRoute
   '/_authenticated/admin-module/operation/manual-bill-quota': typeof AuthenticatedAdminModuleOperationManualBillQuotaRoute
   '/_authenticated/admin-module/user-module/add-modify-user': typeof AuthenticatedAdminModuleUserModuleAddModifyUserRoute
   '/_authenticated/admin-module/user-module/manage-permission': typeof AuthenticatedAdminModuleUserModuleManagePermissionRoute
@@ -613,6 +623,7 @@ export interface FileRouteTypes {
     | '/reports/area-wise-sales-report'
     | '/reports/territory-wise-items-report'
     | '/reports/territory-wise-sales-report'
+    | '/survey-module/peoples-award'
     | '/admin-module/operation/manual-bill-quota'
     | '/admin-module/user-module/add-modify-user'
     | '/admin-module/user-module/manage-permission'
@@ -671,6 +682,7 @@ export interface FileRouteTypes {
     | '/reports/area-wise-sales-report'
     | '/reports/territory-wise-items-report'
     | '/reports/territory-wise-sales-report'
+    | '/survey-module/peoples-award'
     | '/admin-module/operation/manual-bill-quota'
     | '/admin-module/user-module/add-modify-user'
     | '/admin-module/user-module/manage-permission'
@@ -731,6 +743,7 @@ export interface FileRouteTypes {
     | '/_authenticated/reports/area-wise-sales-report'
     | '/_authenticated/reports/territory-wise-items-report'
     | '/_authenticated/reports/territory-wise-sales-report'
+    | '/_authenticated/survey-module/peoples-award'
     | '/_authenticated/admin-module/operation/manual-bill-quota'
     | '/_authenticated/admin-module/user-module/add-modify-user'
     | '/_authenticated/admin-module/user-module/manage-permission'
@@ -851,6 +864,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/sign-in'
       preLoaderRoute: typeof authSignInRouteImport
       parentRoute: typeof authRouteRoute
+    }
+    '/_authenticated/survey-module/peoples-award': {
+      id: '/_authenticated/survey-module/peoples-award'
+      path: '/survey-module/peoples-award'
+      fullPath: '/survey-module/peoples-award'
+      preLoaderRoute: typeof AuthenticatedSurveyModulePeoplesAwardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/reports/territory-wise-sales-report': {
       id: '/_authenticated/reports/territory-wise-sales-report'
@@ -1217,6 +1237,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedReportsAreaWiseSalesReportRoute: typeof AuthenticatedReportsAreaWiseSalesReportRoute
   AuthenticatedReportsTerritoryWiseItemsReportRoute: typeof AuthenticatedReportsTerritoryWiseItemsReportRoute
   AuthenticatedReportsTerritoryWiseSalesReportRoute: typeof AuthenticatedReportsTerritoryWiseSalesReportRoute
+  AuthenticatedSurveyModulePeoplesAwardRoute: typeof AuthenticatedSurveyModulePeoplesAwardRoute
   AuthenticatedAdminModuleOperationManualBillQuotaRoute: typeof AuthenticatedAdminModuleOperationManualBillQuotaRoute
   AuthenticatedAdminModuleUserModuleAddModifyUserRoute: typeof AuthenticatedAdminModuleUserModuleAddModifyUserRoute
   AuthenticatedAdminModuleUserModuleManagePermissionRoute: typeof AuthenticatedAdminModuleUserModuleManagePermissionRoute
@@ -1280,6 +1301,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedReportsTerritoryWiseItemsReportRoute,
   AuthenticatedReportsTerritoryWiseSalesReportRoute:
     AuthenticatedReportsTerritoryWiseSalesReportRoute,
+  AuthenticatedSurveyModulePeoplesAwardRoute:
+    AuthenticatedSurveyModulePeoplesAwardRoute,
   AuthenticatedAdminModuleOperationManualBillQuotaRoute:
     AuthenticatedAdminModuleOperationManualBillQuotaRoute,
   AuthenticatedAdminModuleUserModuleAddModifyUserRoute:

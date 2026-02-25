@@ -126,5 +126,131 @@
     "Dusheni Miyurangi": "Dusheni Miyurangi - දුශේනි මියුරංගි",
     "Geethma Bandara": "Geethma Bandara - ගීත්මා බණ්ඩාර",
     "Kalani Dodanthenna": "Kalani Dodanthenna - කලනි දොඩංතැන්න"
-  }
+  },
+  "routeOptions": [
+    { "value": "route-1", "label": "Route 1" },
+    { "value": "route-2", "label": "Route 2" },
+    { "value": "route-3", "label": "Route 3" }
+  ],
+  "outletOptions": [
+    { "value": "outlet-1", "label": "Outlet 1" },
+    { "value": "outlet-2", "label": "Outlet 2" },
+    { "value": "outlet-3", "label": "Outlet 3" }
+  ],
+  "formConfig": {
+    "title": "Survey Questionnaire - People's Award 2025",
+    "titleSi": "සමීක්ෂණ ප්‍රශ්නාවලිය - ජනගත සම්මාන 2025",
+    "introEn": "I would appreciate if you could take few minutes and support to success this survey by respond to this questionnaire. Kindly note that, your response will be treated as strictly confidential",
+    "introSi": "ඔබට විනාඩි කිහිපයක් ගත කර මෙම ප්‍රශ්නාවලියට ප්‍රතිචාර දැක්වීමෙන් මෙම සමීක්ෂණය සාර්ථක කර ගැනීමට සහය දිය හැකි නම් මම අගය කරමි. ඔබගේ ප්‍රතිචාරය දැඩි ලෙස රහසිගත ලෙස සලකනු ලබන බව කරුණාවෙන් සලකන්න .",
+    "sections": [
+      {
+        "id": "section-a",
+        "title": "Section A",
+        "fields": [
+          {
+            "key": "route",
+            "label": "01. Select Route",
+            "required": true,
+            "placeholder": "Select Route",
+            "optionsSource": "routeOptions",
+            "disabled": true
+          },
+          {
+            "key": "outlet",
+            "label": "02. Select Outlet",
+            "required": true,
+            "placeholder": "Select Outlet",
+            "optionsSource": "outletOptions",
+            "disabled": true
+          },
+          {
+            "key": "ageGroup",
+            "label": "03. Age Group (වයස් කාණ්ඩය)",
+            "required": true,
+            "placeholder": "Select One",
+            "optionsSource": "ageGroupOptions"
+          },
+          {
+            "key": "gender",
+            "label": "04. Gender (ස්ත්‍රී පුරුෂ භාවය)",
+            "required": true,
+            "placeholder": "Select One",
+            "optionsSource": "genderOptions"
+          },
+          {
+            "key": "watchMethod",
+            "label": "05. What is the most preferred method to watch Teledramas/ TV Programs/ News? (බොහෝ දුරට ටෙලි නාට්‍ය/ රූපවාහිනී වැඩසටහන්/ ප්‍රවෘත්ති නැරඹීමට භාවිත කරන ක්‍රමය)",
+            "required": true,
+            "placeholder": "Select One",
+            "optionsSource": "watchMethodOptions"
+          }
+        ]
+      },
+      {
+        "id": "section-b",
+        "title": "Section B - Survey",
+        "subtitle": "Raigam Tele'es 2025 - People's Awards",
+        "fields": [
+          {
+            "key": "favoriteTeledrama",
+            "label": "01. What is your favorite Teledrama? (ඔබ කැමතිම ටෙලිනාට්‍යය කුමක්ද?)",
+            "required": true,
+            "placeholder": "Select One",
+            "optionsSource": "teleDramas"
+          },
+          {
+            "key": "favoriteMediaProgram",
+            "label": "02. What is your favorite media program? (ඔබේ ප්‍රියතම මාධ්‍ය වැඩසටහන කුමක්ද?)",
+            "required": true,
+            "placeholder": "Select One",
+            "optionsSource": "mediaPrograms"
+          },
+          {
+            "key": "favoriteNewsBulletin",
+            "label": "03. What is your favorite news bulletin? (ඔබේ ප්‍රියතම ප්‍රවෘත්ති නාලිකාව කුමක්ද)",
+            "required": true,
+            "placeholder": "Select One",
+            "optionsSource": "newsBulletins"
+          },
+          {
+            "key": "favoriteTvChannel",
+            "label": "04. What is your favorite TV channel? (ඔබේ ප්‍රියතම TV නාලිකාව කුමක්ද)",
+            "required": true,
+            "placeholder": "Select One",
+            "optionsSource": "tvChannels"
+          },
+          {
+            "key": "favoriteActor",
+            "label": "05. What is your favorite Actor? (ඔබේ ප්‍රියතම නළුවා කවුරුද?)",
+            "required": true,
+            "placeholder": "Select One",
+            "optionsSource": "actors"
+          },
+          {
+            "key": "favoriteActress",
+            "label": "06. What is your favorite Actress? (ඔබේ ප්‍රියතම නිළිය කවුරුද?)",
+            "required": true,
+            "placeholder": "Select One",
+            "optionsSource": "actresses"
+          }
+        ]
+      }
+    ]
+  },
+  "ageGroupOptions": [
+    { "value": "below-25", "label": "Below 25" },
+    { "value": "25-50", "label": "25-50" },
+    { "value": "50-70", "label": "50-70" },
+    { "value": "above-70", "label": "Above 70" }
+  ],
+  "genderOptions": [
+    { "value": "male", "label": "Male" },
+    { "value": "female", "label": "Female" }
+  ],
+  "watchMethodOptions": [
+    { "value": "tv", "label": "TV" },
+    { "value": "facebook", "label": "Facebook" },
+    { "value": "youtube", "label": "You Tube" }
+  ],
+  "submissions": []
 }

@@ -1,21 +1,24 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { Main } from '@/components/layout/main'
 import { PageHeader } from '@/components/layout/page-header'
+import { FormBuild } from '@/components/survey/FormBuild'
 
 export const Route = createFileRoute(
-  '/_authenticated/survey-module/peoples-award'
+  '/_authenticated/survey-module/survey-form-builder'
 )({
   component: () => (
     <Main>
       <PageHeader
-        title="People's Award"
+        title='Surey Form build'
         breadcrumbs={[
           { label: 'Home', to: '/dashboard/overview' },
           { label: 'Survey Module' },
-          { label: "People's Award" },
+          { label: 'Surey Form build' },
         ]}
       />
-      <div className='p-4 md:p-6'></div>
+      <div className='mt-4'>
+        <FormBuild />
+      </div>
     </Main>
   ),
 })

@@ -136,8 +136,8 @@ export const sidebarData: SidebarData = {
       title: 'Survey Module',
       items: [
         {
-          title: "People's Award",
-          url: '/survey-module/peoples-award',
+          title: 'Surey Form build',
+          url: '/survey-module/survey-form-builder',
           icon: ClipboardList,
         },
       ],

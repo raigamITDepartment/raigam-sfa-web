@@ -103,6 +103,12 @@ type SavedFormListItem = {
   viewRoutePath: string
 }
 
+type BuilderApiPayload = {
+  message?: string
+  forms?: SavedFormListItem[]
+  data?: unknown
+}
+
 const STORAGE_KEY = 'survey-form-builder-v1'
 
 const FIELD_TEMPLATES: FieldTemplate[] = [
@@ -500,6 +506,17 @@ function formatDateTime(rawValue: string): string {
   return parsed.toLocaleString()
 }
 
+async function readJsonPayload(response: Response): Promise<BuilderApiPayload | null> {
+  const rawText = await response.text()
+  if (!rawText.trim()) return null
+
+  try {
+    return JSON.parse(rawText) as BuilderApiPayload
+  } catch {
+    return null
+  }
+}
+
 export function FormBuild() {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [formId, setFormId] = useState('survey_form')
@@ -541,13 +558,16 @@ export function FormBuild() {
     setSavedFormsError(null)
     try {
       const response = await fetch('/api/form-builder/list-json')
-      const payload = (await response.json()) as {
-        forms?: SavedFormListItem[]
-        message?: string
-      }
+      const payload = await readJsonPayload(response)
 
       if (!response.ok) {
-        throw new Error(payload.message || 'Failed to load saved forms.')
+        throw new Error(payload?.message || 'Failed to load saved forms.')
+      }
+
+      if (!payload) {
+        throw new Error(
+          'Form builder API is not available here. Configure a backend API for production.'
+        )
       }
 
       const forms = Array.isArray(payload.forms) ? payload.forms : []
@@ -690,12 +710,16 @@ export function FormBuild() {
         }),
       })
 
-      const payload = (await response.json()) as {
-        message?: string
-      }
+      const payload = await readJsonPayload(response)
 
       if (!response.ok) {
-        throw new Error(payload.message || 'Failed to save JSON file.')
+        throw new Error(payload?.message || 'Failed to save JSON file.')
+      }
+
+      if (!payload) {
+        throw new Error(
+          'Form builder API returned non-JSON response. Configure backend API in production.'
+        )
       }
 
       toast.success(payload.message || 'Saved to src/data.')
@@ -710,13 +734,10 @@ export function FormBuild() {
       const response = await fetch(
         `/api/form-builder/read-json?fileName=${encodeURIComponent(fileName)}`
       )
-      const payload = (await response.json()) as {
-        data?: unknown
-        message?: string
-      }
+      const payload = await readJsonPayload(response)
 
-      if (!response.ok || !payload.data) {
-        throw new Error(payload.message || 'Unable to load saved form.')
+      if (!response.ok || !payload?.data) {
+        throw new Error(payload?.message || 'Unable to load saved form.')
       }
 
       const parsed = parseBuilderState(JSON.stringify(payload.data))
@@ -752,12 +773,16 @@ export function FormBuild() {
         `/api/form-builder/delete-json?fileName=${encodeURIComponent(formToDelete.fileName)}`,
         { method: 'DELETE' }
       )
-      const payload = (await response.json()) as {
-        message?: string
-      }
+      const payload = await readJsonPayload(response)
 
       if (!response.ok) {
-        throw new Error(payload.message || 'Failed to delete form file.')
+        throw new Error(payload?.message || 'Failed to delete form file.')
+      }
+
+      if (!payload) {
+        throw new Error(
+          'Form builder API returned non-JSON response. Configure backend API in production.'
+        )
       }
 
       toast.success(payload.message || `Deleted ${formToDelete.fileName}`)

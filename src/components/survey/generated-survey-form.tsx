@@ -70,6 +70,10 @@ type GeneratedSurveyFormProps = {
 type FormValue = string | string[]
 type FormValues = Record<string, FormValue>
 type FormErrors = Record<string, string>
+type ReadSchemaApiResponse = {
+  data?: unknown
+  message?: string
+}
 
 const ALLOWED_FIELD_TYPES: GeneratedFieldType[] = [
   'section-heading',
@@ -84,6 +88,10 @@ const ALLOWED_FIELD_TYPES: GeneratedFieldType[] = [
   'checkbox',
 ]
 const DEFAULT_SELECT_VALUE = '__select_one_default__'
+const BUNDLED_FORM_SCHEMAS = import.meta.glob('/src/data/*.json', {
+  eager: true,
+  import: 'default',
+}) as Record<string, unknown>
 
 function toFieldKey(rawValue: string) {
   const cleaned = rawValue
@@ -259,6 +267,73 @@ function hasRequiredValue(field: GeneratedField, value: FormValue): boolean {
   return typeof value === 'string' && value.trim().length > 0
 }
 
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : 'Unknown error.'
+}
+
+function getBundledSchemaByFileName(fileName: string): unknown | null {
+  const normalizedName = fileName.trim().toLowerCase()
+  if (!normalizedName) return null
+
+  for (const [path, schema] of Object.entries(BUNDLED_FORM_SCHEMAS)) {
+    const pathSegments = path.split('/')
+    const currentFileName = pathSegments[pathSegments.length - 1]?.toLowerCase()
+    if (currentFileName === normalizedName) {
+      return schema
+    }
+  }
+
+  return null
+}
+
+function parseJsonText(rawText: string): unknown {
+  return JSON.parse(rawText) as unknown
+}
+
+async function loadSchemaFromApi(fileName: string): Promise<unknown> {
+  const response = await fetch(
+    `/api/form-builder/read-json?fileName=${encodeURIComponent(fileName)}`
+  )
+  const rawText = await response.text()
+
+  let payload: ReadSchemaApiResponse | null = null
+  if (rawText.trim()) {
+    try {
+      payload = parseJsonText(rawText) as ReadSchemaApiResponse
+    } catch {
+      payload = null
+    }
+  }
+
+  if (!response.ok) {
+    throw new Error(payload?.message || 'API failed to load generated form.')
+  }
+
+  if (!payload || payload.data === undefined) {
+    throw new Error('API returned non-JSON response.')
+  }
+
+  return payload.data
+}
+
+async function loadSchemaFromPublicData(fileName: string): Promise<unknown> {
+  const response = await fetch(`/data/${encodeURIComponent(fileName)}`)
+  if (!response.ok) {
+    throw new Error(`Form file "${fileName}" not found in public/data.`)
+  }
+
+  const rawText = await response.text()
+  if (!rawText.trim()) {
+    throw new Error('public/data returned an empty response.')
+  }
+
+  try {
+    return parseJsonText(rawText)
+  } catch {
+    throw new Error('public/data returned invalid JSON.')
+  }
+}
+
 export function GeneratedSurveyForm({ fileName }: GeneratedSurveyFormProps) {
   const [schema, setSchema] = useState<GeneratedSchema | null>(null)
   const [loading, setLoading] = useState(false)
@@ -271,19 +346,37 @@ export function GeneratedSurveyForm({ fileName }: GeneratedSurveyFormProps) {
       setLoading(true)
       setError(null)
       try {
-        const response = await fetch(
-          `/api/form-builder/read-json?fileName=${encodeURIComponent(fileName)}`
-        )
-        const payload = (await response.json()) as {
-          data?: unknown
-          message?: string
+        const loadErrors: string[] = []
+        let rawSchema: unknown | null = null
+
+        try {
+          rawSchema = await loadSchemaFromApi(fileName)
+        } catch (apiError) {
+          loadErrors.push(`API: ${errorMessage(apiError)}`)
         }
 
-        if (!response.ok || !payload.data) {
-          throw new Error(payload.message || 'Unable to load generated form.')
+        if (!rawSchema) {
+          try {
+            rawSchema = await loadSchemaFromPublicData(fileName)
+          } catch (publicError) {
+            loadErrors.push(`Public file: ${errorMessage(publicError)}`)
+          }
         }
 
-        const parsed = sanitizeSchema(payload.data)
+        if (!rawSchema) {
+          rawSchema = getBundledSchemaByFileName(fileName)
+          if (!rawSchema) {
+            loadErrors.push(
+              `Bundled file: "${fileName}" is not available in src/data at build time.`
+            )
+          }
+        }
+
+        if (!rawSchema) {
+          throw new Error(loadErrors.join(' '))
+        }
+
+        const parsed = sanitizeSchema(rawSchema)
         if (!parsed) {
           throw new Error('Invalid generated form schema.')
         }

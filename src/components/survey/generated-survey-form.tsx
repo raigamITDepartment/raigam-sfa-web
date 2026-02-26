@@ -61,6 +61,7 @@ type GeneratedField = {
   placeholder: string
   required: boolean
   disabled: boolean
+  shuffleOptions: boolean
   options: GeneratedFieldOption[]
 }
 
@@ -141,6 +142,19 @@ function getDisplayFieldStyle(
     ...(padding ? { padding } : {}),
     ...(margin ? { margin } : {}),
   }
+}
+
+function shuffleFieldOptions(
+  options: GeneratedFieldOption[]
+): GeneratedFieldOption[] {
+  const next = [...options]
+  for (let index = next.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1))
+    const current = next[index]
+    next[index] = next[swapIndex]
+    next[swapIndex] = current
+  }
+  return next
 }
 
 function sanitizeSchema(rawValue: unknown): GeneratedSchema | null {
@@ -238,6 +252,10 @@ function sanitizeSchema(rawValue: unknown): GeneratedSchema | null {
               : `Enter ${label.toLowerCase()}`,
         required: Boolean(field.required),
         disabled: Boolean(field.disabled),
+        shuffleOptions:
+          field.type === 'select' && typeof field.shuffleOptions === 'boolean'
+            ? field.shuffleOptions
+            : false,
         options: normalizedOptions,
       }
     })
@@ -576,6 +594,23 @@ export function GeneratedSurveyForm({ fileName }: GeneratedSurveyFormProps) {
   }, [schema, queryParams.routeId, queryParams.routeName, queryParams.outletId, queryParams.outletName])
 
   const canSubmit = useMemo(() => schema && schema.fields.length > 0, [schema])
+  const selectOptionsByFieldId = useMemo(() => {
+    if (!schema) return {}
+
+    return schema.fields.reduce<Record<string, GeneratedFieldOption[]>>(
+      (accumulator, field) => {
+        if (field.type !== 'select') return accumulator
+
+        accumulator[field.id] =
+          field.shuffleOptions && field.options.length > 1
+            ? shuffleFieldOptions(field.options)
+            : field.options
+
+        return accumulator
+      },
+      {}
+    )
+  }, [schema])
 
   const updateValue = (fieldKey: string, value: FormValue) => {
     setFormValues((current) => ({ ...current, [fieldKey]: value }))
@@ -769,6 +804,7 @@ export function GeneratedSurveyForm({ fileName }: GeneratedSurveyFormProps) {
               outletNameFromQuery ||
               (queryParams.outletId ?? '').trim() ||
               (typeof value === 'string' ? value : '')
+            const selectOptions = selectOptionsByFieldId[field.id] ?? field.options
             if (field.type === 'section-heading') {
               return (
                 <h2
@@ -880,7 +916,7 @@ export function GeneratedSurveyForm({ fileName }: GeneratedSurveyFormProps) {
                       <SelectItem value={DEFAULT_SELECT_VALUE}>
                         {field.placeholder || 'Select One'}
                       </SelectItem>
-                      {field.options.map((option) => (
+                      {selectOptions.map((option) => (
                         <SelectItem
                           key={`${field.id}-${option.value}`}
                           value={option.value}

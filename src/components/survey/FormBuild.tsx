@@ -72,6 +72,7 @@ type BuilderField = {
   placeholder: string
   required: boolean
   disabled: boolean
+  shuffleOptions: boolean
   options: BuilderFieldOption[]
 }
 
@@ -243,6 +244,7 @@ function createFieldFromType(
           : `Enter ${nextLabel.toLowerCase()}`,
     required: false,
     disabled: false,
+    shuffleOptions: false,
     options: isChoiceField(fieldType) ? createDefaultOptions() : [],
   }
 }
@@ -281,6 +283,10 @@ function sanitizeField(field: unknown, fields: BuilderField[]): BuilderField | n
           : `Enter ${label.toLowerCase()}`,
     required: Boolean(raw.required),
     disabled: Boolean(raw.disabled),
+    shuffleOptions:
+      raw.type === 'select' && typeof raw.shuffleOptions === 'boolean'
+        ? raw.shuffleOptions
+        : false,
     options: Array.isArray(raw.options)
       ? (raw.options as unknown[])
           .map((option): BuilderFieldOption | null => {
@@ -325,6 +331,10 @@ function sanitizeField(field: unknown, fields: BuilderField[]): BuilderField | n
 
   if (!isChoiceField(cleaned.type)) {
     cleaned.options = []
+  }
+
+  if (cleaned.type !== 'select') {
+    cleaned.shuffleOptions = false
   }
 
   if (!supportsDisplaySpacing(cleaned.type)) {
@@ -1637,6 +1647,27 @@ export function FormBuild() {
                         updateField(selectedField.id, (field) => ({
                           ...field,
                           disabled: checked,
+                        }))
+                      }
+                    />
+                  </div>
+                )}
+
+                {selectedField.type === 'select' && (
+                  <div className='flex items-center justify-between rounded-md border p-3'>
+                    <div className='space-y-1'>
+                      <Label htmlFor='field-shuffle-options'>Randomize Options</Label>
+                      <p className='text-muted-foreground text-xs'>
+                        Shuffle dropdown options when the form loads.
+                      </p>
+                    </div>
+                    <Switch
+                      id='field-shuffle-options'
+                      checked={selectedField.shuffleOptions}
+                      onCheckedChange={(checked) =>
+                        updateField(selectedField.id, (field) => ({
+                          ...field,
+                          shuffleOptions: checked,
                         }))
                       }
                     />

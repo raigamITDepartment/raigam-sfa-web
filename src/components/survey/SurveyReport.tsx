@@ -73,7 +73,6 @@ const CENTERED_COLUMN_IDS = new Set([
   'userName',
   'dayTarget',
   'dayCount',
-  'surveyDate',
   'surveyCount',
   'timeFrameCount',
   'outOfTimeFrameCount',
@@ -207,19 +206,6 @@ export function SurveyReport() {
         ),
         cell: ({ row }) => (
           <span className='block text-center'>{row.original.dayCount ?? '-'}</span>
-        ),
-      },
-      {
-        accessorKey: 'surveyDate',
-        header: ({ column }) => (
-          <DataTableColumnHeader
-            column={column}
-            title='Survey Date'
-            className='w-full justify-center text-center'
-          />
-        ),
-        cell: ({ row }) => (
-          <span className='block text-center'>{row.original.surveyDate || '-'}</span>
         ),
       },
       {

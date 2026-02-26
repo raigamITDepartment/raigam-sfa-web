@@ -6,6 +6,7 @@ import {
   useState,
 } from 'react'
 import { useLocation } from '@tanstack/react-router'
+import { CircleCheck } from 'lucide-react'
 import { saveSurveyData } from '@/services/survey/surveyAPI'
 import { toast } from 'sonner'
 import {
@@ -492,6 +493,10 @@ export function GeneratedSurveyForm({ fileName }: GeneratedSurveyFormProps) {
   const [formValues, setFormValues] = useState<FormValues>({})
   const [fieldErrors, setFieldErrors] = useState<FormErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSuccessStateVisible, setIsSuccessStateVisible] = useState(false)
+  const [successMessage, setSuccessMessage] = useState(
+    'Thank you for completing the survey.'
+  )
 
   useEffect(() => {
     // eslint-disable-next-line no-console
@@ -507,6 +512,8 @@ export function GeneratedSurveyForm({ fileName }: GeneratedSurveyFormProps) {
     const loadForm = async () => {
       setLoading(true)
       setError(null)
+      setIsSuccessStateVisible(false)
+      setSuccessMessage('Thank you for completing the survey.')
       try {
         const loadErrors: string[] = []
         let rawSchema: unknown | null = null
@@ -724,7 +731,14 @@ export function GeneratedSurveyForm({ fileName }: GeneratedSurveyFormProps) {
       // eslint-disable-next-line no-console
       console.log('saveSurveyData payload:', payload)
 
-      await saveSurveyData(payload)
+      const response = await saveSurveyData(payload)
+      const apiMessage =
+        typeof response?.message === 'string' ? response.message.trim() : ''
+      setSuccessMessage(
+        apiMessage || 'Thank you. Your survey response has been saved.'
+      )
+      setIsSuccessStateVisible(true)
+      setFieldErrors({})
       toast.success('Survey saved successfully.')
     } catch (submitError) {
       const message =
@@ -769,6 +783,32 @@ export function GeneratedSurveyForm({ fileName }: GeneratedSurveyFormProps) {
           <CardTitle>Form Not Available</CardTitle>
           <CardDescription>{error || 'Unable to render form.'}</CardDescription>
         </CardHeader>
+      </Card>
+    )
+  }
+
+  if (isSuccessStateVisible) {
+    return (
+      <Card className='mx-auto w-full max-w-3xl gap-0 overflow-hidden border-emerald-200/80 py-0'>
+        <CardHeader className='space-y-4 bg-gradient-to-b from-emerald-50 to-white px-6 pt-8 pb-7 text-center'>
+          <div className='mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-700'>
+            <CircleCheck className='h-8 w-8' />
+          </div>
+          <CardTitle className='text-2xl sm:text-3xl'>Thank You!</CardTitle>
+          <CardDescription className='mx-auto max-w-xl text-sm leading-6 text-slate-600 sm:text-base'>
+            {successMessage}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className='space-y-2 pt-6 text-center text-sm text-muted-foreground'>
+          <p>Your survey was submitted successfully.</p>
+          {(routeNameFromQuery || outletNameFromQuery) && (
+            <p className='pb-5'>
+              {routeNameFromQuery ? `Route: ${routeNameFromQuery}` : ''}
+              {routeNameFromQuery && outletNameFromQuery ? ' | ' : ''}
+              {outletNameFromQuery ? `Outlet: ${outletNameFromQuery}` : ''}
+            </p>
+          )}
+        </CardContent>
       </Card>
     )
   }
@@ -978,7 +1018,7 @@ export function GeneratedSurveyForm({ fileName }: GeneratedSurveyFormProps) {
                             checked={checked}
                             onCheckedChange={(isChecked) => {
                               const current = Array.isArray(value) ? value : []
-                              const next = Boolean(isChecked)
+                              const next = isChecked === true
                                 ? [...current, option.value]
                                 : current.filter(
                                     (item) => item !== option.value

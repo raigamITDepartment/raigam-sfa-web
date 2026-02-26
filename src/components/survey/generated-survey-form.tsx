@@ -7,7 +7,6 @@ import {
 } from 'react'
 import { useLocation } from '@tanstack/react-router'
 import { saveSurveyData } from '@/services/survey/surveyAPI'
-import { findOutletById } from '@/services/userDemarcation/endpoints'
 import { toast } from 'sonner'
 import {
   getFormSchemaFromBlob,
@@ -315,13 +314,6 @@ function getQueryParamsFromLocationHref(
   return Object.fromEntries(new URLSearchParams(search).entries())
 }
 
-function toPositiveNumber(rawValue: string | undefined): number {
-  if (!rawValue) return 0
-  const parsed = Number(rawValue)
-  if (!Number.isFinite(parsed) || parsed <= 0) return 0
-  return parsed
-}
-
 function toNumber(rawValue: string | undefined, fallback = 0): number {
   if (!rawValue) return fallback
   const parsed = Number(rawValue)
@@ -393,6 +385,30 @@ function isOutletDisplayField(
   )
 }
 
+function applyRouteOutletPrefill(
+  fields: GeneratedField[],
+  currentValues: FormValues,
+  routeName: string,
+  outletName: string
+): FormValues {
+  if (!routeName && !outletName) return currentValues
+
+  const next = { ...currentValues }
+  fields.forEach((field) => {
+    if (typeof next[field.key] !== 'string') return
+
+    if (routeName && isRouteDisplayField(field)) {
+      next[field.key] = routeName
+    }
+
+    if (outletName && isOutletDisplayField(field)) {
+      next[field.key] = outletName
+    }
+  })
+
+  return next
+}
+
 async function loadSchemaFromApi(fileName: string): Promise<unknown> {
   const response = await fetch(
     `/api/form-builder/read-json?fileName=${encodeURIComponent(fileName)}`
@@ -450,6 +466,8 @@ export function GeneratedSurveyForm({ fileName }: GeneratedSurveyFormProps) {
     () => getQueryParamsFromLocationHref(locationHref),
     [locationHref]
   )
+  const routeNameFromQuery = (queryParams.routeName ?? '').trim()
+  const outletNameFromQuery = (queryParams.outletName ?? '').trim()
   const [schema, setSchema] = useState<GeneratedSchema | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -460,6 +478,11 @@ export function GeneratedSurveyForm({ fileName }: GeneratedSurveyFormProps) {
   useEffect(() => {
     // eslint-disable-next-line no-console
     console.log('Survey URL Query Params:', queryParams)
+    // eslint-disable-next-line no-console
+    console.log('Survey Route/Outlet from Query Params:', {
+      routeName: queryParams.routeName ?? '',
+      outletName: queryParams.outletName ?? '',
+    })
   }, [queryParams])
 
   useEffect(() => {
@@ -511,7 +534,14 @@ export function GeneratedSurveyForm({ fileName }: GeneratedSurveyFormProps) {
         }
 
         setSchema(parsed)
-        setFormValues(createInitialValues(parsed.fields))
+        setFormValues(
+          applyRouteOutletPrefill(
+            parsed.fields,
+            createInitialValues(parsed.fields),
+            routeNameFromQuery,
+            outletNameFromQuery
+          )
+        )
         setFieldErrors({})
       } catch (loadError) {
         const message =
@@ -526,62 +556,24 @@ export function GeneratedSurveyForm({ fileName }: GeneratedSurveyFormProps) {
     }
 
     void loadForm()
-  }, [fileName])
+  }, [fileName, routeNameFromQuery, outletNameFromQuery])
 
   useEffect(() => {
     if (!schema) return
 
-    const outletIdFromQuery = toPositiveNumber(queryParams.outletId)
-    if (outletIdFromQuery <= 0) return
+    const routeDisplay = (queryParams.routeName || queryParams.routeId || '').trim()
+    const outletDisplay = (queryParams.outletName || queryParams.outletId || '').trim()
+    if (!routeDisplay && !outletDisplay) return
 
-    let active = true
-
-    const prefillRouteOutletNames = async () => {
-      try {
-        const outletResponse = await findOutletById(outletIdFromQuery)
-        const outletPayload =
-          outletResponse?.payload && typeof outletResponse.payload === 'object'
-            ? (outletResponse.payload as Record<string, unknown>)
-            : null
-
-        const routeNameRaw = outletPayload?.routeName
-        const outletNameRaw = outletPayload?.outletName
-        const routeName =
-          typeof routeNameRaw === 'string' ? routeNameRaw.trim() : ''
-        const outletName =
-          typeof outletNameRaw === 'string' ? outletNameRaw.trim() : ''
-
-        if (!active || (!routeName && !outletName)) return
-
-        setFormValues((current) => {
-          const next = { ...current }
-
-          schema.fields.forEach((field) => {
-            if (typeof next[field.key] !== 'string') return
-
-            if (routeName && isRouteDisplayField(field)) {
-              next[field.key] = routeName
-            }
-
-            if (outletName && isOutletDisplayField(field)) {
-              next[field.key] = outletName
-            }
-          })
-
-          return next
-        })
-      } catch (error) {
-        // eslint-disable-next-line no-console
-        console.warn('Prefill route/outlet from findOutletById failed:', error)
-      }
-    }
-
-    void prefillRouteOutletNames()
-
-    return () => {
-      active = false
-    }
-  }, [schema, queryParams.outletId])
+    setFormValues((current) => {
+      return applyRouteOutletPrefill(
+        schema.fields,
+        current,
+        routeDisplay,
+        outletDisplay
+      )
+    })
+  }, [schema, queryParams.routeId, queryParams.routeName, queryParams.outletId, queryParams.outletName])
 
   const canSubmit = useMemo(() => schema && schema.fields.length > 0, [schema])
 
@@ -598,11 +590,15 @@ export function GeneratedSurveyForm({ fileName }: GeneratedSurveyFormProps) {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!schema) return
+    const routeName = queryParams.routeName ?? ''
+    const outletName = queryParams.outletName ?? ''
 
     // eslint-disable-next-line no-console
     console.log('Save Survey Click - All Form Data:', {
       fileName,
       formId: schema.formId,
+      routeName,
+      outletName,
       values: formValues,
     })
 
@@ -626,67 +622,13 @@ export function GeneratedSurveyForm({ fileName }: GeneratedSurveyFormProps) {
 
     try {
       setIsSubmitting(true)
-
-      const outletIdFromQuery = toPositiveNumber(queryParams.outletId)
-      let outletPayload: Record<string, unknown> | null = null
-
-      if (outletIdFromQuery > 0) {
-        try {
-          const outletResponse = await findOutletById(outletIdFromQuery)
-          outletPayload =
-            outletResponse?.payload &&
-            typeof outletResponse.payload === 'object'
-              ? (outletResponse.payload as Record<string, unknown>)
-              : null
-        } catch (outletError) {
-          // eslint-disable-next-line no-console
-          console.warn('findOutletById failed:', outletError)
-        }
-      }
-
-      const routeIdFromOutlet =
-        typeof outletPayload?.routeId === 'number'
-          ? outletPayload.routeId
-          : toNumber(
-              typeof outletPayload?.routeId === 'string'
-                ? outletPayload.routeId
-                : undefined,
-              0
-            )
-      const agencyCodeFromOutlet =
-        typeof outletPayload?.agencyCode === 'number'
-          ? outletPayload.agencyCode
-          : toNumber(
-              typeof outletPayload?.agencyCode === 'string'
-                ? outletPayload.agencyCode
-                : undefined,
-              0
-            )
-      const routeCodeFromOutlet =
-        typeof outletPayload?.routeCode === 'number'
-          ? outletPayload.routeCode
-          : toNumber(
-              typeof outletPayload?.routeCode === 'string'
-                ? outletPayload.routeCode
-                : undefined,
-              0
-            )
-      const shopCodeFromOutlet =
-        typeof outletPayload?.shopCode === 'number'
-          ? outletPayload.shopCode
-          : toNumber(
-              typeof outletPayload?.shopCode === 'string'
-                ? outletPayload.shopCode
-                : undefined,
-              0
-            )
-
-      const routeId = toNumber(queryParams.routeId, routeIdFromOutlet)
-      const outletId = toNumber(queryParams.outletId, shopCodeFromOutlet)
-      const agencyCode = agencyCodeFromOutlet
-      const routeCode = routeCodeFromOutlet || routeId
-      const shopCode = shopCodeFromOutlet || outletId
-      const dealerCode = `${agencyCode}/${routeCode}/${shopCode}`
+      const routeId = toNumber(queryParams.routeId, 0)
+      const outletId = toNumber(queryParams.outletId, 0)
+      const agencyCode = toNumber(queryParams.agencyCode, 0)
+      const routeCode = toNumber(queryParams.routeCode, 0)
+      const shopCode = toNumber(queryParams.shopCode, 0)
+      const dealerCode =
+        queryParams.dealerCode || `${agencyCode}/${routeCode}/${shopCode}`
       const { surveyDate, surveyTime, uniqueId } = toDateTimeParts()
 
       const directQuestionValues: string[] = []
@@ -762,7 +704,14 @@ export function GeneratedSurveyForm({ fileName }: GeneratedSurveyFormProps) {
 
   const handleReset = () => {
     if (!schema) return
-    setFormValues(createInitialValues(schema.fields))
+    setFormValues(
+      applyRouteOutletPrefill(
+        schema.fields,
+        createInitialValues(schema.fields),
+        routeNameFromQuery,
+        outletNameFromQuery
+      )
+    )
     setFieldErrors({})
     toast.success('Form reset successfully.')
   }
@@ -810,6 +759,16 @@ export function GeneratedSurveyForm({ fileName }: GeneratedSurveyFormProps) {
         <form className='space-y-5' onSubmit={handleSubmit}>
           {schema.fields.map((field) => {
             const value = formValues[field.key]
+            const isRouteField = isRouteDisplayField(field)
+            const isOutletField = isOutletDisplayField(field)
+            const routeDisplayValue =
+              routeNameFromQuery ||
+              (queryParams.routeId ?? '').trim() ||
+              (typeof value === 'string' ? value : '')
+            const outletDisplayValue =
+              outletNameFromQuery ||
+              (queryParams.outletId ?? '').trim() ||
+              (typeof value === 'string' ? value : '')
             if (field.type === 'section-heading') {
               return (
                 <h2
@@ -843,10 +802,32 @@ export function GeneratedSurveyForm({ fileName }: GeneratedSurveyFormProps) {
                   )}
                 </Label>
 
+                {isRouteField && (
+                  <Input
+                    id={field.id}
+                    value={routeDisplayValue}
+                    readOnly
+                    disabled
+                    placeholder={field.placeholder || 'Select Route'}
+                  />
+                )}
+
+                {isOutletField && (
+                  <Input
+                    id={field.id}
+                    value={outletDisplayValue}
+                    readOnly
+                    disabled
+                    placeholder={field.placeholder || 'Select Outlet'}
+                  />
+                )}
+
                 {(field.type === 'text' ||
                   field.type === 'email' ||
                   field.type === 'number' ||
-                  field.type === 'date') && (
+                  field.type === 'date') &&
+                  !isRouteField &&
+                  !isOutletField && (
                   <Input
                     id={field.id}
                     type={field.type}
@@ -859,7 +840,9 @@ export function GeneratedSurveyForm({ fileName }: GeneratedSurveyFormProps) {
                   />
                 )}
 
-                {field.type === 'textarea' && (
+                {field.type === 'textarea' &&
+                  !isRouteField &&
+                  !isOutletField && (
                   <Textarea
                     id={field.id}
                     disabled={field.disabled}
@@ -871,7 +854,9 @@ export function GeneratedSurveyForm({ fileName }: GeneratedSurveyFormProps) {
                   />
                 )}
 
-                {field.type === 'select' && (
+                {field.type === 'select' &&
+                  !isRouteField &&
+                  !isOutletField && (
                   <Select
                     disabled={field.disabled}
                     value={
@@ -907,7 +892,9 @@ export function GeneratedSurveyForm({ fileName }: GeneratedSurveyFormProps) {
                   </Select>
                 )}
 
-                {field.type === 'radio' && (
+                {field.type === 'radio' &&
+                  !isRouteField &&
+                  !isOutletField && (
                   <RadioGroup
                     value={typeof value === 'string' ? value : ''}
                     onValueChange={(nextValue) =>
@@ -936,7 +923,9 @@ export function GeneratedSurveyForm({ fileName }: GeneratedSurveyFormProps) {
                   </RadioGroup>
                 )}
 
-                {field.type === 'checkbox' && (
+                {field.type === 'checkbox' &&
+                  !isRouteField &&
+                  !isOutletField && (
                   <div className='space-y-2'>
                     {field.options.map((option, optionIndex) => {
                       const checked =

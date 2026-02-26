@@ -2,9 +2,25 @@ import { http } from '@/services/http'
 import type { ApiResponse } from '@/types/common'
 
 export const SURVEY_BASE = '/api/v1/sales/survey'
+export const SURVEY_REPORTS_BASE =
+  '/api/v1/reports/surveyReports/getSurveyResults'
 
 export type SaveSurveyDataPayload = Record<string, unknown>
 export type SaveSurveyDataResponse<T = unknown> = ApiResponse<T>
+export type SurveyResultItem = {
+  subChannelName: string
+  areaName: string
+  territoryName: string
+  userId: number
+  userName: string
+  dayTarget: number
+  dayCount: number
+  surveyDate: string
+  surveyCount: number
+  timeFrameCount: number
+  outOfTimeFrameCount: number
+}
+export type GetSurveyResultsResponse = ApiResponse<SurveyResultItem[]>
 
 export async function saveSurveyData<T = unknown>(
   payload: SaveSurveyDataPayload
@@ -40,4 +56,9 @@ export async function saveSurveyData<T = unknown>(
       ? data.message
       : `Failed to save survey data (HTTP ${res.status}).`
   throw new Error(message)
+}
+
+export async function getSurveyResults(): Promise<GetSurveyResultsResponse> {
+  const res = await http.get<GetSurveyResultsResponse>(SURVEY_REPORTS_BASE)
+  return res.data
 }

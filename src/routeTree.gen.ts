@@ -9,7 +9,6 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as TestFormRouteImport } from './routes/test-form'
 import { Route as SurveyRouteImport } from './routes/survey'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as authRouteRouteImport } from './routes/(auth)/route'
@@ -70,11 +69,6 @@ import { Route as AuthenticatedAdminModuleUserModuleManagePermissionRouteImport 
 import { Route as AuthenticatedAdminModuleUserModuleAddModifyUserRouteImport } from './routes/_authenticated/admin-module/user-module/add-modify-user'
 import { Route as AuthenticatedAdminModuleOperationManualBillQuotaRouteImport } from './routes/_authenticated/admin-module/operation/manual-bill-quota'
 
-const TestFormRoute = TestFormRouteImport.update({
-  id: '/test-form',
-  path: '/test-form',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const SurveyRoute = SurveyRouteImport.update({
   id: '/survey',
   path: '/survey',
@@ -421,7 +415,6 @@ const AuthenticatedAdminModuleOperationManualBillQuotaRoute =
 
 export interface FileRoutesByFullPath {
   '/survey': typeof SurveyRoute
-  '/test-form': typeof TestFormRoute
   '/sign-in': typeof authSignInRoute
   '/401': typeof errors401Route
   '/403': typeof errors403Route
@@ -481,7 +474,6 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/survey': typeof SurveyRoute
-  '/test-form': typeof TestFormRoute
   '/sign-in': typeof authSignInRoute
   '/401': typeof errors401Route
   '/403': typeof errors403Route
@@ -544,7 +536,6 @@ export interface FileRoutesById {
   '/(auth)': typeof authRouteRouteWithChildren
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/survey': typeof SurveyRoute
-  '/test-form': typeof TestFormRoute
   '/(auth)/sign-in': typeof authSignInRoute
   '/(errors)/401': typeof errors401Route
   '/(errors)/403': typeof errors403Route
@@ -606,7 +597,6 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/survey'
-    | '/test-form'
     | '/sign-in'
     | '/401'
     | '/403'
@@ -666,7 +656,6 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/survey'
-    | '/test-form'
     | '/sign-in'
     | '/401'
     | '/403'
@@ -728,7 +717,6 @@ export interface FileRouteTypes {
     | '/(auth)'
     | '/_authenticated'
     | '/survey'
-    | '/test-form'
     | '/(auth)/sign-in'
     | '/(errors)/401'
     | '/(errors)/403'
@@ -791,7 +779,6 @@ export interface RootRouteChildren {
   authRouteRoute: typeof authRouteRouteWithChildren
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   SurveyRoute: typeof SurveyRoute
-  TestFormRoute: typeof TestFormRoute
   errors401Route: typeof errors401Route
   errors403Route: typeof errors403Route
   errors404Route: typeof errors404Route
@@ -801,13 +788,6 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/test-form': {
-      id: '/test-form'
-      path: '/test-form'
-      fullPath: '/test-form'
-      preLoaderRoute: typeof TestFormRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/survey': {
       id: '/survey'
       path: '/survey'
@@ -1390,7 +1370,6 @@ const rootRouteChildren: RootRouteChildren = {
   authRouteRoute: authRouteRouteWithChildren,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   SurveyRoute: SurveyRoute,
-  TestFormRoute: TestFormRoute,
   errors401Route: errors401Route,
   errors403Route: errors403Route,
   errors404Route: errors404Route,

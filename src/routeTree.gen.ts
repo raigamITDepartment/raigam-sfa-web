@@ -20,6 +20,7 @@ import { Route as errors404RouteImport } from './routes/(errors)/404'
 import { Route as errors403RouteImport } from './routes/(errors)/403'
 import { Route as errors401RouteImport } from './routes/(errors)/401'
 import { Route as authSignInRouteImport } from './routes/(auth)/sign-in'
+import { Route as AuthenticatedSurveyModuleSurveyReportRouteImport } from './routes/_authenticated/survey-module/survey-report'
 import { Route as AuthenticatedSurveyModuleSurveyFormBuilderRouteImport } from './routes/_authenticated/survey-module/survey-form-builder'
 import { Route as AuthenticatedReportsTerritoryWiseSalesReportRouteImport } from './routes/_authenticated/reports/territory-wise-sales-report'
 import { Route as AuthenticatedReportsTerritoryWiseItemsReportRouteImport } from './routes/_authenticated/reports/territory-wise-items-report'
@@ -122,6 +123,12 @@ const authSignInRoute = authSignInRouteImport.update({
   path: '/sign-in',
   getParentRoute: () => authRouteRoute,
 } as any)
+const AuthenticatedSurveyModuleSurveyReportRoute =
+  AuthenticatedSurveyModuleSurveyReportRouteImport.update({
+    id: '/survey-module/survey-report',
+    path: '/survey-module/survey-report',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedSurveyModuleSurveyFormBuilderRoute =
   AuthenticatedSurveyModuleSurveyFormBuilderRouteImport.update({
     id: '/survey-module/survey-form-builder',
@@ -442,6 +449,7 @@ export interface FileRoutesByFullPath {
   '/reports/territory-wise-items-report': typeof AuthenticatedReportsTerritoryWiseItemsReportRoute
   '/reports/territory-wise-sales-report': typeof AuthenticatedReportsTerritoryWiseSalesReportRoute
   '/survey-module/survey-form-builder': typeof AuthenticatedSurveyModuleSurveyFormBuilderRoute
+  '/survey-module/survey-report': typeof AuthenticatedSurveyModuleSurveyReportRoute
   '/admin-module/operation/manual-bill-quota': typeof AuthenticatedAdminModuleOperationManualBillQuotaRoute
   '/admin-module/user-module/add-modify-user': typeof AuthenticatedAdminModuleUserModuleAddModifyUserRoute
   '/admin-module/user-module/manage-permission': typeof AuthenticatedAdminModuleUserModuleManagePermissionRoute
@@ -501,6 +509,7 @@ export interface FileRoutesByTo {
   '/reports/territory-wise-items-report': typeof AuthenticatedReportsTerritoryWiseItemsReportRoute
   '/reports/territory-wise-sales-report': typeof AuthenticatedReportsTerritoryWiseSalesReportRoute
   '/survey-module/survey-form-builder': typeof AuthenticatedSurveyModuleSurveyFormBuilderRoute
+  '/survey-module/survey-report': typeof AuthenticatedSurveyModuleSurveyReportRoute
   '/admin-module/operation/manual-bill-quota': typeof AuthenticatedAdminModuleOperationManualBillQuotaRoute
   '/admin-module/user-module/add-modify-user': typeof AuthenticatedAdminModuleUserModuleAddModifyUserRoute
   '/admin-module/user-module/manage-permission': typeof AuthenticatedAdminModuleUserModuleManagePermissionRoute
@@ -563,6 +572,7 @@ export interface FileRoutesById {
   '/_authenticated/reports/territory-wise-items-report': typeof AuthenticatedReportsTerritoryWiseItemsReportRoute
   '/_authenticated/reports/territory-wise-sales-report': typeof AuthenticatedReportsTerritoryWiseSalesReportRoute
   '/_authenticated/survey-module/survey-form-builder': typeof AuthenticatedSurveyModuleSurveyFormBuilderRoute
+  '/_authenticated/survey-module/survey-report': typeof AuthenticatedSurveyModuleSurveyReportRoute
   '/_authenticated/admin-module/operation/manual-bill-quota': typeof AuthenticatedAdminModuleOperationManualBillQuotaRoute
   '/_authenticated/admin-module/user-module/add-modify-user': typeof AuthenticatedAdminModuleUserModuleAddModifyUserRoute
   '/_authenticated/admin-module/user-module/manage-permission': typeof AuthenticatedAdminModuleUserModuleManagePermissionRoute
@@ -624,6 +634,7 @@ export interface FileRouteTypes {
     | '/reports/territory-wise-items-report'
     | '/reports/territory-wise-sales-report'
     | '/survey-module/survey-form-builder'
+    | '/survey-module/survey-report'
     | '/admin-module/operation/manual-bill-quota'
     | '/admin-module/user-module/add-modify-user'
     | '/admin-module/user-module/manage-permission'
@@ -683,6 +694,7 @@ export interface FileRouteTypes {
     | '/reports/territory-wise-items-report'
     | '/reports/territory-wise-sales-report'
     | '/survey-module/survey-form-builder'
+    | '/survey-module/survey-report'
     | '/admin-module/operation/manual-bill-quota'
     | '/admin-module/user-module/add-modify-user'
     | '/admin-module/user-module/manage-permission'
@@ -744,6 +756,7 @@ export interface FileRouteTypes {
     | '/_authenticated/reports/territory-wise-items-report'
     | '/_authenticated/reports/territory-wise-sales-report'
     | '/_authenticated/survey-module/survey-form-builder'
+    | '/_authenticated/survey-module/survey-report'
     | '/_authenticated/admin-module/operation/manual-bill-quota'
     | '/_authenticated/admin-module/user-module/add-modify-user'
     | '/_authenticated/admin-module/user-module/manage-permission'
@@ -864,6 +877,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/sign-in'
       preLoaderRoute: typeof authSignInRouteImport
       parentRoute: typeof authRouteRoute
+    }
+    '/_authenticated/survey-module/survey-report': {
+      id: '/_authenticated/survey-module/survey-report'
+      path: '/survey-module/survey-report'
+      fullPath: '/survey-module/survey-report'
+      preLoaderRoute: typeof AuthenticatedSurveyModuleSurveyReportRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/survey-module/survey-form-builder': {
       id: '/_authenticated/survey-module/survey-form-builder'
@@ -1238,6 +1258,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedReportsTerritoryWiseItemsReportRoute: typeof AuthenticatedReportsTerritoryWiseItemsReportRoute
   AuthenticatedReportsTerritoryWiseSalesReportRoute: typeof AuthenticatedReportsTerritoryWiseSalesReportRoute
   AuthenticatedSurveyModuleSurveyFormBuilderRoute: typeof AuthenticatedSurveyModuleSurveyFormBuilderRoute
+  AuthenticatedSurveyModuleSurveyReportRoute: typeof AuthenticatedSurveyModuleSurveyReportRoute
   AuthenticatedAdminModuleOperationManualBillQuotaRoute: typeof AuthenticatedAdminModuleOperationManualBillQuotaRoute
   AuthenticatedAdminModuleUserModuleAddModifyUserRoute: typeof AuthenticatedAdminModuleUserModuleAddModifyUserRoute
   AuthenticatedAdminModuleUserModuleManagePermissionRoute: typeof AuthenticatedAdminModuleUserModuleManagePermissionRoute
@@ -1303,6 +1324,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedReportsTerritoryWiseSalesReportRoute,
   AuthenticatedSurveyModuleSurveyFormBuilderRoute:
     AuthenticatedSurveyModuleSurveyFormBuilderRoute,
+  AuthenticatedSurveyModuleSurveyReportRoute:
+    AuthenticatedSurveyModuleSurveyReportRoute,
   AuthenticatedAdminModuleOperationManualBillQuotaRoute:
     AuthenticatedAdminModuleOperationManualBillQuotaRoute,
   AuthenticatedAdminModuleUserModuleAddModifyUserRoute:

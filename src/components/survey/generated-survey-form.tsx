@@ -756,7 +756,7 @@ export function GeneratedSurveyForm({ fileName }: GeneratedSurveyFormProps) {
         )}
       </CardHeader>
       <CardContent>
-        <form className='space-y-5' onSubmit={handleSubmit}>
+        <form className='space-y-5 [&_label]:leading-[18px]' onSubmit={handleSubmit}>
           {schema.fields.map((field) => {
             const value = formValues[field.key]
             const isRouteField = isRouteDisplayField(field)

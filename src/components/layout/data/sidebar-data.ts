@@ -133,17 +133,6 @@ export const sidebarData: SidebarData = {
       items: [{ title: 'Outlets', url: '/outlet-module/outlets', icon: Store }],
     },
     {
-      title: 'Survey Module',
-      items: [
-        {
-          title: 'Surey Form build',
-          url: '/survey-module/survey-form-builder',
-          icon: ClipboardList,
-        },
-      ],
-    },
-
-    {
       title: 'Reports',
       items: [
         {
@@ -321,6 +310,21 @@ export const sidebarData: SidebarData = {
               url: '/agency-module/stock/request-order',
             },
           ],
+        },
+      ],
+    },
+    {
+      title: 'Survey Module',
+      items: [
+        {
+          title: 'Surey Form build',
+          url: '/survey-module/survey-form-builder',
+          icon: ClipboardList,
+        },
+        {
+          title: 'Survey Report',
+          url: '/survey-module/survey-report',
+          icon: ClipboardList,
         },
       ],
     },

@@ -59,6 +59,7 @@ type BuilderFieldType =
 type BuilderFieldOption = {
   value: string
   label: string
+  group: string
 }
 
 type BuilderField = {
@@ -211,8 +212,8 @@ function ensureUniqueFieldKey(
 
 function createDefaultOptions(): BuilderFieldOption[] {
   return [
-    { value: 'option_1', label: 'Option 1' },
-    { value: 'option_2', label: 'Option 2' },
+    { value: 'option_1', label: 'Option 1', group: '' },
+    { value: 'option_2', label: 'Option 2', group: '' },
   ]
 }
 
@@ -293,7 +294,7 @@ function sanitizeField(field: unknown, fields: BuilderField[]): BuilderField | n
             if (typeof option === 'string') {
               const trimmed = option.trim()
               if (!trimmed) return null
-              return { value: trimmed, label: trimmed }
+              return { value: trimmed, label: trimmed, group: '' }
             }
             if (!option || typeof option !== 'object') return null
             const rawOption = option as Partial<BuilderFieldOption>
@@ -301,10 +302,15 @@ function sanitizeField(field: unknown, fields: BuilderField[]): BuilderField | n
               typeof rawOption.value === 'string' ? rawOption.value.trim() : ''
             const label =
               typeof rawOption.label === 'string' ? rawOption.label.trim() : ''
+            const group =
+              raw.type === 'select' && typeof rawOption.group === 'string'
+                ? rawOption.group.trim()
+                : ''
             if (!value && !label) return null
             return {
               value: value || toFieldKey(label),
               label: label || value,
+              group,
             }
           })
           .filter((option): option is BuilderFieldOption => Boolean(option))
@@ -362,6 +368,38 @@ function createNextOption(options: BuilderFieldOption[]): BuilderFieldOption {
   return {
     value: `option_${nextIndex}`,
     label: `Option ${nextIndex}`,
+    group: '',
+  }
+}
+
+function splitChoiceOptionsByGroup(options: BuilderFieldOption[]): {
+  ungrouped: BuilderFieldOption[]
+  groups: Array<{ label: string; options: BuilderFieldOption[] }>
+} {
+  const ungrouped: BuilderFieldOption[] = []
+  const grouped = new Map<string, BuilderFieldOption[]>()
+  const groupOrder: string[] = []
+
+  options.forEach((option) => {
+    const groupLabel = option.group.trim()
+    if (!groupLabel) {
+      ungrouped.push(option)
+      return
+    }
+
+    if (!grouped.has(groupLabel)) {
+      grouped.set(groupLabel, [])
+      groupOrder.push(groupLabel)
+    }
+    grouped.get(groupLabel)?.push(option)
+  })
+
+  return {
+    ungrouped,
+    groups: groupOrder.map((label) => ({
+      label,
+      options: grouped.get(label) ?? [],
+    })),
   }
 }
 
@@ -478,7 +516,8 @@ function renderPreviewField(field: BuilderField) {
         />
       )
 
-    case 'select':
+    case 'select': {
+      const groupedOptions = splitChoiceOptionsByGroup(field.options)
       return (
         <select
           disabled
@@ -486,13 +525,26 @@ function renderPreviewField(field: BuilderField) {
           defaultValue=''
         >
           <option value=''>{field.placeholder || 'Select One'}</option>
-          {field.options.map((option) => (
+          {groupedOptions.ungrouped.map((option) => (
             <option key={`${field.id}-${option.value}`} value={option.value}>
               {option.label}
             </option>
           ))}
+          {groupedOptions.groups.map((group) => (
+            <optgroup key={`${field.id}-group-${group.label}`} label={group.label}>
+              {group.options.map((option, optionIndex) => (
+                <option
+                  key={`${field.id}-${group.label}-${option.value}-${optionIndex}`}
+                  value={option.value}
+                >
+                  {option.label}
+                </option>
+              ))}
+            </optgroup>
+          ))}
         </select>
       )
+    }
 
     case 'radio':
       return (
@@ -1157,7 +1209,7 @@ export function FormBuild() {
   const updateOptionRow = (
     fieldId: string,
     optionIndex: number,
-    key: 'value' | 'label',
+    key: 'value' | 'label' | 'group',
     nextValue: string
   ) => {
     updateField(fieldId, (field) => ({
@@ -1179,7 +1231,9 @@ export function FormBuild() {
     updateField(fieldId, (field) => ({
       ...field,
       options: field.options.map((option, index) =>
-        index === optionIndex ? { ...option, value: '', label: '' } : option
+        index === optionIndex
+          ? { ...option, value: '', label: '', group: '' }
+          : option
       ),
     }))
   }
@@ -1708,7 +1762,14 @@ export function FormBuild() {
                           key={`${selectedField.id}-option-${index}`}
                           className='rounded-md border p-3'
                         >
-                          <div className='grid gap-2 sm:grid-cols-2'>
+                          <div
+                            className={cn(
+                              'grid gap-2',
+                              selectedField.type === 'select'
+                                ? 'sm:grid-cols-3'
+                                : 'sm:grid-cols-2'
+                            )}
+                          >
                             <div className='min-w-0 space-y-1'>
                               <Label
                                 htmlFor={`${selectedField.id}-option-value-${index}`}
@@ -1751,6 +1812,29 @@ export function FormBuild() {
                                 placeholder='Option 1'
                               />
                             </div>
+                            {selectedField.type === 'select' && (
+                              <div className='min-w-0 space-y-1'>
+                                <Label
+                                  htmlFor={`${selectedField.id}-option-group-${index}`}
+                                  className='text-muted-foreground text-xs'
+                                >
+                                  Group (optional)
+                                </Label>
+                                <Input
+                                  id={`${selectedField.id}-option-group-${index}`}
+                                  value={option.group}
+                                  onChange={(event) =>
+                                    updateOptionRow(
+                                      selectedField.id,
+                                      index,
+                                      'group',
+                                      event.target.value
+                                    )
+                                  }
+                                  placeholder='Group A'
+                                />
+                              </div>
+                            )}
                           </div>
                           <div className='mt-2 flex justify-end gap-2'>
                             <Button

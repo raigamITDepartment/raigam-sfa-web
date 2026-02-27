@@ -28,7 +28,9 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
@@ -49,6 +51,7 @@ type GeneratedFieldType =
 type GeneratedFieldOption = {
   value: string
   label: string
+  group: string
 }
 
 type GeneratedField = {
@@ -127,9 +130,40 @@ function buildDisplayLabel(
 
 function createDefaultOptions(): GeneratedFieldOption[] {
   return [
-    { value: 'option_1', label: 'Option 1' },
-    { value: 'option_2', label: 'Option 2' },
+    { value: 'option_1', label: 'Option 1', group: '' },
+    { value: 'option_2', label: 'Option 2', group: '' },
   ]
+}
+
+function splitChoiceOptionsByGroup(options: GeneratedFieldOption[]): {
+  ungrouped: GeneratedFieldOption[]
+  groups: Array<{ label: string; options: GeneratedFieldOption[] }>
+} {
+  const ungrouped: GeneratedFieldOption[] = []
+  const grouped = new Map<string, GeneratedFieldOption[]>()
+  const groupOrder: string[] = []
+
+  options.forEach((option) => {
+    const groupLabel = option.group.trim()
+    if (!groupLabel) {
+      ungrouped.push(option)
+      return
+    }
+
+    if (!grouped.has(groupLabel)) {
+      grouped.set(groupLabel, [])
+      groupOrder.push(groupLabel)
+    }
+    grouped.get(groupLabel)?.push(option)
+  })
+
+  return {
+    ungrouped,
+    groups: groupOrder.map((label) => ({
+      label,
+      options: grouped.get(label) ?? [],
+    })),
+  }
 }
 
 function getDisplayFieldStyle(
@@ -195,7 +229,7 @@ function sanitizeSchema(rawValue: unknown): GeneratedSchema | null {
               if (typeof option === 'string') {
                 const trimmed = option.trim()
                 if (!trimmed) return null
-                return { value: trimmed, label: trimmed }
+                return { value: trimmed, label: trimmed, group: '' }
               }
               if (!option || typeof option !== 'object') return null
               const rawOption = option as Partial<GeneratedFieldOption>
@@ -207,10 +241,15 @@ function sanitizeSchema(rawValue: unknown): GeneratedSchema | null {
                 typeof rawOption.label === 'string'
                   ? rawOption.label.trim()
                   : ''
+              const group =
+                field.type === 'select' && typeof rawOption.group === 'string'
+                  ? rawOption.group.trim()
+                  : ''
               if (!value && !label) return null
               return {
                 value: value || toFieldKey(label),
                 label: label || value,
+                group,
               }
             })
             .filter((option): option is GeneratedFieldOption => Boolean(option))
@@ -845,6 +884,10 @@ export function GeneratedSurveyForm({ fileName }: GeneratedSurveyFormProps) {
               (queryParams.outletId ?? '').trim() ||
               (typeof value === 'string' ? value : '')
             const selectOptions = selectOptionsByFieldId[field.id] ?? field.options
+            const groupedSelectOptions =
+              field.type === 'select'
+                ? splitChoiceOptionsByGroup(selectOptions)
+                : null
             if (field.type === 'section-heading') {
               return (
                 <h2
@@ -956,13 +999,26 @@ export function GeneratedSurveyForm({ fileName }: GeneratedSurveyFormProps) {
                       <SelectItem value={DEFAULT_SELECT_VALUE}>
                         {field.placeholder || 'Select One'}
                       </SelectItem>
-                      {selectOptions.map((option) => (
+                      {groupedSelectOptions?.ungrouped.map((option, optionIndex) => (
                         <SelectItem
-                          key={`${field.id}-${option.value}`}
+                          key={`${field.id}-ungrouped-${option.value}-${optionIndex}`}
                           value={option.value}
                         >
                           {option.label}
                         </SelectItem>
+                      ))}
+                      {groupedSelectOptions?.groups.map((group) => (
+                        <SelectGroup key={`${field.id}-group-${group.label}`}>
+                          <SelectLabel>{group.label}</SelectLabel>
+                          {group.options.map((option, optionIndex) => (
+                            <SelectItem
+                              key={`${field.id}-${group.label}-${option.value}-${optionIndex}`}
+                              value={option.value}
+                            >
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
                       ))}
                     </SelectContent>
                   </Select>
